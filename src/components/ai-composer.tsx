@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { SendHorizontal, Settings, RefreshCw, Copy, Check, Wand2, AtSign, X, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { SendHorizontal, Settings, RefreshCw, Copy, Check, Wand2, AtSign, X, FileText, ChevronDown, ChevronUp, Trash2, ArrowLeft, Bug } from "lucide-react";
 import { useDocumentStore, useLLMStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/use-toast";
@@ -20,6 +20,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 interface Message {
   id: string;
@@ -44,18 +65,7 @@ export default function AIComposer({}: AIComposerProps) {
   const { config } = useLLMStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const [messages, setMessages] = useState<Message[]>([
-    { 
-      id: "welcome",
-      role: "assistant", 
-      content: "Hello! I'm your AI writing assistant powered by " + 
-        (config.provider === 'gemini' ? 'Google Gemini' : 'OpenAI') + 
-        ". How can I help you with your document today?",
-      timestamp: new Date(),
-      model: config.model,
-      provider: config.provider
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState<string | null>(null);
@@ -68,6 +78,10 @@ export default function AIComposer({}: AIComposerProps) {
   const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(0);
   const [filteredDocuments, setFilteredDocuments] = useState<Array<{ id: string; name: string; content: string }>>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [showClearConfirmation, setShowClearConfirmation] = useState(false);
+  const [lastPrompt, setLastPrompt] = useState<string>("");
+  const [showDebugDialog, setShowDebugDialog] = useState(false);
 
   // Get the selected document
   const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
@@ -120,17 +134,12 @@ export default function AIComposer({}: AIComposerProps) {
   };
 
   const generateAIResponse = async (userMessage: string) => {
-    // Create prompt based on user message and document context
+    // Create prompt based on user message and context documents
     let prompt = "";
     
-    // Add the primary document context
-    if (selectedDocument) {
-      prompt = `Primary Document Title: ${selectedDocument.name}\n\nPrimary Document Content:\n${selectedDocument.content}\n\n`;
-    }
-    
-    // Add additional context documents if any
+    // Add context documents if any
     if (contextDocuments.length > 0) {
-      prompt += "Additional Context Documents:\n\n";
+      prompt += "Context Documents:\n\n";
       
       contextDocuments.forEach((doc, index) => {
         prompt += `Document ${index + 1} Title: ${doc.name}\n`;
@@ -140,18 +149,27 @@ export default function AIComposer({}: AIComposerProps) {
     
     // Add the user message
     prompt += `User Message: ${userMessage}\n\n`;
-    prompt += `Please provide a helpful response based on the document content and user request.`;
+    prompt += `Please provide a helpful response based on the user request`;
+    
+    if (contextDocuments.length > 0) {
+      prompt += ` and the provided context documents`;
+    }
+    
+    prompt += `.`;
     
     // Add specific instructions based on user intent
     if (userMessage.toLowerCase().includes("summarize")) {
-      prompt += "\n\nThe user wants a summary of the document. Please provide a concise summary.";
+      prompt += "\n\nThe user wants a summary. Please provide a concise summary.";
     } 
     else if (userMessage.toLowerCase().includes("improve") || userMessage.toLowerCase().includes("edit")) {
       prompt += "\n\nThe user wants suggestions to improve their writing. Please provide specific improvements.";
     }
     else if (userMessage.toLowerCase().includes("idea") || userMessage.toLowerCase().includes("brainstorm")) {
-      prompt += "\n\nThe user wants ideas related to their document. Please provide creative and relevant ideas.";
+      prompt += "\n\nThe user wants ideas. Please provide creative and relevant ideas.";
     }
+    
+    // Store the prompt for debugging
+    setLastPrompt(prompt);
     
     // Call the LLM service
     const response = await generateText({ prompt });
@@ -321,15 +339,54 @@ export default function AIComposer({}: AIComposerProps) {
     }
   };
 
-  const handleApplyToDocument = (content: string) => {
+  const handleApplyToDocument = (content: string, messageId: string) => {
     if (selectedDocumentId && selectedDocument) {
+      // Find the current message
+      const currentMessage = messages.find(msg => msg.id === messageId);
+      if (!currentMessage || currentMessage.role !== "assistant") return;
+      
+      // Find the user message that preceded this assistant message
+      const messageIndex = messages.findIndex(msg => msg.id === messageId);
+      let promptMessage: Message | undefined;
+      
+      // Look for the most recent user message before this assistant message
+      if (messageIndex > 0) {
+        for (let i = messageIndex - 1; i >= 0; i--) {
+          if (messages[i].role === "user") {
+            promptMessage = messages[i];
+            break;
+          }
+        }
+      }
+      
+      // Format the content to include the prompt and context documents
+      let formattedContent = "";
+      
+      // Add the prompt if available
+      if (promptMessage) {
+        formattedContent += `## Prompt\n\n${promptMessage.content}\n\n`;
+      }
+      
+      // Add context documents if any
+      if (contextDocuments.length > 0) {
+        formattedContent += `## Context Documents\n\n`;
+        contextDocuments.forEach((doc, index) => {
+          formattedContent += `### ${index + 1}. ${doc.name}\n\n`;
+        });
+        formattedContent += `\n`;
+      }
+      
+      // Add the AI response
+      formattedContent += `## Response\n\n${content}`;
+      
+      // Update the document
       updateDocument(selectedDocumentId, {
-        content: selectedDocument.content + "\n\n" + content
-      }, true, "Applied AI suggestion");
+        content: selectedDocument.content + "\n\n" + formattedContent
+      }, true, "Applied AI suggestion with context");
       
       toast({
         title: "Added to document",
-        description: `Content added to "${selectedDocument.name}"`,
+        description: `Content added to "${selectedDocument.name}" with context`,
       });
     } else {
       toast({
@@ -416,6 +473,27 @@ export default function AIComposer({}: AIComposerProps) {
     }
   };
 
+  // Add a function to handle clearing the chat
+  const handleClearChat = () => {
+    // Reset messages to an empty array
+    setMessages([]);
+    
+    // Clear input field
+    setInput("");
+    
+    // Clear context documents
+    setContextDocuments([]);
+    
+    // Show confirmation toast
+    toast({
+      title: "Chat cleared",
+      description: "Your conversation has been reset.",
+    });
+    
+    // Close confirmation dialog
+    setShowClearConfirmation(false);
+  };
+
   if (!selectedDocumentId || !selectedDocument) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -474,6 +552,82 @@ export default function AIComposer({}: AIComposerProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        
+        <div className="flex items-center gap-2">
+          <Dialog open={showDebugDialog} onOpenChange={setShowDebugDialog}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-muted-foreground"
+                title="Show debug information"
+              >
+                <Bug className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[80vh]">
+              <DialogHeader>
+                <DialogTitle>Debug: Last Prompt Sent to LLM</DialogTitle>
+                <DialogDescription>
+                  This is the exact prompt that was sent to the language model in the last request.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-4 border rounded-md p-4 bg-muted/50 overflow-auto max-h-[60vh]">
+                <pre className="whitespace-pre-wrap text-sm font-mono">{lastPrompt || "No prompt has been sent yet."}</pre>
+              </div>
+              <DialogFooter className="mt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(lastPrompt);
+                    toast({
+                      title: "Copied to clipboard",
+                      description: "The prompt has been copied to your clipboard.",
+                    });
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy to Clipboard
+                </Button>
+                <DialogClose asChild>
+                  <Button>Close</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          <AlertDialog open={showClearConfirmation} onOpenChange={setShowClearConfirmation}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground hover:text-destructive"
+                title="Clear chat history"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clear Chat History</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will remove all messages and context documents from the current conversation. 
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleClearChat}
+                  className="bg-destructive hover:bg-destructive/90 text-white font-medium"
+                >
+                  Clear Chat
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
       
       {/* Context documents list */}
@@ -515,13 +669,13 @@ export default function AIComposer({}: AIComposerProps) {
                 <>
                   <div className="mt-3 pt-2 border-t border-border flex items-center justify-between">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => handleApplyToDocument(message.content)}
+                      className="h-7 text-xs border border-border"
+                      onClick={() => handleApplyToDocument(message.content, message.id)}
                       title="Add this response to your current document"
                     >
-                      <FileText className="h-3 w-3 mr-1" />
+                      <ArrowLeft className="h-3 w-3 mr-1" />
                       Add to Document
                     </Button>
                     

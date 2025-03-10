@@ -1,13 +1,13 @@
 [
   {
     "id": "folder-1741641637219",
-    "name": "test",
+    "name": "Examples",
     "createdAt": "2025-03-10T21:20:37.219Z",
     "parentId": null
   },
   {
     "id": "folder-1741641710486",
-    "name": "aaa",
+    "name": "Loops",
     "createdAt": "2025-03-10T21:21:50.486Z",
     "parentId": null
   }
