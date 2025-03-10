@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLLMStore } from "@/lib/store";
+import { LLM_PROVIDERS, LLM_MODELS } from "@/lib/config";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function SettingsPage() {
   
   const [provider, setProvider] = useState(config.provider);
   const [apiKey, setApiKey] = useState(config.apiKey);
+  const [googleApiKey, setGoogleApiKey] = useState(config.googleApiKey || '');
   const [model, setModel] = useState(config.model);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -23,8 +25,20 @@ export default function SettingsPage() {
   useEffect(() => {
     setProvider(config.provider);
     setApiKey(config.apiKey);
+    setGoogleApiKey(config.googleApiKey || '');
     setModel(config.model);
   }, [config]);
+  
+  // Update model when provider changes
+  useEffect(() => {
+    // If the current model doesn't belong to the selected provider, reset it
+    const providerModels = LLM_MODELS[provider as keyof typeof LLM_MODELS] || [];
+    const modelExists = providerModels.some(m => m.value === model);
+    
+    if (!modelExists && providerModels.length > 0) {
+      setModel(providerModels[0].value);
+    }
+  }, [provider, model]);
   
   const handleSave = () => {
     setIsSaving(true);
@@ -34,6 +48,7 @@ export default function SettingsPage() {
       updateConfig({
         provider,
         apiKey,
+        googleApiKey,
         model
       });
       
@@ -70,25 +85,44 @@ export default function SettingsPage() {
                   <SelectValue placeholder="Select provider" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="openai">OpenAI</SelectItem>
-                  <SelectItem value="anthropic">Anthropic</SelectItem>
-                  <SelectItem value="google">Google AI</SelectItem>
-                  <SelectItem value="mistral">Mistral AI</SelectItem>
-                  <SelectItem value="local">Local Model</SelectItem>
+                  {LLM_PROVIDERS.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="apiKey">API Key</Label>
-              <Input 
-                id="apiKey" 
-                type="password" 
-                value={apiKey} 
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your API key"
-              />
-            </div>
+            {provider === 'openai' && (
+              <div className="space-y-2">
+                <Label htmlFor="apiKey">OpenAI API Key</Label>
+                <Input 
+                  id="apiKey" 
+                  type="password" 
+                  value={apiKey} 
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Enter your OpenAI API key"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your API key is stored locally and never sent to our servers.
+                </p>
+              </div>
+            )}
+            
+            {provider === 'gemini' && (
+              <div className="space-y-2">
+                <Label htmlFor="googleApiKey">Google API Key</Label>
+                <Input 
+                  id="googleApiKey" 
+                  type="password" 
+                  value={googleApiKey} 
+                  onChange={(e) => setGoogleApiKey(e.target.value)}
+                  placeholder="Enter your Google API key"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your API key is stored locally and never sent to our servers.
+                </p>
+              </div>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="model">Model</Label>
@@ -97,40 +131,9 @@ export default function SettingsPage() {
                   <SelectValue placeholder="Select model" />
                 </SelectTrigger>
                 <SelectContent>
-                  {provider === "openai" && (
-                    <>
-                      <SelectItem value="gpt-4">GPT-4</SelectItem>
-                      <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                      <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                    </>
-                  )}
-                  {provider === "anthropic" && (
-                    <>
-                      <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
-                      <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
-                      <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
-                    </>
-                  )}
-                  {provider === "google" && (
-                    <>
-                      <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
-                      <SelectItem value="gemini-ultra">Gemini Ultra</SelectItem>
-                    </>
-                  )}
-                  {provider === "mistral" && (
-                    <>
-                      <SelectItem value="mistral-large">Mistral Large</SelectItem>
-                      <SelectItem value="mistral-medium">Mistral Medium</SelectItem>
-                      <SelectItem value="mistral-small">Mistral Small</SelectItem>
-                    </>
-                  )}
-                  {provider === "local" && (
-                    <>
-                      <SelectItem value="llama-3">Llama 3</SelectItem>
-                      <SelectItem value="llama-2">Llama 2</SelectItem>
-                      <SelectItem value="mistral-7b">Mistral 7B</SelectItem>
-                    </>
-                  )}
+                  {LLM_MODELS[provider as keyof typeof LLM_MODELS]?.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

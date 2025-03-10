@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHand
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
-import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, FileDown, X, History } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, FileDown, X, History, Undo } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDocumentStore } from "@/lib/store";
 import { OnMount, useMonaco } from "@monaco-editor/react";
@@ -21,6 +21,8 @@ import type { MarkedOptions } from 'marked';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 // Dynamically import components that might cause hydration issues
 const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.default), { ssr: false });
@@ -28,34 +30,55 @@ const DiffEditor = dynamic(() => import('@monaco-editor/react').then(mod => mod.
 
 interface MarkdownEditorProps {}
 
-// Marked.js preview component
+// Marked.js preview component with KaTeX support
 const MarkedPreview = ({ content }: { content: string }) => {
   const [html, setHtml] = useState('');
   const { theme } = useTheme();
   
   useEffect(() => {
-    // Function to render markdown
+    // Function to render markdown with LaTeX support
     const renderMarkdown = () => {
       try {
-        // We need to disable TypeScript checking for marked because of type issues
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const markedInstance = marked as any;
+        // Pre-process content to handle LaTeX before passing to marked
+        let processedContent = content;
         
-        // Configure marked
-        markedInstance.setOptions({
-          highlight: (code: string, lang: string) => {
-            if (lang && hljs.getLanguage(lang)) {
-              return hljs.highlight(code, { language: lang }).value;
-            }
-            return hljs.highlightAuto(code).value;
-          },
-          breaks: true,
-          gfm: true
+        // Process block LaTeX: $$...$$
+        processedContent = processedContent.replace(/\$\$([\s\S]+?)\$\$/g, (match, latex) => {
+          try {
+            return `<div class="katex-block">${katex.renderToString(latex.trim(), { 
+              displayMode: true,
+              throwOnError: false
+            })}</div>`;
+          } catch (error) {
+            console.error('KaTeX block error:', error);
+            return `<div class="text-red-500 my-4">LaTeX Error: ${latex}</div>`;
+          }
         });
         
-        // Parse markdown
-        const rawHtml = markedInstance.parse(content);
-        const cleanHtml = DOMPurify.sanitize(rawHtml);
+        // Process inline LaTeX: $...$
+        processedContent = processedContent.replace(/\$([^\$]+?)\$/g, (match, latex) => {
+          try {
+            return katex.renderToString(latex.trim(), { 
+              displayMode: false,
+              throwOnError: false
+            });
+          } catch (error) {
+            console.error('KaTeX inline error:', error);
+            return `<span class="text-red-500">LaTeX Error: ${latex}</span>`;
+          }
+        });
+        
+        // Parse markdown with type assertion to avoid TypeScript errors
+        const rawHtml = marked.parse(processedContent) as string;
+        
+        // Configure DOMPurify to allow KaTeX classes and attributes
+        const purifyConfig = {
+          ADD_TAGS: ['math', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'msubsup', 'munderover', 'munder', 'mover'],
+          ADD_ATTR: ['class', 'style', 'data-*'],
+          KEEP_CONTENT: true
+        };
+        
+        const cleanHtml = DOMPurify.sanitize(rawHtml, purifyConfig);
         setHtml(cleanHtml);
       } catch (error) {
         console.error('Error parsing markdown:', error);
@@ -110,9 +133,11 @@ const MarkdownEditor = forwardRef<
   const [diffOriginalTitle, setDiffOriginalTitle] = useState("");
   const [diffModifiedTitle, setDiffModifiedTitle] = useState("");
 
+  // Add a reference to the current selection
   const [showLLMDialog, setShowLLMDialog] = useState(false);
   const [selectedText, setSelectedText] = useState("");
   const [dialogPosition, setDialogPosition] = useState<{ x: number; y: number } | null>(null);
+  const [currentSelection, setCurrentSelection] = useState<any>(null);
 
   // Client-side only code
   const [isClient, setIsClient] = useState(false);
@@ -151,7 +176,26 @@ const MarkdownEditor = forwardRef<
   // Configure Monaco Editor
   useEffect(() => {
     if (monaco) {
-      // Add custom keyboard shortcuts
+      // Set editor options
+      monaco.editor.defineTheme('lightTheme', {
+        base: 'vs',
+        inherit: true,
+        rules: [],
+        colors: {
+          'editor.background': '#ffffff',
+        }
+      });
+      
+      monaco.editor.defineTheme('darkTheme', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [],
+        colors: {
+          'editor.background': '#1e1e2e',
+        }
+      });
+      
+      // Register custom keyboard shortcuts
       monaco.editor.addKeybindingRules([
         {
           keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
@@ -162,6 +206,12 @@ const MarkdownEditor = forwardRef<
           keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK,
           command: "editor.action.showLLMDialog",
           when: "editorTextFocus"
+        },
+        // Explicitly register undo shortcut to ensure it works as expected
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ,
+          command: "undo",
+          when: "editorTextFocus && !editorReadonly"
         }
       ]);
     }
@@ -229,10 +279,14 @@ const MarkdownEditor = forwardRef<
 
           setDialogPosition({ x, y });
           setSelectedText(selectedText);
+          setCurrentSelection(selection);
           setShowLLMDialog(true);
         }
       }
     });
+    
+    // Configure editor options for better undo/redo experience
+    editor.getModel()?.setEOL(monaco.editor.EndOfLineSequence.LF);
   };
 
   const handleEditorChange = (value: string | undefined) => {
@@ -363,6 +417,14 @@ const MarkdownEditor = forwardRef<
       title: "Version created",
       description: `Version from ${formatDistanceToNow(timestamp, { addSuffix: true })} has been saved.`,
     });
+  };
+
+  // Add a function to handle undo
+  const handleUndo = () => {
+    if (!editorRef.current) return;
+    
+    // Execute the undo command
+    editorRef.current.trigger('keyboard', 'undo', null);
   };
 
   // Render a loading state or empty state during SSR to prevent hydration errors
@@ -513,9 +575,14 @@ const MarkdownEditor = forwardRef<
         onClose={() => setShowLLMDialog(false)}
         selectedText={selectedText}
         position={dialogPosition}
+        editor={editorRef.current}
+        selection={currentSelection}
       />
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={handleUndo} title="Undo (Ctrl+Z or Cmd+Z)">
+            <Undo className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => insertMarkdown("bold")} title="Bold (Ctrl+B)">
             <Bold className="h-4 w-4" />
           </Button>

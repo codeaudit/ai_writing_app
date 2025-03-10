@@ -10,6 +10,7 @@ import { PanelLeft, PanelRight, Maximize2, Minimize2, GripVertical, Settings } f
 import { cn } from "@/lib/utils";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useRouter } from "next/navigation";
+import { useDocumentStore } from "@/lib/store";
 
 export default function Home() {
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
@@ -17,6 +18,12 @@ export default function Home() {
   const [rightPanelSize, setRightPanelSize] = useState(25); // Default 25% width
   const editorRef = useRef<{ compareDocuments: (doc1Id: string, doc2Id: string) => void } | null>(null);
   const router = useRouter();
+  const { loadData } = useDocumentStore();
+
+  // Load data from server when the app starts
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const toggleLeftPanel = () => {
     setLeftPanelVisible(!leftPanelVisible);
@@ -90,7 +97,7 @@ export default function Home() {
           >
             <PanelLeft className={cn("h-5 w-5", !leftPanelVisible && "text-muted-foreground")} />
           </Button>
-          <h1 className="text-2xl font-bold">Pattern Language Editor</h1>
+          <h1 className="text-2xl font-bold">P@tt€rη £aηgυ@ge €di†or</h1>
           {isFullscreen && (
             <span className="ml-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
               Fullscreen Mode

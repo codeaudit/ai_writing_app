@@ -15,12 +15,11 @@ interface VersionHistoryProps {
 
 export function VersionHistory({ documentId, onShowDiff }: VersionHistoryProps) {
   const { documents, updateDocument } = useDocumentStore();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
 
   const document = documents.find(doc => doc.id === documentId);
 
-  // Update versions when document changes or dialog opens
+  // Update versions when document changes
   useEffect(() => {
     if (document) {
       console.log("Document versions:", document.versions);
@@ -28,7 +27,7 @@ export function VersionHistory({ documentId, onShowDiff }: VersionHistoryProps) 
     } else {
       setVersions([]);
     }
-  }, [document, isDialogOpen]);
+  }, [document]);
 
   const handleShowDiff = (version: DocumentVersion) => {
     if (!document) return;
@@ -39,8 +38,6 @@ export function VersionHistory({ documentId, onShowDiff }: VersionHistoryProps) 
       formatRelative(new Date(version.createdAt), new Date()), 
       "Current Version"
     );
-    
-    setIsDialogOpen(false);
   };
 
   const handleRestoreVersion = (version: DocumentVersion) => {
@@ -59,8 +56,6 @@ export function VersionHistory({ documentId, onShowDiff }: VersionHistoryProps) 
       title: "Version restored",
       description: `Version from ${formatTimeAgo(new Date(version.createdAt))} has been restored.`,
     });
-    
-    setIsDialogOpen(false);
   };
 
   const handleCompareVersions = (version1: DocumentVersion, version2: DocumentVersion) => {
@@ -76,8 +71,6 @@ export function VersionHistory({ documentId, onShowDiff }: VersionHistoryProps) 
       title: "Comparing versions",
       description: "Showing differences between selected versions.",
     });
-    
-    setIsDialogOpen(false);
   };
 
   const formatTimeAgo = (date: Date) => {
@@ -91,90 +84,59 @@ export function VersionHistory({ documentId, onShowDiff }: VersionHistoryProps) 
     return formatDistanceToNow(date, { addSuffix: true });
   };
 
-  const versionCount = document?.versions?.length || 0;
-
   if (!document) return null;
 
   return (
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="flex-1"
-          title={`Version History${versionCount > 0 ? ` (${versionCount})` : ''}`}
-        >
-          <History className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[625px] max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Version History</DialogTitle>
-          <DialogDescription>
-            View and manage previous versions of "{document.name}"
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="py-4">
-          <div className="border rounded-md">
-            {versions.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">
-                No previous versions found. Create a version to track changes.
-              </div>
-            ) : (
-              <div className="divide-y">
-                {versions.map((version, index) => (
-                  <div key={version.id} className="p-3 flex items-center justify-between">
-                    <div>
-                      <div className="font-medium flex items-center">
-                        <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                        {formatTimeAgo(new Date(version.createdAt))}
-                      </div>
-                      {version.message && (
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {version.message}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleShowDiff(version)}
-                      >
-                        Compare
-                      </Button>
-                      {index < versions.length - 1 && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleCompareVersions(version, versions[index + 1])}
-                          title="Compare with previous version"
-                        >
-                          Compare Prev
-                        </Button>
-                      )}
-                      <Button 
-                        variant="secondary" 
-                        size="sm"
-                        onClick={() => handleRestoreVersion(version)}
-                      >
-                        Restore
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+    <div className="border rounded-md">
+      {versions.length === 0 ? (
+        <div className="p-4 text-center text-muted-foreground">
+          No previous versions found. Create a version to track changes.
         </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      ) : (
+        <div className="divide-y">
+          {versions.map((version, index) => (
+            <div key={version.id} className="p-3 flex items-center justify-between">
+              <div>
+                <div className="font-medium flex items-center">
+                  <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                  {formatTimeAgo(new Date(version.createdAt))}
+                </div>
+                {version.message && (
+                  <div className="text-sm text-muted-foreground mt-1">
+                    {version.message}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleShowDiff(version)}
+                >
+                  Compare
+                </Button>
+                {index < versions.length - 1 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCompareVersions(version, versions[index + 1])}
+                    title="Compare with previous version"
+                  >
+                    Compare Prev
+                  </Button>
+                )}
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  onClick={() => handleRestoreVersion(version)}
+                >
+                  Restore
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 } 

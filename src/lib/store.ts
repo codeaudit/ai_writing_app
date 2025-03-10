@@ -1,5 +1,19 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { 
+  fetchDocuments, 
+  fetchFolders, 
+  saveDocumentToServer, 
+  saveFolderToServer, 
+  deleteDocumentFromServer, 
+  deleteFolderFromServer 
+} from './api-service';
+import { 
+  DEFAULT_LLM_PROVIDER, 
+  DEFAULT_LLM_MODEL, 
+  OPENAI_API_KEY, 
+  GOOGLE_API_KEY 
+} from './config';
 
 export interface DocumentVersion {
   id: string;
@@ -31,66 +45,31 @@ interface DocumentStore {
   selectedDocumentId: string | null;
   selectedFolderId: string | null;
   comparisonDocumentIds: string[];
+  isLoading: boolean;
+  error: string | null;
   
   // Document operations
-  addDocument: (name: string, content: string, folderId?: string | null) => void;
-  updateDocument: (id: string, data: Partial<Document>, createVersion?: boolean, versionMessage?: string) => void;
-  deleteDocument: (id: string) => void;
-  moveDocument: (documentId: string, folderId: string | null) => void;
+  addDocument: (name: string, content: string, folderId?: string | null) => Promise<void>;
+  updateDocument: (id: string, data: Partial<Document>, createVersion?: boolean, versionMessage?: string) => Promise<void>;
+  deleteDocument: (id: string) => Promise<void>;
+  moveDocument: (documentId: string, folderId: string | null) => Promise<void>;
   selectDocument: (id: string | null) => void;
   
   // Folder operations
-  addFolder: (name: string, parentId?: string | null) => void;
-  updateFolder: (id: string, name: string, parentId?: string | null) => void;
-  deleteFolder: (id: string) => void;
+  addFolder: (name: string, parentId?: string | null) => Promise<void>;
+  updateFolder: (id: string, name: string, parentId?: string | null) => Promise<void>;
+  deleteFolder: (id: string) => Promise<void>;
   selectFolder: (id: string | null) => void;
   
   // Comparison operations
   toggleComparisonDocument: (id: string) => void;
   clearComparisonDocuments: () => void;
   getDocumentVersions: (id: string) => DocumentVersion[];
+  
+  // Data loading
+  loadData: () => Promise<void>;
+  setError: (error: string | null) => void;
 }
-
-// Initial folders
-const initialFolders: Folder[] = [
-  {
-    id: "folder-1",
-    name: "Getting Started",
-    createdAt: new Date(),
-    parentId: null,
-  }
-];
-
-// Initial documents
-const initialDocuments: Document[] = [
-  {
-    id: "doc1",
-    name: "Welcome",
-    content: "# Getting Started\n\nWelcome to the Markdown Writing App!",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    versions: [],
-    folderId: "folder-1",
-  },
-  {
-    id: "doc2",
-    name: "Features",
-    content: "# Features\n\n- Markdown editing\n- AI assistance\n- Multiple document support",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    versions: [],
-    folderId: null,
-  },
-  {
-    id: "doc3",
-    name: "Tips & Tricks",
-    content: "# Tips & Tricks\n\n1. Use keyboard shortcuts\n2. Save often\n3. Experiment with AI",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    versions: [],
-    folderId: null,
-  },
-];
 
 // Helper function to fix Date objects after rehydration
 const fixDates = (obj: any): any => {
@@ -122,13 +101,43 @@ const fixDates = (obj: any): any => {
 export const useDocumentStore = create<DocumentStore>()(
   persist(
     (set, get) => ({
-      documents: initialDocuments,
-      folders: initialFolders,
+      documents: [],
+      folders: [],
       selectedDocumentId: null,
       selectedFolderId: null,
       comparisonDocumentIds: [],
+      isLoading: false,
+      error: null,
       
-      addDocument: (name, content, folderId = null) => set((state) => {
+      setError: (error) => set({ error }),
+      
+      loadData: async () => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          // Load documents and folders from the server
+          const [documents, folders] = await Promise.all([
+            fetchDocuments(),
+            fetchFolders()
+          ]);
+          
+          // Set the data from the server, or empty arrays if none exists
+          set({ 
+            documents: documents || [],
+            folders: folders || [],
+            isLoading: false 
+          });
+        } catch (error) {
+          console.error('Error loading data:', error);
+          set({ 
+            isLoading: false,
+            error: 'Failed to load data from server. Using local data instead.'
+          });
+        }
+      },
+      
+      addDocument: async (name, content, folderId = null) => {
+        set({ error: null });
         const timestamp = new Date();
         const newDocument: Document = {
           id: `doc-${timestamp.getTime()}`,
@@ -150,15 +159,26 @@ export const useDocumentStore = create<DocumentStore>()(
         
         newDocument.versions = [initialVersion];
         
-        return {
+        // Update local state immediately
+        set((state) => ({
           documents: [...state.documents, newDocument],
           selectedDocumentId: newDocument.id,
-        };
-      }),
+        }));
+        
+        // Then save to server
+        try {
+          await saveDocumentToServer(newDocument);
+        } catch (error) {
+          console.error('Error saving document to server:', error);
+          set({ error: 'Failed to save document to server. Changes may not persist.' });
+        }
+      },
       
-      updateDocument: (id, data, createVersion = false, versionMessage = "") => set((state) => {
+      updateDocument: async (id, data, createVersion = false, versionMessage = "") => {
+        set({ error: null });
+        const state = get();
         const documentToUpdate = state.documents.find(doc => doc.id === id);
-        if (!documentToUpdate) return state;
+        if (!documentToUpdate) return;
         
         let versions = [...(documentToUpdate.versions || [])];
         
@@ -173,38 +193,80 @@ export const useDocumentStore = create<DocumentStore>()(
           versions = [newVersion, ...versions];
         }
         
-        return {
+        const updatedDoc = { 
+          ...documentToUpdate, 
+          ...data, 
+          updatedAt: new Date(),
+          versions: versions
+        };
+        
+        // Update local state immediately
+        set((state) => ({
           documents: state.documents.map((doc) => 
-            doc.id === id 
-              ? { 
-                  ...doc, 
-                  ...data, 
-                  updatedAt: new Date(),
-                  versions: versions
-                } 
+            doc.id === id ? updatedDoc : doc
+          ),
+        }));
+        
+        // Then save to server
+        try {
+          await saveDocumentToServer(updatedDoc);
+        } catch (error) {
+          console.error('Error updating document on server:', error);
+          set({ error: 'Failed to update document on server. Changes may not persist.' });
+        }
+      },
+      
+      moveDocument: async (documentId, folderId) => {
+        set({ error: null });
+        const state = get();
+        const documentToMove = state.documents.find(doc => doc.id === documentId);
+        
+        if (!documentToMove) return;
+        
+        const updatedDoc = { ...documentToMove, folderId };
+        
+        // Update local state immediately
+        set((state) => ({
+          documents: state.documents.map((doc) =>
+            doc.id === documentId
+              ? updatedDoc
               : doc
           ),
-        };
-      }),
-      
-      moveDocument: (documentId, folderId) => set((state) => ({
-        documents: state.documents.map((doc) =>
-          doc.id === documentId
-            ? { ...doc, folderId }
-            : doc
-        ),
-      })),
+        }));
+        
+        // Then save to server
+        try {
+          await saveDocumentToServer(updatedDoc);
+        } catch (error) {
+          console.error('Error moving document on server:', error);
+          set({ error: 'Failed to move document on server. Changes may not persist.' });
+        }
+      },
 
-      deleteDocument: (id) => set((state) => ({
-        documents: state.documents.filter((doc) => doc.id !== id),
-        selectedDocumentId: state.selectedDocumentId === id 
-          ? (state.documents.length > 1 
-              ? state.documents.find(d => d.id !== id)?.id ?? null 
-              : null) 
-          : state.selectedDocumentId,
-      })),
+      deleteDocument: async (id) => {
+        set({ error: null });
+        
+        // Update local state immediately
+        set((state) => ({
+          documents: state.documents.filter((doc) => doc.id !== id),
+          selectedDocumentId: state.selectedDocumentId === id 
+            ? (state.documents.length > 1 
+                ? state.documents.find(d => d.id !== id)?.id ?? null 
+                : null) 
+            : state.selectedDocumentId,
+        }));
+        
+        // Then delete from server
+        try {
+          await deleteDocumentFromServer(id);
+        } catch (error) {
+          console.error('Error deleting document from server:', error);
+          set({ error: 'Failed to delete document from server.' });
+        }
+      },
       
-      addFolder: (name, parentId = null) => set((state) => {
+      addFolder: async (name, parentId = null) => {
+        set({ error: null });
         const timestamp = new Date();
         const newFolder: Folder = {
           id: `folder-${timestamp.getTime()}`,
@@ -213,106 +275,136 @@ export const useDocumentStore = create<DocumentStore>()(
           parentId,
         };
         
-        return {
+        // Update local state immediately
+        set((state) => ({
           folders: [...state.folders, newFolder],
-          // Don't automatically select the new folder
-        };
-      }),
-      
-      updateFolder: (id, name, parentId) => set((state) => ({
-        folders: state.folders.map((folder) =>
-          folder.id === id
-            ? { ...folder, name, ...(parentId !== undefined ? { parentId } : {}) }
-            : folder
-        ),
-      })),
-      
-      deleteFolder: (id) => set((state) => {
-        // Move documents in the deleted folder to root
-        const updatedDocuments = state.documents.map((doc) =>
-          doc.folderId === id
-            ? { ...doc, folderId: null }
-            : doc
-        );
+        }));
         
-        // Remove the folder and its children
-        const folderIdsToRemove = new Set<string>();
-        const addFolderAndChildren = (folderId: string) => {
-          folderIdsToRemove.add(folderId);
-          state.folders
-            .filter(f => f.parentId === folderId)
-            .forEach(child => addFolderAndChildren(child.id));
-        };
-        addFolderAndChildren(id);
+        // Then save to server
+        try {
+          await saveFolderToServer(newFolder);
+        } catch (error) {
+          console.error('Error saving folder to server:', error);
+          set({ error: 'Failed to save folder to server. Changes may not persist.' });
+        }
+      },
+      
+      updateFolder: async (id, name, parentId) => {
+        set({ error: null });
+        const state = get();
+        const folderToUpdate = state.folders.find(folder => folder.id === id);
         
-        return {
-          folders: state.folders.filter((folder) => !folderIdsToRemove.has(folder.id)),
-          documents: updatedDocuments,
+        if (!folderToUpdate) return;
+        
+        const updatedFolder = { 
+          ...folderToUpdate, 
+          name, 
+          ...(parentId !== undefined ? { parentId } : {}) 
+        };
+        
+        // Update local state immediately
+        set((state) => ({
+          folders: state.folders.map((folder) =>
+            folder.id === id ? updatedFolder : folder
+          ),
+        }));
+        
+        // Then save to server
+        try {
+          await saveFolderToServer(updatedFolder);
+        } catch (error) {
+          console.error('Error updating folder on server:', error);
+          set({ error: 'Failed to update folder on server. Changes may not persist.' });
+        }
+      },
+      
+      deleteFolder: async (id) => {
+        set({ error: null });
+        const state = get();
+        
+        // Move documents in the deleted folder to root in local state
+        const documentsToUpdate = state.documents.filter(doc => doc.folderId === id);
+        
+        for (const doc of documentsToUpdate) {
+          // Update local state immediately
+          set((state) => ({
+            documents: state.documents.map((d) =>
+              d.id === doc.id
+                ? { ...d, folderId: null }
+                : d
+            ),
+          }));
+          
+          // Then save to server
+          try {
+            await saveDocumentToServer({ ...doc, folderId: null });
+          } catch (error) {
+            console.error('Error updating document on server:', error);
+          }
+        }
+        
+        // Update local state immediately
+        set((state) => ({
+          folders: state.folders.filter((folder) => folder.id !== id),
           selectedFolderId: state.selectedFolderId === id ? null : state.selectedFolderId,
-        };
-      }),
+        }));
+        
+        // Then delete from server
+        try {
+          await deleteFolderFromServer(id);
+        } catch (error) {
+          console.error('Error deleting folder from server:', error);
+          set({ error: 'Failed to delete folder from server.' });
+        }
+      },
       
       selectDocument: (id) => set({ selectedDocumentId: id }),
+      
       selectFolder: (id) => set({ selectedFolderId: id }),
       
       toggleComparisonDocument: (id) => set((state) => {
-        // If document is already selected, remove it
-        if (state.comparisonDocumentIds.includes(id)) {
+        const { comparisonDocumentIds } = state;
+        
+        if (comparisonDocumentIds.includes(id)) {
           return {
-            comparisonDocumentIds: state.comparisonDocumentIds.filter((docId) => docId !== id)
+            comparisonDocumentIds: comparisonDocumentIds.filter((docId) => docId !== id),
+          };
+        } else {
+          // Only allow up to 2 documents for comparison
+          const newComparisonIds = [...comparisonDocumentIds, id].slice(-2);
+          return {
+            comparisonDocumentIds: newComparisonIds,
           };
         }
-        
-        // If we already have 2 documents selected and trying to add a new one, don't add it
-        if (state.comparisonDocumentIds.length >= 2) {
-          return state;
-        }
-        
-        // Otherwise add the document to the selection
-        return {
-          comparisonDocumentIds: [...state.comparisonDocumentIds, id]
-        };
       }),
       
       clearComparisonDocuments: () => set({ comparisonDocumentIds: [] }),
       
       getDocumentVersions: (id) => {
-        const document = get().documents.find(doc => doc.id === id);
+        const state = get();
+        const document = state.documents.find(doc => doc.id === id);
         return document?.versions || [];
       },
     }),
     {
-      name: 'document-storage',
+      name: 'document-store',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         documents: state.documents,
         folders: state.folders,
         selectedDocumentId: state.selectedDocumentId,
         selectedFolderId: state.selectedFolderId,
-        comparisonDocumentIds: state.comparisonDocumentIds,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          if (state.documents) {
-            state.documents = state.documents.map(doc => ({
-              ...doc,
-              createdAt: new Date(doc.createdAt),
-              updatedAt: new Date(doc.updatedAt),
-              versions: (doc.versions || []).map(ver => ({
-                ...ver,
-                createdAt: new Date(ver.createdAt)
-              }))
-            }));
-          }
-          if (state.folders) {
-            state.folders = state.folders.map(folder => ({
-              ...folder,
-              createdAt: new Date(folder.createdAt)
-            }));
-          }
+          // Fix dates after rehydration
+          state.documents = fixDates(state.documents);
+          state.folders = fixDates(state.folders);
+          
+          // Load data from server
+          state.loadData();
         }
-        console.log('Rehydrated state:', state);
-      }
+      },
     }
   )
 );
@@ -322,24 +414,34 @@ interface LLMConfig {
   provider: string;
   apiKey: string;
   model: string;
+  googleApiKey?: string;
 }
 
 interface LLMStore {
   config: LLMConfig;
   updateConfig: (config: Partial<LLMConfig>) => void;
+  getApiKey: () => string;
 }
 
 export const useLLMStore = create<LLMStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       config: {
-        provider: 'openai',
-        apiKey: '',
-        model: 'gpt-4',
+        provider: DEFAULT_LLM_PROVIDER,
+        apiKey: DEFAULT_LLM_PROVIDER === 'openai' ? OPENAI_API_KEY : '',
+        googleApiKey: DEFAULT_LLM_PROVIDER === 'gemini' ? GOOGLE_API_KEY : '',
+        model: DEFAULT_LLM_MODEL,
       },
       updateConfig: (newConfig) => set((state) => ({
         config: { ...state.config, ...newConfig },
       })),
+      getApiKey: () => {
+        const { provider, apiKey, googleApiKey } = get().config;
+        if (provider === 'gemini') {
+          return googleApiKey || GOOGLE_API_KEY || '';
+        }
+        return apiKey || OPENAI_API_KEY || '';
+      },
     }),
     {
       name: 'llm-config',

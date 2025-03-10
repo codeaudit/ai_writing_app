@@ -1,0 +1,140 @@
+[
+  {
+    "id": "doc-1741641663404",
+    "name": "foo",
+    "content": "# Header 1 #\n## Header 2 ##\n### Header 3 ###             (Hashes on right are optional)\n## Markdown plus h2 with a custom ID ##   {#id-goes-here}\n[Link back to H2](#id-goes-here)\n\n```js\nvar x = \"string\";\nfunction f() {\n  return x;\n}\n```\n\n<!-- html madness -->\n<div class=\"custom-class\" markdown=\"1\">\n  <div>\n    nested div\n  </div>\n  <script type='text/x-koka'>\n    function( x: int ) { return x*x; }\n  </script>\n  This is a div _with_ underscores\n  and a & <b class=\"bold\">bold</b> element.\n  <style>\n    body { font: \"Consolas\" }\n  </style>\n</div>\n\n* Bullet lists are easy too\n- Another one\n+ Another one\n\nThis is a paragraph, which is text surrounded by\nwhitespace. Paragraphs can be on one\nline (or many), and can drone on for hours.\n\nNow some inline markup like _italics_,  **bold**,\nand `code()`. Note that underscores\nin_words_are ignored.\n\n````application/json\n  { value: [\"or with a mime type\"] }\n````\n\n> Blockquotes are like quoted text in email replies\n>> And, they can be nested\n\n1. A numbered list\n2. Which is numbered\n3. With periods and a space\n\nAnd now some code:\n\n    // Code is just text indented a bit\n    which(is_easy) to_remember();\n\nAnd a block\n\n~~~\n// Markdown extra adds un-indented code blocks too\n\nif (this_is_more_code == true && !indented) {\n    // tild wrapped code blocks, also not indented\n}\n~~~\n\nText with\ntwo trailing spaces\n(on the right)\ncan be used\nfor things like poems\n\n### Horizontal rules\n\n* * * *\n****\n--------------------------\n\n![picture alt](/images/photo.jpeg \"Title is optional\")\n\n## Markdown plus tables ##\n\n| Header | Header | Right  |\n| ------ | ------ | -----: |\n|  Cell  |  Cell  |   $10  |\n|  Cell  |  Cell  |   $20  |\n\n* Outer pipes on tables are optional\n* Colon used for alignment (right versus left)\n\n## Markdown plus definition lists ##\n\nBottled waterx\n: $ 1.25\n: $ 1.55 (Large)\n\nMilk\nPop\n: $ 1.75\n\n* Multiple definitions and terms are possible\n* Definitions can include multiple paragraphs too\n\n*[ABBR]: Markdown plus abbreviations (produces an <abbr> tag)",
+    "createdAt": "2025-03-10T21:21:03.404Z",
+    "updatedAt": "2025-03-10T21:22:28.946Z",
+    "versions": [
+      {
+        "id": "ver-1741641663404-initial",
+        "content": "",
+        "createdAt": "2025-03-10T21:21:03.404Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1741641637219"
+  },
+  {
+    "id": "doc-1741641720491",
+    "name": "xxx",
+    "content": "I'll create some examples of Markdown with LaTeX integrated. Here are various ways you can use LaTeX in Markdown:\n\n## Basic Inline Math\n\nYou can include inline math expressions using single dollar signs: $E = mc^2$ for Einstein's famous equation.\n\n## Display Math Equations\n\nFor standalone equations, use double dollar signs:\n\n$$\\frac{d}{dx}(e^x) = e^x$$\n\n## Mathematical Expressions\n\nHere's a more complex example showing the quadratic formula:\n\n$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$\n\n## \n\nOkay, based on the selected text \"Matrices\" and the user query \"explain this?\", here's a general explanation of what matrices are:\n\n**Explanation:**\n\nA matrix (plural: matrices) is a rectangular array of numbers, symbols, or expressions, arranged in rows and columns. Think of it like a table of values.\n\n*   **Rows:** Horizontal lines of elements within the matrix.\n*   **Columns:** Vertical lines of elements within the matrix.\n*   **Elements:** The individual numbers, symbols, or expressions within the matrix.\n\n**Example:**\n\n```\n[ 1  2  3 ]\n[ 4  5  6 ]\n```\n\nThis is a matrix with 2 rows and 3 columns.  We would call it a \"2x3\" matrix (read \"two by three\").  The element in the first row and first column is 1. The element in the second row and third column is 6.\n\n**Why are matrices important?**\n\nMatrices are fundamental tools in many areas of mathematics, science, engineering, and computer science. They are used for:\n\n*   **Representing linear transformations:**  Matrices can represent how to stretch, rotate, or shear space.\n*   **Solving systems of linear equations:** Matrices provide a compact way to represent and solve equations.\n*   **Data storage and manipulation:**  Large datasets can be efficiently stored and manipulated using matrices.\n*   **Graph theory:** Representing connections between nodes in a network.\n*   **Computer graphics:** For transformations and projections in 3D graphics.\n*   **Machine learning:** Representing data and performing calculations in algorithms.\n\n**Basic Matrix Operations:**\n\nSome common operations you can perform with matrices include:\n\n*   **Addition and Subtraction:**  Matrices of the *same size* can be added or subtracted by adding or subtracting corresponding elements.\n*   **Scalar Multiplication:** Multiplying a matrix by a single number (a scalar) multiplies each element of the matrix by that number.\n*   **Matrix Multiplication:**  A more complex operation where the number of columns in the first matrix must equal the number of rows in the second matrix. The result is a new matrix.\n*   **Transpose:** Swapping the rows and columns of a matrix.\n*   **Determinant:** A scalar value that can be calculated for square matrices (matrices with the same number of rows and columns).\n\n**In summary:**\n\nA matrix is a structured arrangement of data that's incredibly useful for representing and manipulating information in a wide variety of applications.\n\n**To provide a more specific explanation, I need more context.  Please tell me:**\n\n*   **What specifically about matrices are you interested in?** (e.g., matrix multiplication, solving equations, a specific application)\n*   **What is your current level of understanding of matrices?** (e.g., beginner, some knowledge, advanced)\n*   **Is there a particular problem or concept you are struggling with?**\n\nThe more information you give me, the better I can tailor my explanation.\n\n\n\nLaTeX can handle matrices elegantly:\n\n$$\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n\\begin{pmatrix}\nx \\\\\ny\n\\end{pmatrix}\n=\n\\begin{pmatrix}\nax + by \\\\\ncx + dy\n\\end{pmatrix}\n$$\n\n## Calculus Examples\n\nThe definition of a derivative:\n\n$$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$\n\n## Physics Equations\n\nSchrödinger equation:\n\n$$i\\hbar\\frac{\\partial}{\\partial t}\\Psi(\\mathbf{r},t) = \\hat H\\Psi(\\mathbf{r},t)$$\n\n## Statistics and Probability\n\nNormal distribution probability density function:\n\n$$f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}}e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}$$\n\n## Chemical Equations\n\nRepresenting chemical reactions:\n\n$$\\ce{CO2 + H2O \\rightleftharpoons H2CO3}$$\n\n## Combining with Regular Markdown\n\nYou can mix standard Markdown formatting with LaTeX:\n\n**The area of a circle** is given by $A = \\pi r^2$ where $r$ is the radius.\n\n* The mean of a sample: $\\bar{x} = \\frac{1}{n}\\sum_{i=1}^{n}x_i$\n* The standard deviation: $s = \\sqrt{\\frac{1}{n-1}\\sum_{i=1}^{n}(x_i - \\bar{x})^2}$\n\nWould you like any specific types of mathematical expressions or other Markdown/LaTeX combinations?",
+    "createdAt": "2025-03-10T21:22:00.491Z",
+    "updatedAt": "2025-03-10T22:24:35.115Z",
+    "versions": [
+      {
+        "id": "ver-1741645475115",
+        "content": "I'll create some examples of Markdown with LaTeX integrated. Here are various ways you can use LaTeX in Markdown:\n\n## Basic Inline Math\n\nYou can include inline math expressions using single dollar signs: $E = mc^2$ for Einstein's famous equation.\n\n## Display Math Equations\n\nFor standalone equations, use double dollar signs:\n\n$$\\frac{d}{dx}(e^x) = e^x$$\n\n## Mathematical Expressions\n\nHere's a more complex example showing the quadratic formula:\n\n$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$\n\n## \n\nOkay, based on the selected text \"Matrices\" and the user query \"explain this?\", here's a general explanation of what matrices are:\n\n**Explanation:**\n\nA matrix (plural: matrices) is a rectangular array of numbers, symbols, or expressions, arranged in rows and columns. Think of it like a table of values.\n\n*   **Rows:** Horizontal lines of elements within the matrix.\n*   **Columns:** Vertical lines of elements within the matrix.\n*   **Elements:** The individual numbers, symbols, or expressions within the matrix.\n\n**Example:**\n\n```\n[ 1  2  3 ]\n[ 4  5  6 ]\n```\n\nThis is a matrix with 2 rows and 3 columns.  We would call it a \"2x3\" matrix (read \"two by three\").  The element in the first row and first column is 1. The element in the second row and third column is 6.\n\n**Why are matrices important?**\n\nMatrices are fundamental tools in many areas of mathematics, science, engineering, and computer science. They are used for:\n\n*   **Representing linear transformations:**  Matrices can represent how to stretch, rotate, or shear space.\n*   **Solving systems of linear equations:** Matrices provide a compact way to represent and solve equations.\n*   **Data storage and manipulation:**  Large datasets can be efficiently stored and manipulated using matrices.\n*   **Graph theory:** Representing connections between nodes in a network.\n*   **Computer graphics:** For transformations and projections in 3D graphics.\n*   **Machine learning:** Representing data and performing calculations in algorithms.\n\n**Basic Matrix Operations:**\n\nSome common operations you can perform with matrices include:\n\n*   **Addition and Subtraction:**  Matrices of the *same size* can be added or subtracted by adding or subtracting corresponding elements.\n*   **Scalar Multiplication:** Multiplying a matrix by a single number (a scalar) multiplies each element of the matrix by that number.\n*   **Matrix Multiplication:**  A more complex operation where the number of columns in the first matrix must equal the number of rows in the second matrix. The result is a new matrix.\n*   **Transpose:** Swapping the rows and columns of a matrix.\n*   **Determinant:** A scalar value that can be calculated for square matrices (matrices with the same number of rows and columns).\n\n**In summary:**\n\nA matrix is a structured arrangement of data that's incredibly useful for representing and manipulating information in a wide variety of applications.\n\n**To provide a more specific explanation, I need more context.  Please tell me:**\n\n*   **What specifically about matrices are you interested in?** (e.g., matrix multiplication, solving equations, a specific application)\n*   **What is your current level of understanding of matrices?** (e.g., beginner, some knowledge, advanced)\n*   **Is there a particular problem or concept you are struggling with?**\n\nThe more information you give me, the better I can tailor my explanation.\n\n\n\nLaTeX can handle matrices elegantly:\n\n$$\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n\\begin{pmatrix}\nx \\\\\ny\n\\end{pmatrix}\n=\n\\begin{pmatrix}\nax + by \\\\\ncx + dy\n\\end{pmatrix}\n$$\n\n## Calculus Examples\n\nThe definition of a derivative:\n\n$$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$\n\n## Physics Equations\n\nSchrödinger equation:\n\n$$i\\hbar\\frac{\\partial}{\\partial t}\\Psi(\\mathbf{r},t) = \\hat H\\Psi(\\mathbf{r},t)$$\n\n## Statistics and Probability\n\nNormal distribution probability density function:\n\n$$f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}}e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}$$\n\n## Chemical Equations\n\nRepresenting chemical reactions:\n\n$$\\ce{CO2 + H2O \\rightleftharpoons H2CO3}$$\n\n## Combining with Regular Markdown\n\nYou can mix standard Markdown formatting with LaTeX:\n\n**The area of a circle** is given by $A = \\pi r^2$ where $r$ is the radius.\n\n* The mean of a sample: $\\bar{x} = \\frac{1}{n}\\sum_{i=1}^{n}x_i$\n* The standard deviation: $s = \\sqrt{\\frac{1}{n-1}\\sum_{i=1}^{n}(x_i - \\bar{x})^2}$\n\nWould you like any specific types of mathematical expressions or other Markdown/LaTeX combinations?",
+        "createdAt": "2025-03-10T22:24:35.115Z",
+        "message": "Restored version from less than a minute ago"
+      },
+      {
+        "id": "ver-1741645463952",
+        "content": "",
+        "createdAt": "2025-03-10T22:24:23.952Z",
+        "message": "Restored version from less than a minute ago"
+      },
+      {
+        "id": "ver-1741645453568",
+        "content": "I'll create some examples of Markdown with LaTeX integrated. Here are various ways you can use LaTeX in Markdown:\n\n## Basic Inline Math\n\nYou can include inline math expressions using single dollar signs: $E = mc^2$ for Einstein's famous equation.\n\n## Display Math Equations\n\nFor standalone equations, use double dollar signs:\n\n$$\\frac{d}{dx}(e^x) = e^x$$\n\n## Mathematical Expressions\n\nHere's a more complex example showing the quadratic formula:\n\n$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$\n\n## \n\nOkay, based on the selected text \"Matrices\" and the user query \"explain this?\", here's a general explanation of what matrices are:\n\n**Explanation:**\n\nA matrix (plural: matrices) is a rectangular array of numbers, symbols, or expressions, arranged in rows and columns. Think of it like a table of values.\n\n*   **Rows:** Horizontal lines of elements within the matrix.\n*   **Columns:** Vertical lines of elements within the matrix.\n*   **Elements:** The individual numbers, symbols, or expressions within the matrix.\n\n**Example:**\n\n```\n[ 1  2  3 ]\n[ 4  5  6 ]\n```\n\nThis is a matrix with 2 rows and 3 columns.  We would call it a \"2x3\" matrix (read \"two by three\").  The element in the first row and first column is 1. The element in the second row and third column is 6.\n\n**Why are matrices important?**\n\nMatrices are fundamental tools in many areas of mathematics, science, engineering, and computer science. They are used for:\n\n*   **Representing linear transformations:**  Matrices can represent how to stretch, rotate, or shear space.\n*   **Solving systems of linear equations:** Matrices provide a compact way to represent and solve equations.\n*   **Data storage and manipulation:**  Large datasets can be efficiently stored and manipulated using matrices.\n*   **Graph theory:** Representing connections between nodes in a network.\n*   **Computer graphics:** For transformations and projections in 3D graphics.\n*   **Machine learning:** Representing data and performing calculations in algorithms.\n\n**Basic Matrix Operations:**\n\nSome common operations you can perform with matrices include:\n\n*   **Addition and Subtraction:**  Matrices of the *same size* can be added or subtracted by adding or subtracting corresponding elements.\n*   **Scalar Multiplication:** Multiplying a matrix by a single number (a scalar) multiplies each element of the matrix by that number.\n*   **Matrix Multiplication:**  A more complex operation where the number of columns in the first matrix must equal the number of rows in the second matrix. The result is a new matrix.\n*   **Transpose:** Swapping the rows and columns of a matrix.\n*   **Determinant:** A scalar value that can be calculated for square matrices (matrices with the same number of rows and columns).\n\n**In summary:**\n\nA matrix is a structured arrangement of data that's incredibly useful for representing and manipulating information in a wide variety of applications.\n\n**To provide a more specific explanation, I need more context.  Please tell me:**\n\n*   **What specifically about matrices are you interested in?** (e.g., matrix multiplication, solving equations, a specific application)\n*   **What is your current level of understanding of matrices?** (e.g., beginner, some knowledge, advanced)\n*   **Is there a particular problem or concept you are struggling with?**\n\nThe more information you give me, the better I can tailor my explanation.\n\n\n\nLaTeX can handle matrices elegantly:\n\n$$\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n\\begin{pmatrix}\nx \\\\\ny\n\\end{pmatrix}\n=\n\\begin{pmatrix}\nax + by \\\\\ncx + dy\n\\end{pmatrix}\n$$\n\n## Calculus Examples\n\nThe definition of a derivative:\n\n$$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$\n\n## Physics Equations\n\nSchrödinger equation:\n\n$$i\\hbar\\frac{\\partial}{\\partial t}\\Psi(\\mathbf{r},t) = \\hat H\\Psi(\\mathbf{r},t)$$\n\n## Statistics and Probability\n\nNormal distribution probability density function:\n\n$$f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}}e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}$$\n\n## Chemical Equations\n\nRepresenting chemical reactions:\n\n$$\\ce{CO2 + H2O \\rightleftharpoons H2CO3}$$\n\n## Combining with Regular Markdown\n\nYou can mix standard Markdown formatting with LaTeX:\n\n**The area of a circle** is given by $A = \\pi r^2$ where $r$ is the radius.\n\n* The mean of a sample: $\\bar{x} = \\frac{1}{n}\\sum_{i=1}^{n}x_i$\n* The standard deviation: $s = \\sqrt{\\frac{1}{n-1}\\sum_{i=1}^{n}(x_i - \\bar{x})^2}$\n\nWould you like any specific types of mathematical expressions or other Markdown/LaTeX combinations?",
+        "createdAt": "2025-03-10T22:24:13.568Z",
+        "message": "Restored version from about 1 hour ago"
+      },
+      {
+        "id": "ver-1741643610356",
+        "content": "I'll create some examples of Markdown with LaTeX integrated. Here are various ways you can use LaTeX in Markdown:\n\n## Basic Inline Math\n\nYou can include inline math expressions using single dollar signs: $E = mc^2$ for Einstein's famous equation.\n\n## Display Math Equations\n\nFor standalone equations, use double dollar signs:\n\n$$\\frac{d}{dx}(e^x) = e^x$$\n\n## Mathematical Expressions\n\nHere's a more complex example showing the quadratic formula:\n\n$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$\n\n## Matrices\n\nLaTeX can handle matrices elegantly:\n\n$$\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n\\begin{pmatrix}\nx \\\\\ny\n\\end{pmatrix}\n=\n\\begin{pmatrix}\nax + by \\\\\ncx + dy\n\\end{pmatrix}\n$$\n\n## Calculus Examples\n\nThe definition of a derivative:\n\n$$f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$\n\n## Physics Equations\n\nSchrödinger equation:\n\n$$i\\hbar\\frac{\\partial}{\\partial t}\\Psi(\\mathbf{r},t) = \\hat H\\Psi(\\mathbf{r},t)$$\n\n## Statistics and Probability\n\nNormal distribution probability density function:\n\n$$f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}}e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}$$\n\n## Chemical Equations\n\nRepresenting chemical reactions:\n\n$$\\ce{CO2 + H2O \\rightleftharpoons H2CO3}$$\n\n## Combining with Regular Markdown\n\nYou can mix standard Markdown formatting with LaTeX:\n\n**The area of a circle** is given by $A = \\pi r^2$ where $r$ is the radius.\n\n* The mean of a sample: $\\bar{x} = \\frac{1}{n}\\sum_{i=1}^{n}x_i$\n* The standard deviation: $s = \\sqrt{\\frac{1}{n-1}\\sum_{i=1}^{n}(x_i - \\bar{x})^2}$\n\nWould you like any specific types of mathematical expressions or other Markdown/LaTeX combinations?",
+        "createdAt": "2025-03-10T21:53:30.356Z",
+        "message": "Manual save on 3/10/2025, 5:53:30 PM"
+      },
+      {
+        "id": "ver-1741643425884",
+        "content": "I'll create some examples of Markdown with LaTeX integrated. Here are various ways you can use LaTeX in Markdown:\n",
+        "createdAt": "2025-03-10T21:50:25.884Z",
+        "message": "Restored version from 28 minutes ago"
+      },
+      {
+        "id": "ver-1741641720491-initial",
+        "content": "",
+        "createdAt": "2025-03-10T21:22:00.491Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1741641710486"
+  },
+  {
+    "id": "doc-1741646532759",
+    "name": "aaa",
+    "content": "",
+    "createdAt": "2025-03-10T22:42:12.759Z",
+    "updatedAt": "2025-03-10T22:42:12.759Z",
+    "versions": [
+      {
+        "id": "ver-1741646532759-initial",
+        "content": "",
+        "createdAt": "2025-03-10T22:42:12.759Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null
+  },
+  {
+    "id": "doc-1741646537315",
+    "name": "bbb",
+    "content": "",
+    "createdAt": "2025-03-10T22:42:17.315Z",
+    "updatedAt": "2025-03-10T22:42:17.315Z",
+    "versions": [
+      {
+        "id": "ver-1741646537315-initial",
+        "content": "",
+        "createdAt": "2025-03-10T22:42:17.315Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null
+  },
+  {
+    "id": "doc-1741646541684",
+    "name": "ccc",
+    "content": "\n\nHello! I'm your AI writing assistant powered by OpenAI. How can I help you with your document today?\n\nThe document is designed to be a writing assistant. Given the user's question \"What is life?\", a helpful response would acknowledge the question and offer to assist with exploring the topic in writing.\n\nHere's a good response:\n\n\"That's a very big question! I can't give you a definitive answer to 'What is life?', but I can help you explore that concept in writing. Do you want to:\n\n*   Brainstorm ideas about life?\n*   Research different perspectives on the meaning of life?\n*   Write a personal essay about your own understanding of life?\n*   Explore the scientific definition of life?\n\nTell me what you'd like to write, and I'll do my best to assist you!\"\n",
+    "createdAt": "2025-03-10T22:42:21.684Z",
+    "updatedAt": "2025-03-10T22:45:10.331Z",
+    "versions": [
+      {
+        "id": "ver-1741646710331",
+        "content": "\n\nHello! I'm your AI writing assistant powered by OpenAI. How can I help you with your document today?",
+        "createdAt": "2025-03-10T22:45:10.331Z",
+        "message": "Applied AI suggestion"
+      },
+      {
+        "id": "ver-1741646682694",
+        "content": "",
+        "createdAt": "2025-03-10T22:44:42.694Z",
+        "message": "Applied AI suggestion"
+      },
+      {
+        "id": "ver-1741646541684-initial",
+        "content": "",
+        "createdAt": "2025-03-10T22:42:21.684Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null
+  },
+  {
+    "id": "doc-1741646986094",
+    "name": "bab",
+    "content": "",
+    "createdAt": "2025-03-10T22:49:46.094Z",
+    "updatedAt": "2025-03-10T22:49:46.094Z",
+    "versions": [
+      {
+        "id": "ver-1741646986094-initial",
+        "content": "",
+        "createdAt": "2025-03-10T22:49:46.094Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null
+  }
+]

@@ -442,7 +442,7 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
 
       {showVersionHistory && (
         <Dialog open={showVersionHistory} onOpenChange={setShowVersionHistory}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Version History - {document.name}</DialogTitle>
               <DialogDescription>
@@ -452,9 +452,17 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
             <div className="py-4">
               <VersionHistory 
                 documentId={document.id} 
-                onShowDiff={handleShowDiff} 
+                onShowDiff={(originalContent, modifiedContent, originalTitle, modifiedTitle) => {
+                  handleShowDiff(originalContent, modifiedContent, originalTitle, modifiedTitle);
+                  setShowVersionHistory(false);
+                }} 
               />
             </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowVersionHistory(false)}>
+                Close
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
@@ -602,14 +610,6 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           >
             <GitCompare className="h-5 w-5" />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => router.push("/settings")}
-            title="Open settings"
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
         </div>
       </div>
       
@@ -694,15 +694,6 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
         ))}
       </div>
       
-      <Button 
-        variant="outline" 
-        className="mt-4 w-full"
-        onClick={() => router.push("/settings")}
-      >
-        <Settings className="h-4 w-4 mr-2" />
-        Settings
-      </Button>
-
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent>
           <DialogHeader>

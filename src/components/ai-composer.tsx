@@ -4,17 +4,36 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { SendHorizontal, Settings, Sparkles, RefreshCw, Copy, Check, Wand2 } from "lucide-react";
-import { useDocumentStore } from "@/lib/store";
+import { SendHorizontal, Settings, RefreshCw, Copy, Check, Wand2, AtSign, X, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { useDocumentStore, useLLMStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { generateText } from "@/lib/llm-service";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  model?: string;
+  provider?: string;
+}
+
+interface ContextDocument {
+  id: string;
+  name: string;
+  content: string;
 }
 
 interface AIComposerProps {}
@@ -22,19 +41,33 @@ interface AIComposerProps {}
 export default function AIComposer({}: AIComposerProps) {
   const router = useRouter();
   const { documents, selectedDocumentId, updateDocument } = useDocumentStore();
+  const { config } = useLLMStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const [messages, setMessages] = useState<Message[]>([
     { 
       id: "welcome",
       role: "assistant", 
-      content: "Hello! I'm your AI writing assistant. How can I help you with your document today?",
-      timestamp: new Date()
+      content: "Hello! I'm your AI writing assistant powered by " + 
+        (config.provider === 'gemini' ? 'Google Gemini' : 'OpenAI') + 
+        ". How can I help you with your document today?",
+      timestamp: new Date(),
+      model: config.model,
+      provider: config.provider
     }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState<string | null>(null);
+  const [contextDocuments, setContextDocuments] = useState<ContextDocument[]>([]);
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+  
+  // Autocomplete state
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0 });
+  const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(0);
+  const [filteredDocuments, setFilteredDocuments] = useState<Array<{ id: string; name: string; content: string }>>([]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Get the selected document
   const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
@@ -62,85 +95,229 @@ export default function AIComposer({}: AIComposerProps) {
     setInput("");
     setIsLoading(true);
     
-    // Simulate AI response with a delay
-    setTimeout(() => {
-      generateAIResponse(userMessage.content);
-    }, 1000);
+    try {
+      await generateAIResponse(userMessage.content);
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      
+      // Add error message
+      const errorMessage: Message = {
+        id: generateId(),
+        role: "assistant",
+        content: "I'm sorry, I encountered an error while processing your request. Please check your API key in settings or try again later.",
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate response",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const generateAIResponse = (userMessage: string) => {
-    // Simple response generation based on user input
-    let responseContent = "";
+  const generateAIResponse = async (userMessage: string) => {
+    // Create prompt based on user message and document context
+    let prompt = "";
     
-    if (userMessage.toLowerCase().includes("help") || userMessage.toLowerCase().includes("how")) {
-      responseContent = "I can help you with writing, editing, and brainstorming. Try asking me to:\n\n- Summarize your document\n- Generate ideas for your topic\n- Improve your writing style\n- Fix grammar and spelling\n- Suggest a better title";
-    } 
-    else if (userMessage.toLowerCase().includes("summarize")) {
-      responseContent = selectedDocument 
-        ? `Here's a summary of "${selectedDocument.name}":\n\n${generateSummary(selectedDocument.content)}`
-        : "I'd be happy to summarize your document, but I need to see its content first.";
+    // Add the primary document context
+    if (selectedDocument) {
+      prompt = `Primary Document Title: ${selectedDocument.name}\n\nPrimary Document Content:\n${selectedDocument.content}\n\n`;
     }
+    
+    // Add additional context documents if any
+    if (contextDocuments.length > 0) {
+      prompt += "Additional Context Documents:\n\n";
+      
+      contextDocuments.forEach((doc, index) => {
+        prompt += `Document ${index + 1} Title: ${doc.name}\n`;
+        prompt += `Document ${index + 1} Content:\n${doc.content}\n\n`;
+      });
+    }
+    
+    // Add the user message
+    prompt += `User Message: ${userMessage}\n\n`;
+    prompt += `Please provide a helpful response based on the document content and user request.`;
+    
+    // Add specific instructions based on user intent
+    if (userMessage.toLowerCase().includes("summarize")) {
+      prompt += "\n\nThe user wants a summary of the document. Please provide a concise summary.";
+    } 
     else if (userMessage.toLowerCase().includes("improve") || userMessage.toLowerCase().includes("edit")) {
-      responseContent = selectedDocument 
-        ? `Here are some suggestions to improve your writing:\n\n${generateImprovements(selectedDocument.content)}`
-        : "I'd be happy to suggest improvements, but I need to see your document first.";
+      prompt += "\n\nThe user wants suggestions to improve their writing. Please provide specific improvements.";
     }
     else if (userMessage.toLowerCase().includes("idea") || userMessage.toLowerCase().includes("brainstorm")) {
-      responseContent = `Here are some ideas to consider:\n\n${generateIdeas(selectedDocument?.content || "")}`;
-    }
-    else {
-      responseContent = `I've analyzed your document${selectedDocument ? ` "${selectedDocument.name}"` : ""}. What specific aspect would you like help with? I can assist with summarizing, improving style, generating ideas, or fixing grammar.`;
+      prompt += "\n\nThe user wants ideas related to their document. Please provide creative and relevant ideas.";
     }
     
+    // Call the LLM service
+    const response = await generateText({ prompt });
+    
+    // Create AI message
     const aiMessage: Message = { 
       id: generateId(),
       role: "assistant", 
-      content: responseContent,
-      timestamp: new Date()
+      content: response.text,
+      timestamp: new Date(),
+      model: response.model,
+      provider: response.provider
     };
     
     setMessages(prev => [...prev, aiMessage]);
-    setIsLoading(false);
   };
 
-  const generateSummary = (content: string) => {
-    // Simple summary generation
-    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    const shortSummary = sentences.slice(0, Math.min(3, sentences.length)).join(". ");
-    return shortSummary || "This document appears to be empty or contains content I can't summarize effectively.";
+  // Filter out documents that are already in context or are the current document
+  const getAvailableDocuments = () => {
+    return documents.filter(doc => 
+      doc.id !== selectedDocumentId && 
+      !contextDocuments.some(contextDoc => contextDoc.id === doc.id)
+    );
   };
 
-  const generateImprovements = (content: string) => {
-    // Simple improvement suggestions
-    const improvements = [
-      "Consider using more active voice in your writing",
-      "Try varying your sentence structure for better flow",
-      "Add more specific examples to support your points",
-      "Consider breaking longer paragraphs into smaller ones for readability",
-      "Add transitional phrases between paragraphs to improve flow"
-    ];
+  // Handle input change to detect @ symbol for autocomplete
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setInput(value);
     
-    return improvements.slice(0, 3).map(imp => `- ${imp}`).join("\n");
-  };
-
-  const generateIdeas = (content: string) => {
-    // Simple idea generation
-    const ideas = [
-      "Explore the historical context of your topic",
-      "Consider adding a section on practical applications",
-      "Include a comparison with alternative approaches",
-      "Add a personal anecdote to make your writing more relatable",
-      "Incorporate relevant statistics or research findings",
-      "Address potential counterarguments to strengthen your position"
-    ];
+    // Check if we should show autocomplete
+    const lastAtIndex = value.lastIndexOf('@');
     
-    return ideas.slice(0, 4).map((idea, i) => `${i+1}. ${idea}`).join("\n");
+    // Debug the @ detection
+    console.log('Input changed:', { 
+      value, 
+      lastAtIndex, 
+      hasAtSymbol: lastAtIndex !== -1,
+      isValidPosition: lastAtIndex === 0 || (lastAtIndex > 0 && /\s/.test(value[lastAtIndex - 1]))
+    });
+    
+    if (lastAtIndex !== -1 && (lastAtIndex === 0 || /\s/.test(value[lastAtIndex - 1]))) {
+      // Get the query text after the @ symbol
+      const query = value.slice(lastAtIndex + 1).split(/\s/)[0].toLowerCase();
+      
+      // Filter documents based on the query
+      const availableDocs = getAvailableDocuments();
+      const filtered = availableDocs.filter(doc => 
+        query ? doc.name.toLowerCase().includes(query) : true
+      );
+      
+      console.log('Autocomplete:', { 
+        query, 
+        availableDocsCount: availableDocs.length, 
+        filteredDocsCount: filtered.length 
+      });
+      
+      setFilteredDocuments(filtered);
+      
+      if (filtered.length > 0) {
+        // Position the autocomplete dropdown
+        if (textareaRef.current) {
+          const textarea = textareaRef.current;
+          
+          // Get textarea position
+          const textareaRect = textarea.getBoundingClientRect();
+          
+          // Set position relative to the textarea
+          setAutocompletePosition({
+            top: textareaRect.height + 5, // Position below the textarea
+            left: 0 // Align with the left edge of the textarea
+          });
+          
+          console.log('Positioning dropdown:', { 
+            textareaHeight: textareaRect.height,
+            textareaWidth: textareaRect.width
+          });
+        }
+        
+        setShowAutocomplete(true);
+        setSelectedAutocompleteIndex(0);
+      } else {
+        setShowAutocomplete(false);
+      }
+    } else {
+      setShowAutocomplete(false);
+    }
   };
-
+  
+  // Handle keyboard navigation in autocomplete
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // Directly detect @ key press to trigger autocomplete
+    if (e.key === '@') {
+      // Get available documents for autocomplete
+      const availableDocs = getAvailableDocuments();
+      
+      if (availableDocs.length > 0) {
+        console.log('@ key pressed, showing autocomplete with', availableDocs.length, 'documents');
+        setFilteredDocuments(availableDocs);
+        setShowAutocomplete(true);
+        setSelectedAutocompleteIndex(0);
+        
+        // We still need to let the @ character be typed
+        setTimeout(() => {
+          if (textareaRef.current) {
+            const cursorPos = textareaRef.current.selectionStart;
+            if (input[cursorPos - 1] === '@') {
+              console.log('@ character confirmed at position', cursorPos - 1);
+            }
+          }
+        }, 0);
+        
+        return;
+      }
+    }
+    
+    // Handle autocomplete navigation
+    if (showAutocomplete) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedAutocompleteIndex(prev => 
+          prev < filteredDocuments.length - 1 ? prev + 1 : prev
+        );
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedAutocompleteIndex(prev => prev > 0 ? prev - 1 : 0);
+      } else if (e.key === 'Enter' && filteredDocuments.length > 0) {
+        e.preventDefault();
+        selectAutocompleteDocument(filteredDocuments[selectedAutocompleteIndex]);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowAutocomplete(false);
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        if (filteredDocuments.length > 0) {
+          selectAutocompleteDocument(filteredDocuments[selectedAutocompleteIndex]);
+        }
+      }
+    } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+  
+  // Select a document from autocomplete
+  const selectAutocompleteDocument = (document: { id: string; name: string; content: string }) => {
+    // Add document to context
+    handleAddContextDocument(document);
+    
+    // Replace the @query with the document name
+    const lastAtIndex = input.lastIndexOf('@');
+    if (lastAtIndex !== -1) {
+      const beforeAt = input.substring(0, lastAtIndex);
+      const afterAt = input.substring(lastAtIndex).split(' ');
+      afterAt.shift(); // Remove the @query part
+      
+      // Set the new input value
+      setInput(beforeAt + document.name + ' ' + afterAt.join(' '));
+    }
+    
+    // Hide autocomplete
+    setShowAutocomplete(false);
+    
+    // Focus back on textarea
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
   };
 
@@ -151,8 +328,14 @@ export default function AIComposer({}: AIComposerProps) {
       }, true, "Applied AI suggestion");
       
       toast({
-        title: "Applied to document",
-        description: "The AI suggestion has been added to your document.",
+        title: "Added to document",
+        description: `Content added to "${selectedDocument.name}"`,
+      });
+    } else {
+      toast({
+        title: "No document selected",
+        description: "Please select a document first.",
+        variant: "destructive"
       });
     }
   };
@@ -171,8 +354,66 @@ export default function AIComposer({}: AIComposerProps) {
     }, 2000);
   };
 
-  const handleQuickAction = (action: string) => {
-    setInput(action);
+  const handleAddContextDocument = (document: { id: string; name: string; content: string }) => {
+    // Check if document is already in context
+    if (contextDocuments.some(doc => doc.id === document.id)) {
+      toast({
+        title: "Document already in context",
+        description: `"${document.name}" is already added to the context.`,
+      });
+      return;
+    }
+    
+    // Check if document is the currently selected document
+    if (document.id === selectedDocumentId) {
+      toast({
+        title: "Document already in context",
+        description: `"${document.name}" is already the primary document.`,
+      });
+      return;
+    }
+    
+    // Add document to context
+    setContextDocuments(prev => [...prev, document]);
+    
+    toast({
+      title: "Document added to context",
+      description: `"${document.name}" has been added to the conversation context.`,
+    });
+    
+    // Close the dropdown
+    setIsContextMenuOpen(false);
+  };
+
+  const handleRemoveContextDocument = (documentId: string) => {
+    setContextDocuments(prev => prev.filter(doc => doc.id !== documentId));
+    
+    toast({
+      title: "Document removed from context",
+      description: "The document has been removed from the conversation context.",
+    });
+  };
+
+  // Add a focus event handler for the textarea
+  const handleFocus = () => {
+    // Check if the input already contains an @ symbol
+    const lastAtIndex = input.lastIndexOf('@');
+    if (lastAtIndex !== -1 && (lastAtIndex === 0 || /\s/.test(input[lastAtIndex - 1]))) {
+      // Get the query text after the @ symbol
+      const query = input.slice(lastAtIndex + 1).split(/\s/)[0].toLowerCase();
+      
+      // Show autocomplete if there's an @ symbol
+      const availableDocs = getAvailableDocuments();
+      const filtered = availableDocs.filter(doc => 
+        query ? doc.name.toLowerCase().includes(query) : true
+      );
+      
+      if (filtered.length > 0) {
+        setFilteredDocuments(filtered);
+        setShowAutocomplete(true);
+        setSelectedAutocompleteIndex(0);
+      }
+    }
   };
 
   if (!selectedDocumentId || !selectedDocument) {
@@ -181,14 +422,6 @@ export default function AIComposer({}: AIComposerProps) {
         <Card className="p-6 max-w-md text-center">
           <h2 className="text-xl font-semibold mb-2">AI Composer</h2>
           <p className="text-muted-foreground mb-4">Select a document to start using the AI assistant.</p>
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => router.push("/settings")}
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Configure AI Settings
-          </Button>
         </Card>
       </div>
     );
@@ -197,16 +430,71 @@ export default function AIComposer({}: AIComposerProps) {
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">AI Composer</h2>
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => router.push("/settings")}
-          title="Configure AI settings"
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">AI Composer</h2>
+          <DropdownMenu open={isContextMenuOpen} onOpenChange={setIsContextMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-2"
+                title="Add document to context"
+              >
+                <AtSign className="h-4 w-4 mr-1" />
+                Add Context
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel>Add document to context</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <ScrollArea className="h-[200px]">
+                {documents.length > 0 ? (
+                  documents.map(doc => (
+                    <DropdownMenuItem 
+                      key={doc.id}
+                      onClick={() => handleAddContextDocument(doc)}
+                      disabled={doc.id === selectedDocumentId || contextDocuments.some(d => d.id === doc.id)}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="truncate">{doc.name}</span>
+                      {doc.id === selectedDocumentId && (
+                        <Badge variant="outline" className="ml-2 text-xs">Primary</Badge>
+                      )}
+                      {contextDocuments.some(d => d.id === doc.id) && (
+                        <Badge variant="outline" className="ml-2 text-xs">Added</Badge>
+                      )}
+                    </DropdownMenuItem>
+                  ))
+                ) : (
+                  <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                    No documents found
+                  </div>
+                )}
+              </ScrollArea>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
+      
+      {/* Context documents list */}
+      {contextDocuments.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4 p-2 bg-muted/50 rounded-md">
+          <span className="text-xs text-muted-foreground py-1">Additional context:</span>
+          {contextDocuments.map(doc => (
+            <Badge key={doc.id} variant="secondary" className="flex items-center gap-1 pl-2">
+              {doc.name}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 ml-1 rounded-full"
+                onClick={() => handleRemoveContextDocument(doc.id)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
+        </div>
+      )}
       
       <div className="flex-1 overflow-auto mb-4 space-y-4 pr-1">
         {messages.map((message) => (
@@ -223,34 +511,43 @@ export default function AIComposer({}: AIComposerProps) {
             >
               <div className="whitespace-pre-wrap">{message.content}</div>
               
-              {message.role === "assistant" && message.id !== "welcome" && (
-                <div className="mt-2 pt-2 border-t border-border/30 flex justify-between items-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 text-xs hover:bg-transparent"
-                    onClick={() => handleApplyToDocument(message.content)}
-                    title="Apply this suggestion to your document"
-                  >
-                    <Wand2 className="h-3 w-3 mr-1" />
-                    Apply to document
-                  </Button>
+              {message.role === "assistant" && (
+                <>
+                  <div className="mt-3 pt-2 border-t border-border flex items-center justify-between">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => handleApplyToDocument(message.content)}
+                      title="Add this response to your current document"
+                    >
+                      <FileText className="h-3 w-3 mr-1" />
+                      Add to Document
+                    </Button>
+                    
+                    <div className="flex items-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-70 hover:opacity-100"
+                        onClick={() => handleCopyToClipboard(message.content, message.id)}
+                        title="Copy to clipboard"
+                      >
+                        {isCopied === message.id ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                   
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-transparent"
-                    onClick={() => handleCopyToClipboard(message.content, message.id)}
-                    title="Copy to clipboard"
-                  >
-                    {isCopied === message.id ? (
-                      <Check className="h-3 w-3 mr-1" />
-                    ) : (
-                      <Copy className="h-3 w-3 mr-1" />
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {message.provider && message.model && (
+                      <span>{message.provider === 'gemini' ? 'Gemini' : 'OpenAI'} • {message.model}</span>
                     )}
-                    {isCopied === message.id ? "Copied" : "Copy"}
-                  </Button>
-                </div>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -268,56 +565,22 @@ export default function AIComposer({}: AIComposerProps) {
         <div ref={messagesEndRef} />
       </div>
       
-      {messages.length === 1 && (
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <Button 
-            variant="outline" 
-            className="text-xs justify-start h-auto py-2 px-3"
-            onClick={() => handleQuickAction("Help me brainstorm ideas for this document")}
-            title="Get brainstorming help"
-          >
-            <Sparkles className="h-3 w-3 mr-2" />
-            Brainstorm ideas
-          </Button>
-          <Button 
-            variant="outline" 
-            className="text-xs justify-start h-auto py-2 px-3"
-            onClick={() => handleQuickAction("Suggest improvements for my writing")}
-            title="Get writing improvement suggestions"
-          >
-            <Sparkles className="h-3 w-3 mr-2" />
-            Improve writing
-          </Button>
-          <Button 
-            variant="outline" 
-            className="text-xs justify-start h-auto py-2 px-3"
-            onClick={() => handleQuickAction("Summarize this document")}
-            title="Get a summary of your document"
-          >
-            <Sparkles className="h-3 w-3 mr-2" />
-            Summarize
-          </Button>
-          <Button 
-            variant="outline" 
-            className="text-xs justify-start h-auto py-2 px-3"
-            onClick={() => handleQuickAction("Fix grammar and spelling errors")}
-            title="Get grammar and spelling corrections"
-          >
-            <Sparkles className="h-3 w-3 mr-2" />
-            Fix grammar
-          </Button>
+      <div className="flex gap-2 mt-auto relative">
+        <div className="flex-1 relative">
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onFocus={handleFocus}
+            placeholder="Ask the AI assistant... (Type @ to reference documents)"
+            className="resize-none min-h-[80px] w-full pr-8"
+            disabled={isLoading}
+          />
+          <div className="absolute right-2 bottom-2 text-xs text-muted-foreground bg-background px-1 rounded">
+            <span className="opacity-70">Type</span> <span className="font-bold">@</span> <span className="opacity-70">to add documents</span>
+          </div>
         </div>
-      )}
-      
-      <div className="flex gap-2 mt-auto">
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask the AI assistant..."
-          className="resize-none min-h-[80px]"
-          disabled={isLoading}
-        />
         <Button 
           className="self-end" 
           size="icon" 
@@ -327,6 +590,50 @@ export default function AIComposer({}: AIComposerProps) {
         >
           <SendHorizontal className="h-4 w-4" />
         </Button>
+        
+        {/* Autocomplete dropdown */}
+        {showAutocomplete && filteredDocuments.length > 0 && (
+          <div 
+            className="absolute z-50 bg-background border rounded-md shadow-md w-64 max-h-60 overflow-y-auto"
+            style={{ 
+              top: '-5px',
+              left: '0',
+              transform: 'translateY(-100%)'
+            }}
+          >
+            <div className="p-2 border-b bg-muted flex items-center justify-between">
+              <span className="text-xs font-semibold">Add document to context</span>
+              <div className="flex text-xs text-muted-foreground">
+                <span className="flex items-center mr-2">
+                  <ChevronUp className="h-3 w-3 mr-1" />
+                  <ChevronDown className="h-3 w-3" />
+                  Navigate
+                </span>
+                <span className="flex items-center">
+                  <span className="border px-1 text-[10px] rounded mr-1">↵</span>
+                  Select
+                </span>
+              </div>
+            </div>
+            <div className="p-1">
+              {filteredDocuments.map((doc, index) => (
+                <div
+                  key={doc.id}
+                  className={cn(
+                    "px-2 py-2 text-sm cursor-pointer rounded hover:bg-accent",
+                    selectedAutocompleteIndex === index && "bg-accent"
+                  )}
+                  onClick={() => selectAutocompleteDocument(doc)}
+                >
+                  <div className="flex items-center">
+                    <FileText className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                    <span className="truncate">{doc.name}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

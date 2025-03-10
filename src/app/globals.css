@@ -243,3 +243,71 @@
   background-color: hsl(var(--muted));
   font-weight: 600;
 }
+
+/* Add custom styles for KaTeX */
+.katex-block {
+  display: block;
+  margin: 1em 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.prose .katex {
+  font-size: 1.1em;
+}
+
+.prose .katex-display {
+  margin: 1.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Dark mode adjustments for KaTeX */
+.dark .katex {
+  color: hsl(var(--foreground));
+}
+
+.dark .katex-error {
+  color: hsl(var(--destructive));
+}
+
+/* LLM Dialog Text Highlighting */
+.original-text-highlight {
+  background-color: rgba(255, 100, 100, 0.2) !important;
+  border-radius: 2px;
+  border-bottom: 1px dashed rgba(255, 100, 100, 0.5) !important;
+}
+
+.new-text-highlight {
+  background-color: rgba(100, 255, 100, 0.2) !important;
+  border-radius: 2px;
+  border-bottom: 1px dashed rgba(100, 255, 100, 0.5) !important;
+}
+
+.dark .original-text-highlight {
+  background-color: rgba(255, 100, 100, 0.3) !important;
+  border-bottom: 1px dashed rgba(255, 100, 100, 0.6) !important;
+}
+
+.dark .new-text-highlight {
+  background-color: rgba(100, 255, 100, 0.3) !important;
+  border-bottom: 1px dashed rgba(100, 255, 100, 0.6) !important;
+}
+
+/* Confirmation Dialog Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fixed.bottom-4 {
+  animation: fadeInUp 0.3s ease-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
