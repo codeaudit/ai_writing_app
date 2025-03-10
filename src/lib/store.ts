@@ -230,6 +230,7 @@ export const useLLMStore = create<LLMStore>()(
     }),
     {
       name: 'llm-config',
+      storage: createJSONStorage(() => localStorage),
     }
   )
 ); 

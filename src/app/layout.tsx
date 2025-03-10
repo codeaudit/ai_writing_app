@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Markdown Writing App",
-  description: "A Next.js application for writing markdown files with AI assistance",
+  title: "A Pattern Language Editor",
+  description: "A Pattern Language Design Editor",
 };
 
 export default function RootLayout({

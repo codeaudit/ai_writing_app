@@ -6,15 +6,17 @@ import MarkdownEditor from "@/components/markdown-editor";
 import AIComposer from "@/components/ai-composer";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { PanelLeft, PanelRight, Maximize2, Minimize2, GripVertical } from "lucide-react";
+import { PanelLeft, PanelRight, Maximize2, Minimize2, GripVertical, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
   const [rightPanelVisible, setRightPanelVisible] = useState(true);
   const [rightPanelSize, setRightPanelSize] = useState(25); // Default 25% width
   const editorRef = useRef<{ compareDocuments: (doc1Id: string, doc2Id: string) => void } | null>(null);
+  const router = useRouter();
 
   const toggleLeftPanel = () => {
     setLeftPanelVisible(!leftPanelVisible);
@@ -115,6 +117,14 @@ export default function Home() {
             title={rightPanelVisible ? "Hide AI composer (Alt+2)" : "Show AI composer (Alt+2)"}
           >
             <PanelRight className={cn("h-5 w-5", !rightPanelVisible && "text-muted-foreground")} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/settings")}
+            title="Configure AI settings"
+          >
+            <Settings className="h-5 w-5" />
           </Button>
           <ThemeToggle />
         </div>

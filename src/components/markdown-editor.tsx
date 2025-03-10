@@ -5,6 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
+import rehypeHighlight from "rehype-highlight";
+import 'highlight.js/styles/github-dark.css';
 import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, FileDown, X, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDocumentStore } from "@/lib/store";
@@ -14,6 +18,7 @@ import { useTheme } from "next-themes";
 import { VersionHistory } from "./version-history";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { LLMDialog } from "./llm-dialog";
 
 interface MarkdownEditorProps {}
 
@@ -40,6 +45,10 @@ const MarkdownEditor = forwardRef<
   const [diffModified, setDiffModified] = useState("");
   const [diffOriginalTitle, setDiffOriginalTitle] = useState("");
   const [diffModifiedTitle, setDiffModifiedTitle] = useState("");
+
+  const [showLLMDialog, setShowLLMDialog] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
+  const [dialogPosition, setDialogPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Get the selected document
   const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
@@ -74,6 +83,11 @@ const MarkdownEditor = forwardRef<
         {
           keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
           command: "editor.action.customSave",
+          when: "editorTextFocus"
+        },
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK,
+          command: "editor.action.showLLMDialog",
           when: "editorTextFocus"
         }
       ]);
@@ -118,6 +132,33 @@ const MarkdownEditor = forwardRef<
     // Register custom commands
     monaco.editor.registerCommand("editor.action.customSave", () => {
       handleSave();
+    });
+
+    monaco.editor.registerCommand("editor.action.showLLMDialog", () => {
+      const selection = editor.getSelection();
+      if (selection) {
+        const selectedText = editor.getModel()?.getValueInRange(selection) || "";
+        
+        // Get the coordinates of the selection
+        const selectionCoords = editor.getScrolledVisiblePosition({
+          lineNumber: selection.startLineNumber,
+          column: selection.startColumn
+        });
+
+        if (selectionCoords) {
+          // Get the editor container's position
+          const editorContainer = editor.getContainerDomNode();
+          const editorRect = editorContainer.getBoundingClientRect();
+
+          // Calculate absolute position
+          const x = editorRect.left + selectionCoords.left;
+          const y = editorRect.top + selectionCoords.top;
+
+          setDialogPosition({ x, y });
+          setSelectedText(selectedText);
+          setShowLLMDialog(true);
+        }
+      }
     });
     
     // Add markdown syntax highlighting
@@ -378,6 +419,12 @@ const MarkdownEditor = forwardRef<
 
   return (
     <div className="h-full flex flex-col">
+      <LLMDialog 
+        isOpen={showLLMDialog}
+        onClose={() => setShowLLMDialog(false)}
+        selectedText={selectedText}
+        position={dialogPosition}
+      />
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => insertMarkdown("bold")} title="Bold (Ctrl+B)">
@@ -494,8 +541,35 @@ const MarkdownEditor = forwardRef<
         </TabsContent>
         
         <TabsContent value="preview" className="flex-1 overflow-auto">
-          <div className="prose dark:prose-invert max-w-none p-4">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none p-4">
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]} 
+              rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeHighlight]}
+              components={{
+                h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-6 mb-4" {...props} />,
+                h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-5 mb-3" {...props} />,
+                h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-4 mb-2" {...props} />,
+                p: ({node, ...props}) => <p className="my-3" {...props} />,
+                ul: ({node, ...props}) => <ul className="list-disc pl-6 my-3" {...props} />,
+                ol: ({node, ...props}) => <ol className="list-decimal pl-6 my-3" {...props} />,
+                li: ({node, ...props}) => <li className="my-1" {...props} />,
+                blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 dark:border-gray-700 pl-4 italic my-3" {...props} />,
+                code: ({node, className, children, ...props}: any) => {
+                  const match = /language-(\w+)/.exec(className || '');
+                  const isInline = !match && (props as any).inline;
+                  
+                  if (isInline) {
+                    return <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded text-sm" {...props}>{children}</code>;
+                  }
+                  
+                  return (
+                    <pre className="bg-gray-200 dark:bg-gray-800 p-3 rounded overflow-auto">
+                      <code className={className} {...props}>{children}</code>
+                    </pre>
+                  );
+                },
+              }}
+            >
               {content}
             </ReactMarkdown>
           </div>
