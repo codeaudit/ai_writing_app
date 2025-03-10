@@ -3,24 +3,80 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import rehypeSanitize from "rehype-sanitize";
-import rehypeHighlight from "rehype-highlight";
-import 'highlight.js/styles/github-dark.css';
+import dynamic from 'next/dynamic';
 import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, FileDown, X, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDocumentStore } from "@/lib/store";
-import Editor, { OnMount, useMonaco, DiffEditor } from "@monaco-editor/react";
+import { OnMount, useMonaco } from "@monaco-editor/react";
 import { editor } from "monaco-editor";
 import { useTheme } from "next-themes";
 import { VersionHistory } from "./version-history";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { LLMDialog } from "./llm-dialog";
+import React from "react";
+import { useMemo } from "react";
+import { marked } from 'marked';
+import type { MarkedOptions } from 'marked';
+import DOMPurify from 'dompurify';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/github-dark.css';
+
+// Dynamically import components that might cause hydration issues
+const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.default), { ssr: false });
+const DiffEditor = dynamic(() => import('@monaco-editor/react').then(mod => mod.DiffEditor), { ssr: false });
 
 interface MarkdownEditorProps {}
+
+// Marked.js preview component
+const MarkedPreview = ({ content }: { content: string }) => {
+  const [html, setHtml] = useState('');
+  const { theme } = useTheme();
+  
+  useEffect(() => {
+    // Function to render markdown
+    const renderMarkdown = () => {
+      try {
+        // We need to disable TypeScript checking for marked because of type issues
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const markedInstance = marked as any;
+        
+        // Configure marked
+        markedInstance.setOptions({
+          highlight: (code: string, lang: string) => {
+            if (lang && hljs.getLanguage(lang)) {
+              return hljs.highlight(code, { language: lang }).value;
+            }
+            return hljs.highlightAuto(code).value;
+          },
+          breaks: true,
+          gfm: true
+        });
+        
+        // Parse markdown
+        const rawHtml = markedInstance.parse(content);
+        const cleanHtml = DOMPurify.sanitize(rawHtml);
+        setHtml(cleanHtml);
+      } catch (error) {
+        console.error('Error parsing markdown:', error);
+        setHtml('<p>Error rendering markdown</p>');
+      }
+    };
+    
+    renderMarkdown();
+  }, [content]);
+  
+  if (!html) {
+    return <div className="animate-pulse h-40 bg-muted rounded-md"></div>;
+  }
+  
+  return (
+    <div 
+      className="prose prose-sm md:prose-base dark:prose-invert max-w-none"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+};
 
 // Export the component with forwardRef to expose methods to the parent
 const MarkdownEditor = forwardRef<
@@ -34,8 +90,16 @@ const MarkdownEditor = forwardRef<
   const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monaco = useMonaco();
-  const { theme } = useTheme();
-  const [editorTheme, setEditorTheme] = useState<string>("vs-dark");
+  const { theme, systemTheme } = useTheme();
+  const [editorTheme, setEditorTheme] = useState<string>(() => {
+    // Initialize with the correct theme based on current system/user preference
+    // Use a function for the initial state to avoid hydration mismatches
+    if (typeof window !== 'undefined') {
+      const currentTheme = theme === 'system' ? systemTheme : theme;
+      return currentTheme === "dark" ? "vs-dark" : "vs";
+    }
+    return "vs-dark"; // Default for SSR
+  });
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   
@@ -49,6 +113,12 @@ const MarkdownEditor = forwardRef<
   const [showLLMDialog, setShowLLMDialog] = useState(false);
   const [selectedText, setSelectedText] = useState("");
   const [dialogPosition, setDialogPosition] = useState<{ x: number; y: number } | null>(null);
+
+  // Client-side only code
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Get the selected document
   const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
@@ -72,8 +142,11 @@ const MarkdownEditor = forwardRef<
 
   // Update editor theme when app theme changes
   useEffect(() => {
-    setEditorTheme(theme === "light" ? "vs" : "vs-dark");
-  }, [theme]);
+    if (typeof window !== 'undefined') {
+      const currentTheme = theme === 'system' ? systemTheme : theme;
+      setEditorTheme(currentTheme === "dark" ? "vs-dark" : "vs");
+    }
+  }, [theme, systemTheme]);
 
   // Configure Monaco Editor
   useEffect(() => {
@@ -158,14 +231,6 @@ const MarkdownEditor = forwardRef<
           setSelectedText(selectedText);
           setShowLLMDialog(true);
         }
-      }
-    });
-    
-    // Add markdown syntax highlighting
-    editor.onDidChangeModelContent(() => {
-      const model = editor.getModel();
-      if (model) {
-        // This would be where you could add custom tokenization if needed
       }
     });
   };
@@ -270,14 +335,12 @@ const MarkdownEditor = forwardRef<
       default:
         newText = selectedText;
     }
-
-    editor.executeEdits("markdown-formatting", [
-      {
-        range: selection,
-        text: newText,
-        forceMoveMarkers: true
-      }
-    ]);
+    
+    editor.executeEdits("markdown-toolbar", [{
+      range: selection,
+      text: newText,
+      forceMoveMarkers: true
+    }]);
     
     editor.focus();
   };
@@ -285,8 +348,9 @@ const MarkdownEditor = forwardRef<
   const createNewVersion = () => {
     if (!selectedDocumentId || !selectedDocument) return;
     
-    // Create a new version with the current content and automatic timestamp
     const timestamp = new Date();
+    
+    // Create a new version with the current content
     updateDocument(
       selectedDocumentId, 
       { content: selectedDocument.content }, 
@@ -301,13 +365,24 @@ const MarkdownEditor = forwardRef<
     });
   };
 
+  // Render a loading state or empty state during SSR to prevent hydration errors
+  if (!isClient) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <div className="bg-card text-card-foreground rounded-xl border p-6 shadow-sm max-w-md">
+          <div className="text-xl font-semibold mb-2">Loading editor...</div>
+        </div>
+      </div>
+    );
+  }
+
   if (!selectedDocumentId || !selectedDocument) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Card className="p-6 max-w-md text-center">
-          <h2 className="text-xl font-semibold mb-2">No Document Selected</h2>
-          <p className="text-muted-foreground">Select a document from the sidebar or create a new one.</p>
-        </Card>
+      <div className="flex flex-col items-center justify-center h-full">
+        <div className="bg-card text-card-foreground rounded-xl border p-6 shadow-sm max-w-md">
+          <div className="text-xl font-semibold mb-2">No Document Selected</div>
+          <div className="text-muted-foreground text-sm">Select a document from the sidebar or create a new one.</div>
+        </div>
       </div>
     );
   }
@@ -395,28 +470,37 @@ const MarkdownEditor = forwardRef<
         </div>
         
         <div className="flex-1 border rounded-md overflow-hidden">
-          <DiffEditor
-            height="100%"
-            language="markdown"
-            original={diffOriginal}
-            modified={diffModified}
-            theme={editorTheme}
-            options={{
-              readOnly: true,
-              renderSideBySide: true,
-              originalEditable: false,
-              minimap: { enabled: false },
-              lineNumbers: "on",
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              wordWrap: "on",
-              diffWordWrap: "on",
-              renderOverviewRuler: false,
-              renderIndicators: true,
-              renderMarginRevertIcon: true,
-              ignoreTrimWhitespace: false,
-            }}
-          />
+          {isClient && (
+            <DiffEditor
+              height="100%"
+              language="markdown"
+              original={diffOriginal}
+              modified={diffModified}
+              theme={editorTheme}
+              options={{
+                renderSideBySide: true,
+                minimap: { enabled: false },
+                wordWrap: "on",
+                lineNumbers: "on",
+                fontSize: 14,
+                fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                renderLineHighlight: "all",
+                scrollbar: {
+                  useShadows: false,
+                  verticalScrollbarSize: 10,
+                  horizontalScrollbarSize: 10,
+                  verticalHasArrows: false,
+                  horizontalHasArrows: false,
+                  vertical: "visible",
+                  horizontal: "visible",
+                },
+                readOnly: true,
+              }}
+              className="diff-editor-container"
+            />
+          )}
         </div>
       </div>
     );
@@ -504,79 +588,63 @@ const MarkdownEditor = forwardRef<
         
         <TabsContent value="edit" className="flex-1 flex">
           <div className="w-full h-full border rounded-md overflow-hidden">
-            <Editor
-              height="100%"
-              defaultLanguage="markdown"
-              value={content}
-              onChange={handleEditorChange}
-              onMount={handleEditorDidMount}
-              options={{
-                minimap: { enabled: false },
-                wordWrap: "on",
-                lineNumbers: "on",
-                fontSize: 14,
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                tabSize: 2,
-                renderLineHighlight: "all",
-                scrollbar: {
-                  useShadows: false,
-                  verticalScrollbarSize: 10,
-                  horizontalScrollbarSize: 10,
-                  verticalHasArrows: false,
-                  horizontalHasArrows: false,
-                  vertical: "visible",
-                  horizontal: "visible",
-                },
-                quickSuggestions: {
-                  other: true,
-                  comments: true,
-                  strings: true
-                },
-                suggestOnTriggerCharacters: true,
-                acceptSuggestionOnEnter: "on",
-                folding: true,
-                foldingStrategy: "indentation",
-                formatOnPaste: true,
-                formatOnType: true,
-              }}
-              theme={editorTheme}
-            />
+            {isClient && (
+              <Editor
+                height="100%"
+                defaultLanguage="markdown"
+                value={content}
+                onChange={handleEditorChange}
+                onMount={handleEditorDidMount}
+                options={{
+                  minimap: { enabled: false },
+                  wordWrap: "on",
+                  lineNumbers: "on",
+                  fontSize: 14,
+                  fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  tabSize: 2,
+                  renderLineHighlight: "all",
+                  scrollbar: {
+                    useShadows: false,
+                    verticalScrollbarSize: 10,
+                    horizontalScrollbarSize: 10,
+                    verticalHasArrows: false,
+                    horizontalHasArrows: false,
+                    vertical: "visible",
+                    horizontal: "visible",
+                  },
+                  quickSuggestions: {
+                    other: true,
+                    comments: true,
+                    strings: true
+                  },
+                  suggestOnTriggerCharacters: true,
+                  acceptSuggestionOnEnter: "on",
+                  folding: true,
+                  foldingStrategy: "indentation",
+                  formatOnPaste: true,
+                  formatOnType: true,
+                  padding: {
+                    top: 12,
+                    bottom: 12
+                  },
+                  cursorBlinking: "smooth",
+                  cursorSmoothCaretAnimation: "on",
+                  smoothScrolling: true,
+                  renderWhitespace: "none",
+                  colorDecorators: true,
+                }}
+                theme={editorTheme}
+                className="editor-container"
+              />
+            )}
           </div>
         </TabsContent>
         
         <TabsContent value="preview" className="flex-1 overflow-auto">
-          <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none p-4">
-            <ReactMarkdown 
-              remarkPlugins={[remarkGfm]} 
-              rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeHighlight]}
-              components={{
-                h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-6 mb-4" {...props} />,
-                h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-5 mb-3" {...props} />,
-                h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-4 mb-2" {...props} />,
-                p: ({node, ...props}) => <p className="my-3" {...props} />,
-                ul: ({node, ...props}) => <ul className="list-disc pl-6 my-3" {...props} />,
-                ol: ({node, ...props}) => <ol className="list-decimal pl-6 my-3" {...props} />,
-                li: ({node, ...props}) => <li className="my-1" {...props} />,
-                blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 dark:border-gray-700 pl-4 italic my-3" {...props} />,
-                code: ({node, className, children, ...props}: any) => {
-                  const match = /language-(\w+)/.exec(className || '');
-                  const isInline = !match && (props as any).inline;
-                  
-                  if (isInline) {
-                    return <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded text-sm" {...props}>{children}</code>;
-                  }
-                  
-                  return (
-                    <pre className="bg-gray-200 dark:bg-gray-800 p-3 rounded overflow-auto">
-                      <code className={className} {...props}>{children}</code>
-                    </pre>
-                  );
-                },
-              }}
-            >
-              {content}
-            </ReactMarkdown>
+          <div className="p-4">
+            <MarkedPreview content={content} />
           </div>
         </TabsContent>
       </Tabs>
