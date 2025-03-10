@@ -384,6 +384,16 @@ const MarkdownEditor = forwardRef<
           </div>
         </div>
         
+        <div className="flex justify-between mb-2 text-sm">
+          <div className="flex-1 px-4 py-2 bg-muted rounded-t-md border-t border-l border-r">
+            <span className="font-medium">{diffOriginalTitle}</span>
+          </div>
+          <div className="w-[1px] bg-border"></div>
+          <div className="flex-1 px-4 py-2 bg-muted rounded-t-md border-t border-r border-r">
+            <span className="font-medium">{diffModifiedTitle}</span>
+          </div>
+        </div>
+        
         <div className="flex-1 border rounded-md overflow-hidden">
           <DiffEditor
             height="100%"
@@ -407,11 +417,6 @@ const MarkdownEditor = forwardRef<
               ignoreTrimWhitespace: false,
             }}
           />
-        </div>
-        
-        <div className="flex justify-between mt-4 text-sm text-muted-foreground">
-          <div>{diffOriginalTitle}</div>
-          <div>{diffModifiedTitle}</div>
         </div>
       </div>
     );

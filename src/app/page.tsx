@@ -90,7 +90,7 @@ export default function Home() {
           >
             <PanelLeft className={cn("h-5 w-5", !leftPanelVisible && "text-muted-foreground")} />
           </Button>
-          <h1 className="text-2xl font-bold">Markdown Writing App</h1>
+          <h1 className="text-2xl font-bold">Pattern Language Editor</h1>
           {isFullscreen && (
             <span className="ml-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
               Fullscreen Mode
