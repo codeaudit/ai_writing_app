@@ -1,101 +1,170 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import DocumentNavigation from "@/components/document-navigation";
+import MarkdownEditor from "@/components/markdown-editor";
+import AIComposer from "@/components/ai-composer";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { PanelLeft, PanelRight, Maximize2, Minimize2, GripVertical } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [leftPanelVisible, setLeftPanelVisible] = useState(true);
+  const [rightPanelVisible, setRightPanelVisible] = useState(true);
+  const [rightPanelSize, setRightPanelSize] = useState(25); // Default 25% width
+  const editorRef = useRef<{ compareDocuments: (doc1Id: string, doc2Id: string) => void } | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const toggleLeftPanel = () => {
+    setLeftPanelVisible(!leftPanelVisible);
+  };
+
+  const toggleRightPanel = () => {
+    setRightPanelVisible(!rightPanelVisible);
+  };
+
+  const toggleFullscreen = () => {
+    if (!leftPanelVisible && !rightPanelVisible) {
+      // If already in fullscreen, show both panels
+      setLeftPanelVisible(true);
+      setRightPanelVisible(true);
+    } else {
+      // Otherwise, hide both panels
+      setLeftPanelVisible(false);
+      setRightPanelVisible(false);
+    }
+  };
+
+  const handleCompareDocuments = (doc1Id: string, doc2Id: string) => {
+    if (editorRef.current) {
+      editorRef.current.compareDocuments(doc1Id, doc2Id);
+    }
+  };
+
+  // Add keyboard shortcuts for toggling panels
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Alt+1 to toggle left panel
+      if (e.altKey && e.key === '1') {
+        toggleLeftPanel();
+      }
+      // Alt+2 to toggle right panel
+      if (e.altKey && e.key === '2') {
+        toggleRightPanel();
+      }
+      // Alt+3 to toggle both panels
+      if (e.altKey && e.key === '3') {
+        toggleFullscreen();
+      }
+      // Alt+0 to show both panels
+      if (e.altKey && e.key === '0') {
+        setLeftPanelVisible(true);
+        setRightPanelVisible(true);
+      }
+      // Alt+F to toggle fullscreen mode
+      if (e.altKey && e.key === 'f') {
+        toggleFullscreen();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [leftPanelVisible, rightPanelVisible]);
+
+  const isFullscreen = !leftPanelVisible && !rightPanelVisible;
+
+  return (
+    <main className="flex flex-col h-screen overflow-hidden">
+      <header className="border-b p-4 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleLeftPanel}
+            title={leftPanelVisible ? "Hide document navigation (Alt+1)" : "Show document navigation (Alt+1)"}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <PanelLeft className={cn("h-5 w-5", !leftPanelVisible && "text-muted-foreground")} />
+          </Button>
+          <h1 className="text-2xl font-bold">Markdown Writing App</h1>
+          {isFullscreen && (
+            <span className="ml-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
+              Fullscreen Mode
+            </span>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Exit fullscreen mode (Alt+F)" : "Enter fullscreen mode (Alt+F)"}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="h-5 w-5" />
+            ) : (
+              <Maximize2 className="h-5 w-5" />
+            )}
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleRightPanel}
+            title={rightPanelVisible ? "Hide AI composer (Alt+2)" : "Show AI composer (Alt+2)"}
+          >
+            <PanelRight className={cn("h-5 w-5", !rightPanelVisible && "text-muted-foreground")} />
+          </Button>
+          <ThemeToggle />
+        </div>
+      </header>
+      
+      <div className="flex flex-1 h-full overflow-hidden">
+        {/* Left Panel - Document Navigation (Fixed Width) */}
+        {leftPanelVisible && (
+          <div className="w-64 border-r h-full">
+            <div className="p-4 h-full flex flex-col overflow-auto">
+              <DocumentNavigation onCompareDocuments={handleCompareDocuments} />
+            </div>
+          </div>
+        )}
+        
+        {/* Main Content Area with Resizable Panels */}
+        <div className="flex-1 h-full">
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {/* Middle Panel - Markdown Editor */}
+            <ResizablePanel 
+              defaultSize={rightPanelVisible ? 100 - rightPanelSize : 100}
+            >
+              <div className={cn(
+                "p-4 h-full overflow-auto",
+                isFullscreen && "px-8"
+              )}>
+                <MarkdownEditor ref={editorRef} />
+              </div>
+            </ResizablePanel>
+            
+            {/* Right Panel - AI Composer */}
+            {rightPanelVisible && (
+              <>
+                <ResizableHandle />
+                <ResizablePanel 
+                  defaultSize={rightPanelSize} 
+                  minSize={20} 
+                  maxSize={40}
+                  onResize={setRightPanelSize}
+                  className="border-l"
+                >
+                  <div className="p-4 h-full flex flex-col overflow-auto">
+                    <AIComposer />
+                  </div>
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
+        </div>
+      </div>
+    </main>
   );
 }
