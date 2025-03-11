@@ -41,7 +41,6 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { parseTemplate } from "@/lib/template-parser";
 
 interface Message {
   id: string;
@@ -60,25 +59,10 @@ interface ContextDocument {
 
 interface AIComposerProps {}
 
-// Add a safe logging function at the top of the file
-const safeLog = (message: string, error?: any) => {
-  try {
-    if (typeof console !== 'undefined' && console.error) {
-      if (error) {
-        console.error(message, error);
-      } else {
-        console.error(message);
-      }
-    }
-  } catch (e) {
-    // Silently fail if console logging isn't available
-  }
-};
-
 export default function AIComposer({}: AIComposerProps) {
   const router = useRouter();
   const { documents, selectedDocumentId, updateDocument } = useDocumentStore();
-  const { config, updateConfig } = useLLMStore();
+  const { config } = useLLMStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const [messages, setMessages] = useState<Message[]>([]);
@@ -128,7 +112,7 @@ export default function AIComposer({}: AIComposerProps) {
     try {
       await generateAIResponse(userMessage.content);
     } catch (error) {
-      safeLog('Error generating AI response:', error);
+      console.error('Error generating AI response:', error);
       
       // Add error message
       const errorMessage: Message = {
@@ -150,106 +134,57 @@ export default function AIComposer({}: AIComposerProps) {
   };
 
   const generateAIResponse = async (userMessage: string) => {
-    // Get the template and custom instructions from the LLM store
-    const { promptTemplate, customInstructions } = config;
-    
-    // Debug the inputs
-    safeLog(`Template processing inputs:
-      - Template length: ${promptTemplate?.length || 0}
-      - Custom instructions length: ${customInstructions?.length || 0}
-      - User message: ${userMessage}
-      - Context documents: ${contextDocuments.length}
-    `);
-    
-    // Create the context for the template
-    const templateContext = {
-      userMessage,
-      customInstructions: customInstructions || '',
-      contextDocuments: contextDocuments.length > 0 ? contextDocuments : undefined
-    };
-    
+    // Create prompt based on user message and context documents
     let prompt = "";
     
-    try {
-      // Check if template is valid
-      if (!promptTemplate || promptTemplate.trim() === '') {
-        safeLog("Empty template, using default template");
-        // Use a default template if none is provided
-        prompt = `User Message: ${userMessage}\n\n${customInstructions || ''}\n\nPlease provide a helpful response.`;
-      } else {
-        // Parse the template to generate the prompt
-        safeLog("Parsing template...");
-        prompt = parseTemplate(promptTemplate, templateContext);
-        safeLog(`Template parsed, prompt length: ${prompt?.length || 0}`);
-      }
-    } catch (error) {
-      safeLog("Error parsing template:", error);
+    // Add context documents if any
+    if (contextDocuments.length > 0) {
+      prompt += "Context Documents:\n\n";
       
-      // Fallback to a simple prompt if template parsing fails
-      prompt = `User Message: ${userMessage}\n\n${customInstructions || ''}\n\nPlease provide a helpful response.`;
-      
-      // Show warning toast
-      toast({
-        title: "Template Warning",
-        description: "Your template produced an empty prompt. Using a simple template instead.",
-        variant: "destructive"
+      contextDocuments.forEach((doc, index) => {
+        prompt += `Document ${index + 1} Title: ${doc.name}\n`;
+        prompt += `Document ${index + 1} Content:\n${doc.content}\n\n`;
       });
     }
     
-    // Check if prompt is empty after template processing
-    if (!prompt || prompt.trim() === '') {
-      safeLog("Empty prompt after template processing, using fallback");
-      prompt = `User Message: ${userMessage}\n\nPlease provide a helpful response.`;
-      
-      // Show warning toast
-      toast({
-        title: "Template Warning",
-        description: "Your template produced an empty prompt. Using a simple template instead.",
-        variant: "destructive"
-      });
+    // Add the user message
+    prompt += `User Message: ${userMessage}\n\n`;
+    prompt += `Please provide a helpful response based on the user request`;
+    
+    if (contextDocuments.length > 0) {
+      prompt += ` and the provided context documents`;
+    }
+    
+    prompt += `.`;
+    
+    // Add specific instructions based on user intent
+    if (userMessage.toLowerCase().includes("summarize")) {
+      prompt += "\n\nThe user wants a summary. Please provide a concise summary.";
+    } 
+    else if (userMessage.toLowerCase().includes("improve") || userMessage.toLowerCase().includes("edit")) {
+      prompt += "\n\nThe user wants suggestions to improve their writing. Please provide specific improvements.";
+    }
+    else if (userMessage.toLowerCase().includes("idea") || userMessage.toLowerCase().includes("brainstorm")) {
+      prompt += "\n\nThe user wants ideas. Please provide creative and relevant ideas.";
     }
     
     // Store the prompt for debugging
     setLastPrompt(prompt);
-    safeLog(`Final prompt length: ${prompt.length}`);
     
-    try {
-      // Call the LLM service
-      safeLog("Calling LLM service...");
-      const response = await generateText({ prompt });
-      safeLog("LLM service response received");
-      
-      // Create AI message
-      const aiMessage: Message = { 
-        id: generateId(),
-        role: "assistant", 
-        content: response.text,
-        timestamp: new Date(),
-        model: response.model,
-        provider: response.provider
-      };
-      
-      setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      safeLog("Error generating AI response:", error);
-      
-      // Add error message to chat
-      const errorMessage: Message = {
-        id: generateId(),
-        role: "assistant",
-        content: "I'm sorry, I encountered an error while processing your request. Please check your API key in settings or try again later.",
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
-      
-      // Show error toast
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate response",
-        variant: "destructive"
-      });
-    }
+    // Call the LLM service
+    const response = await generateText({ prompt });
+    
+    // Create AI message
+    const aiMessage: Message = { 
+      id: generateId(),
+      role: "assistant", 
+      content: response.text,
+      timestamp: new Date(),
+      model: response.model,
+      provider: response.provider
+    };
+    
+    setMessages(prev => [...prev, aiMessage]);
   };
 
   // Filter out documents that are already in context or are the current document
@@ -619,8 +554,6 @@ export default function AIComposer({}: AIComposerProps) {
         </div>
         
         <div className="flex items-center gap-2">
-          
-          
           <Dialog open={showDebugDialog} onOpenChange={setShowDebugDialog}>
             <DialogTrigger asChild>
               <Button 
