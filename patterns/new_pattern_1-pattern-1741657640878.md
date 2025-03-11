@@ -1,0 +1,3 @@
+# New Pattern 1
+
+Start writing here...

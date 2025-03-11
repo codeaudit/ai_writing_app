@@ -10,10 +10,13 @@ import { toast } from "@/components/ui/use-toast";
 
 interface VersionHistoryProps {
   documentId: string;
-  onShowDiff: (originalContent: string, modifiedContent: string, originalTitle: string, modifiedTitle: string) => void;
+  onShowDiff?: (originalContent: string, modifiedContent: string, originalTitle: string, modifiedTitle: string) => void;
+  getVersions?: () => DocumentVersion[];
+  onRestore?: (versionId: string) => void;
+  onClose?: () => void;
 }
 
-export function VersionHistory({ documentId, onShowDiff }: VersionHistoryProps) {
+export function VersionHistory({ documentId, onShowDiff, getVersions, onRestore, onClose }: VersionHistoryProps) {
   const { documents, updateDocument } = useDocumentStore();
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
 
@@ -21,16 +24,17 @@ export function VersionHistory({ documentId, onShowDiff }: VersionHistoryProps) 
 
   // Update versions when document changes
   useEffect(() => {
-    if (document) {
-      console.log("Document versions:", document.versions);
+    if (getVersions) {
+      setVersions(getVersions() || []);
+    } else if (document) {
       setVersions(document.versions || []);
     } else {
       setVersions([]);
     }
-  }, [document]);
+  }, [document, getVersions]);
 
   const handleShowDiff = (version: DocumentVersion) => {
-    if (!document) return;
+    if (!document || !onShowDiff) return;
     
     onShowDiff(
       version.content, 
@@ -41,6 +45,11 @@ export function VersionHistory({ documentId, onShowDiff }: VersionHistoryProps) 
   };
 
   const handleRestoreVersion = (version: DocumentVersion) => {
+    if (onRestore) {
+      onRestore(version.id);
+      return;
+    }
+    
     if (!document) return;
     
     // Update the document with the version's content
@@ -48,86 +57,86 @@ export function VersionHistory({ documentId, onShowDiff }: VersionHistoryProps) 
       documentId, 
       { content: version.content }, 
       true, 
-      `Restored version from ${formatDistanceToNow(new Date(version.createdAt))} ago`
+      `Restored from version created on ${new Date(version.createdAt).toLocaleString()}`
     );
     
-    // Show toast notification
     toast({
       title: "Version restored",
-      description: `Version from ${formatTimeAgo(new Date(version.createdAt))} has been restored.`,
+      description: `Restored version from ${new Date(version.createdAt).toLocaleString()}`,
     });
+    
+    if (onClose) {
+      onClose();
+    }
   };
 
   const handleCompareVersions = (version1: DocumentVersion, version2: DocumentVersion) => {
+    if (!onShowDiff) return;
+    
     onShowDiff(
-      version1.content,
+      version1.content, 
       version2.content,
-      formatRelative(new Date(version1.createdAt), new Date()),
+      formatRelative(new Date(version1.createdAt), new Date()), 
       formatRelative(new Date(version2.createdAt), new Date())
     );
-    
-    // Show toast notification
-    toast({
-      title: "Comparing versions",
-      description: "Showing differences between selected versions.",
-    });
   };
 
   const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) {
-      return `${diffInSeconds} second${diffInSeconds !== 1 ? 's' : ''} ago`;
+    try {
+      return formatDistanceToNow(new Date(date), { addSuffix: true });
+    } catch (error) {
+      return "Unknown date";
     }
-    
-    return formatDistanceToNow(date, { addSuffix: true });
   };
 
-  if (!document) return null;
-
   return (
-    <div className="border rounded-md">
+    <div className="space-y-4">
       {versions.length === 0 ? (
-        <div className="p-4 text-center text-muted-foreground">
-          No previous versions found. Create a version to track changes.
+        <div className="text-center py-8 text-muted-foreground">
+          No version history available
         </div>
       ) : (
-        <div className="divide-y">
+        <div className="space-y-2">
           {versions.map((version, index) => (
-            <div key={version.id} className="p-3 flex items-center justify-between">
-              <div>
-                <div className="font-medium flex items-center">
+            <div 
+              key={version.id} 
+              className="flex items-start justify-between p-3 border rounded-md hover:bg-accent/50"
+            >
+              <div className="space-y-1">
+                <div className="flex items-center">
                   <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                  {formatTimeAgo(new Date(version.createdAt))}
+                  <span className="font-medium">
+                    {formatTimeAgo(new Date(version.createdAt))}
+                  </span>
                 </div>
-                {version.message && (
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {version.message}
-                  </div>
-                )}
+                <div className="text-sm text-muted-foreground ml-6">
+                  {version.message || `Version ${versions.length - index}`}
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleShowDiff(version)}
-                >
-                  Compare
-                </Button>
-                {index < versions.length - 1 && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleCompareVersions(version, versions[index + 1])}
-                    title="Compare with previous version"
-                  >
-                    Compare Prev
-                  </Button>
+              <div className="flex space-x-2">
+                {onShowDiff && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleShowDiff(version)}
+                    >
+                      View Changes
+                    </Button>
+                    {index < versions.length - 1 && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleCompareVersions(version, versions[index + 1])}
+                      >
+                        Compare
+                      </Button>
+                    )}
+                  </>
                 )}
                 <Button 
-                  variant="secondary" 
-                  size="sm"
+                  variant="default" 
+                  size="sm" 
                   onClick={() => handleRestoreVersion(version)}
                 >
                   Restore

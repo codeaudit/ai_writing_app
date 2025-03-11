@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "A P@tt€rη £@ηgυ@ge €di†or",
+  title: "A Pattern Language Editor",
   description: "A Pattern Language Design Editor",
 };
 

@@ -5,8 +5,8 @@ export const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 export const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || '';
 
 // Default LLM Configuration
-export const DEFAULT_LLM_PROVIDER = process.env.DEFAULT_LLM_PROVIDER || 'gemini';
-export const DEFAULT_LLM_MODEL = process.env.DEFAULT_LLM_MODEL || 'gemini-1.5-flash';
+export const DEFAULT_LLM_PROVIDER = 'openai';
+export const DEFAULT_LLM_MODEL = 'gpt-4o';
 
 // LLM Provider Options
 export const LLM_PROVIDERS = [

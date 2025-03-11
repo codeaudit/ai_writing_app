@@ -1,0 +1,98 @@
+[
+  {
+    "id": "pattern-1741657640878",
+    "name": "New Pattern 1",
+    "content": "# New Pattern 1\n\nStart writing here...",
+    "createdAt": "2025-03-11T01:47:20.878Z",
+    "updatedAt": "2025-03-11T01:47:20.878Z",
+    "versions": [
+      {
+        "id": "ver-1741657640878-initial",
+        "content": "# New Pattern 1\n\nStart writing here...",
+        "createdAt": "2025-03-11T01:47:20.878Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null
+  },
+  {
+    "id": "pattern-1741657642304",
+    "name": "New Pattern 2",
+    "content": "# New Pattern 2\n\nStart writing here...",
+    "createdAt": "2025-03-11T01:47:22.304Z",
+    "updatedAt": "2025-03-11T01:47:22.304Z",
+    "versions": [
+      {
+        "id": "ver-1741657642304-initial",
+        "content": "# New Pattern 2\n\nStart writing here...",
+        "createdAt": "2025-03-11T01:47:22.304Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1741726379365"
+  },
+  {
+    "id": "pattern-1741657643102",
+    "name": "New Pattern 3",
+    "content": "# New Pattern 3\n\nStart writing here...",
+    "createdAt": "2025-03-11T01:47:23.102Z",
+    "updatedAt": "2025-03-11T01:47:23.102Z",
+    "versions": [
+      {
+        "id": "ver-1741657643102-initial",
+        "content": "# New Pattern 3\n\nStart writing here...",
+        "createdAt": "2025-03-11T01:47:23.102Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1741726379365"
+  },
+  {
+    "id": "pattern-1741726239661",
+    "name": "New Pattern",
+    "content": "",
+    "createdAt": "2025-03-11T20:50:39.661Z",
+    "updatedAt": "2025-03-11T20:50:39.661Z",
+    "versions": [
+      {
+        "id": "ver-1741726239661-initial",
+        "content": "",
+        "createdAt": "2025-03-11T20:50:39.661Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "pattern-1741657642304"
+  },
+  {
+    "id": "pattern-1741726241984",
+    "name": "New Pattern",
+    "content": "",
+    "createdAt": "2025-03-11T20:50:41.984Z",
+    "updatedAt": "2025-03-11T20:50:41.984Z",
+    "versions": [
+      {
+        "id": "ver-1741726241984-initial",
+        "content": "",
+        "createdAt": "2025-03-11T20:50:41.984Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "pattern-1741726239661"
+  },
+  {
+    "id": "pattern-1741726244143",
+    "name": "New Pattern",
+    "content": "",
+    "createdAt": "2025-03-11T20:50:44.143Z",
+    "updatedAt": "2025-03-11T20:50:44.143Z",
+    "versions": [
+      {
+        "id": "ver-1741726244143-initial",
+        "content": "",
+        "createdAt": "2025-03-11T20:50:44.143Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "pattern-1741726241984"
+  }
+]
