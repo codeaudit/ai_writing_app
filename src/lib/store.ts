@@ -415,6 +415,8 @@ interface LLMConfig {
   apiKey: string;
   model: string;
   googleApiKey?: string;
+  promptTemplate: string;
+  customInstructions: string;
 }
 
 interface LLMStore {
@@ -422,6 +424,27 @@ interface LLMStore {
   updateConfig: (config: Partial<LLMConfig>) => void;
   getApiKey: () => string;
 }
+
+// Default prompt template
+const DEFAULT_PROMPT_TEMPLATE = `{{#if contextDocuments}}
+Context Documents:
+
+{{#each contextDocuments}}
+Document {{@index + 1}} Title: {{name}}
+Document {{@index + 1}} Content:
+{{content}}
+
+{{/each}}
+{{/if}}
+
+User Message: {{userMessage}}
+
+{{customInstructions}}
+
+Please provide a helpful response based on the user request{{#if contextDocuments}} and the provided context documents{{/if}}.`;
+
+// Default custom instructions
+const DEFAULT_CUSTOM_INSTRUCTIONS = `Be concise, accurate, and helpful. If you're unsure about something, acknowledge the uncertainty.`;
 
 export const useLLMStore = create<LLMStore>()(
   persist(
@@ -431,6 +454,8 @@ export const useLLMStore = create<LLMStore>()(
         apiKey: DEFAULT_LLM_PROVIDER === 'openai' ? OPENAI_API_KEY : '',
         googleApiKey: DEFAULT_LLM_PROVIDER === 'gemini' ? GOOGLE_API_KEY : '',
         model: DEFAULT_LLM_MODEL,
+        promptTemplate: DEFAULT_PROMPT_TEMPLATE,
+        customInstructions: DEFAULT_CUSTOM_INSTRUCTIONS,
       },
       updateConfig: (newConfig) => set((state) => ({
         config: { ...state.config, ...newConfig },
