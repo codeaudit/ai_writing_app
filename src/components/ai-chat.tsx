@@ -91,7 +91,7 @@ export default function AIChat({ documentContent, onInsertText }: AIChatProps) {
   const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
 
   // Initialize chat with AI SDK
-  const { messages: aiMessages, input: aiInput, handleInputChange: aiHandleInputChange, handleSubmit: aiHandleSubmit, isLoading: aiIsLoading, error } = useChat({
+  const { messages: aiMessages, input: aiInput, handleInputChange: aiHandleInputChange, handleSubmit: aiHandleSubmit, isLoading: aiIsLoading, error, setMessages: setAiMessages } = useChat({
     api: '/api/ai',
     body: {
       context: documentContent,
@@ -408,7 +408,10 @@ export default function AIChat({ documentContent, onInsertText }: AIChatProps) {
 
   // Add a function to handle clearing the chat
   const handleClearChat = () => {
-    // Reset messages to an empty array
+    // Reset AI SDK messages to an empty array
+    setAiMessages([]);
+    
+    // Reset local messages to an empty array
     setMessages([]);
     
     // Clear input field
@@ -571,15 +574,39 @@ export default function AIChat({ documentContent, onInsertText }: AIChatProps) {
                 <div className="mt-3 grid grid-cols-1 gap-2 mx-auto max-w-md">
                   <SuggestionButton 
                     text="Summarize this document" 
-                    onClick={() => setInput("Summarize this document in a few paragraphs.")}
+                    onClick={() => {
+                      const text = "Summarize this document in a few paragraphs.";
+                      setInput(text);
+                      // Create a synthetic event to update AI SDK's input state
+                      const syntheticEvent = {
+                        target: { value: text }
+                      } as React.ChangeEvent<HTMLTextAreaElement>;
+                      aiHandleInputChange(syntheticEvent);
+                    }}
                   />
                   <SuggestionButton 
                     text="Improve the writing style" 
-                    onClick={() => setInput("Improve the writing style of this document to make it more engaging.")}
+                    onClick={() => {
+                      const text = "Improve the writing style of this document to make it more engaging.";
+                      setInput(text);
+                      // Create a synthetic event to update AI SDK's input state
+                      const syntheticEvent = {
+                        target: { value: text }
+                      } as React.ChangeEvent<HTMLTextAreaElement>;
+                      aiHandleInputChange(syntheticEvent);
+                    }}
                   />
                   <SuggestionButton 
                     text="Generate a conclusion" 
-                    onClick={() => setInput("Generate a conclusion for this document.")}
+                    onClick={() => {
+                      const text = "Generate a conclusion for this document.";
+                      setInput(text);
+                      // Create a synthetic event to update AI SDK's input state
+                      const syntheticEvent = {
+                        target: { value: text }
+                      } as React.ChangeEvent<HTMLTextAreaElement>;
+                      aiHandleInputChange(syntheticEvent);
+                    }}
                   />
                 </div>
               </div>
