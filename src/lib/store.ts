@@ -17,7 +17,8 @@ import {
   DEFAULT_LLM_PROVIDER, 
   DEFAULT_LLM_MODEL, 
   OPENAI_API_KEY, 
-  GOOGLE_API_KEY 
+  GOOGLE_API_KEY,
+  ANTHROPIC_API_KEY
 } from './config';
 
 export interface DocumentVersion {
@@ -660,49 +661,88 @@ export const useDocumentStore = create<DocumentStore>()(
 );
 
 // LLM Provider Store
-type LLMProvider = 'openai' | 'gemini' | string;
+type LLMProvider = string;
 
 interface LLMConfig {
   provider: LLMProvider;
   apiKey: string;
   model: string;
   googleApiKey?: string;
+  anthropicApiKey?: string;
 }
 
 interface LLMStore {
   config: LLMConfig;
   updateConfig: (config: Partial<LLMConfig>) => void;
   getApiKey: () => string;
+  loadServerConfig: () => Promise<void>;
 }
 
 export const useLLMStore = create<LLMStore>()(
   persist(
     (set, get) => ({
       config: {
-        provider: DEFAULT_LLM_PROVIDER as LLMProvider,
+        provider: DEFAULT_LLM_PROVIDER,
         apiKey: DEFAULT_LLM_PROVIDER === 'openai' ? OPENAI_API_KEY : '',
         googleApiKey: DEFAULT_LLM_PROVIDER === 'gemini' ? GOOGLE_API_KEY : '',
+        anthropicApiKey: DEFAULT_LLM_PROVIDER === 'anthropic' ? ANTHROPIC_API_KEY : '',
         model: DEFAULT_LLM_MODEL,
-      } as {
-        provider: string;
-        apiKey: string;
-        googleApiKey?: string;
-        model: string;
       },
       updateConfig: (newConfig) => set((state) => ({
         config: { ...state.config, ...newConfig },
       })),
       getApiKey: () => {
-        const { provider, apiKey, googleApiKey } = get().config;
-        if (typeof provider === 'string' && provider.toLowerCase() === 'gemini') {
-          return googleApiKey || GOOGLE_API_KEY || '';
+        const { provider, apiKey, googleApiKey, anthropicApiKey } = get().config;
+        if (typeof provider === 'string') {
+          const providerLower = provider.toLowerCase();
+          if (providerLower === 'gemini') {
+            // For Gemini, we need to set the environment variable that the AI SDK expects
+            const geminiKey = googleApiKey || GOOGLE_API_KEY || '';
+            if (typeof window !== 'undefined') {
+              // In the browser, we can't set environment variables, so we'll return the key
+              return geminiKey;
+            } else {
+              // In Node.js, we can set the environment variable
+              process.env.GOOGLE_GENERATIVE_AI_API_KEY = geminiKey;
+              return geminiKey;
+            }
+          } else if (providerLower === 'anthropic') {
+            return anthropicApiKey || ANTHROPIC_API_KEY || '';
+          }
         }
         return apiKey || OPENAI_API_KEY || '';
+      },
+      loadServerConfig: async () => {
+        try {
+          const response = await fetch('/api/config');
+          if (!response.ok) throw new Error('Failed to load server config');
+          
+          const data = await response.json();
+          
+          // Only update the provider and model from server config
+          set((state) => ({
+            config: { 
+              ...state.config, 
+              provider: data.defaultProvider || state.config.provider,
+              model: data.defaultModel || state.config.model,
+            },
+          }));
+        } catch (error) {
+          console.error('Error loading server config:', error);
+        }
       },
     }),
     {
       name: 'llm-config',
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Load server config after rehydration
+          setTimeout(() => {
+            state.loadServerConfig();
+          }, 0);
+        }
+      },
     }
   )
 ); 

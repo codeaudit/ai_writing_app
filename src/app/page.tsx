@@ -15,6 +15,7 @@ import { useDocumentStore, Annotation } from "@/lib/store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AboutSplash } from "@/components/about-splash";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { CardTitle } from "@/components/ui/card";
 
 // Define layout constants
 const LAYOUT_STORAGE_KEY = "editor-layout-config";
@@ -522,7 +523,10 @@ export default function Home() {
                     // Expanded view - show full AI composer
                     <div className="flex flex-col h-full">
                       <div className="flex items-center justify-between p-2 border-b">
-                        <h3 className="font-medium">AI Composer</h3>
+                       <CardTitle className="text-base flex items-center">
+                          <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                          AI Composer
+                        </CardTitle>
                         <Button 
                           variant="ghost" 
                           size="icon" 
