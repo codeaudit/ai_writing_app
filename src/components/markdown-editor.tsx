@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHand
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
-import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, FileDown, X, History, Undo } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDocumentStore } from "@/lib/store";
 import { OnMount, useMonaco } from "@monaco-editor/react";
@@ -317,26 +317,6 @@ const MarkdownEditor = forwardRef<
       }, 300);
     }
   }, [selectedDocumentId, content, selectedDocument, updateDocument, toast]);
-
-  const downloadMarkdown = () => {
-    if (!selectedDocument) return;
-    
-    const blob = new Blob([content], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${selectedDocument.name}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    // Show toast notification
-    toast({
-      title: "Document exported",
-      description: `${selectedDocument.name}.md has been downloaded.`,
-    });
-  };
 
   const handleShowDiff = (originalContent: string, modifiedContent: string, originalTitle: string, modifiedTitle: string) => {
     setDiffOriginal(originalContent);
@@ -742,15 +722,6 @@ const MarkdownEditor = forwardRef<
           >
             <History className="h-4 w-4 mr-2" />
             Create Version
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={downloadMarkdown}
-            title="Download Markdown"
-          >
-            <FileDown className="h-4 w-4 mr-2" />
-            Export
           </Button>
           <Button 
             variant="outline" 
