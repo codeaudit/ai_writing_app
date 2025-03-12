@@ -1,13 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useDocumentStore } from "@/lib/store";
 import AIChat from './ai-chat';
+import { cn } from "@/lib/utils";
 
 interface AIComposerProps {}
 
 export default function AIComposer({}: AIComposerProps) {
   const { documents, selectedDocumentId, updateDocument } = useDocumentStore();
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Get the selected document
   const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
@@ -18,6 +21,10 @@ export default function AIComposer({}: AIComposerProps) {
       const newContent = selectedDocument.content + '\n\n' + text;
       updateDocument(selectedDocumentId, { content: newContent });
     }
+  };
+
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded);
   };
 
   if (!selectedDocumentId || !selectedDocument) {
@@ -31,11 +38,31 @@ export default function AIComposer({}: AIComposerProps) {
     );
   }
 
+  if (isExpanded) {
+    return (
+      <div className={cn(
+        "fixed inset-0 bg-background z-50 flex flex-col",
+        "transition-all duration-300 ease-in-out"
+      )}>
+        <div className="flex-1 overflow-auto">
+          <AIChat 
+            documentContent={selectedDocument?.content}
+            onInsertText={handleInsertText}
+            isExpanded={isExpanded}
+            onToggleExpand={toggleExpand}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col">
       <AIChat 
         documentContent={selectedDocument?.content}
         onInsertText={handleInsertText}
+        isExpanded={isExpanded}
+        onToggleExpand={toggleExpand}
       />
     </div>
   );

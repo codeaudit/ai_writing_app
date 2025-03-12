@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Send, User, Bot, AtSign, X, FileText, ChevronDown, ChevronUp, Eraser, ArrowLeft, Bug, Copy, Check, RefreshCw } from 'lucide-react';
+import { Sparkles, Send, User, Bot, AtSign, X, FileText, ChevronDown, ChevronUp, Eraser, ArrowLeft, Bug, Copy, Check, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 import { useDocumentStore, useLLMStore } from "@/lib/store";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
@@ -62,9 +62,11 @@ interface ContextDocument {
 interface AIChatProps {
   documentContent?: string;
   onInsertText?: (text: string) => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
-export default function AIChat({ documentContent, onInsertText }: AIChatProps) {
+export default function AIChat({ documentContent, onInsertText, isExpanded, onToggleExpand }: AIChatProps) {
   const { documents, selectedDocumentId, updateDocument } = useDocumentStore();
   const { config } = useLLMStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -432,11 +434,23 @@ export default function AIChat({ documentContent, onInsertText }: AIChatProps) {
   };
 
   return (
-    <Card className="flex flex-col h-full border-none shadow-none">
+    <Card className={cn(
+      "flex flex-col h-full border-none shadow-none",
+      isExpanded && "border rounded-none"
+    )}>
       <CardHeader className="px-4 py-2 border-b">
         <div className="flex items-center justify-between">
           
-          <div className="flex items-center gap-1">
+          {isExpanded && (
+            <div className="flex items-center">
+              <span className="text-sm font-medium">AI Composer - Expanded Mode</span>
+            </div>
+          )}
+          
+          <div className={cn(
+            "flex items-center gap-1",
+            isExpanded ? "" : "ml-auto" // Push to right when not expanded
+          )}>
             <DropdownMenu open={isContextMenuOpen} onOpenChange={setIsContextMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button 
@@ -520,6 +534,22 @@ export default function AIChat({ documentContent, onInsertText }: AIChatProps) {
             >
               <Eraser className="h-4 w-4" />
             </Button>
+            
+            {onToggleExpand && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-8 px-2 text-muted-foreground"
+                title={isExpanded ? "Exit full screen" : "Expand to full screen"}
+                onClick={onToggleExpand}
+              >
+                {isExpanded ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+              </Button>
+            )}
             
             <AlertDialog open={showClearConfirmation} onOpenChange={setShowClearConfirmation}>
               <AlertDialogContent>
@@ -676,7 +706,7 @@ export default function AIChat({ documentContent, onInsertText }: AIChatProps) {
           <div className="flex-1 relative">
             <Textarea
               ref={textareaRef}
-              placeholder="Ask me anything about your document..."
+              placeholder="Ask ..."
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
