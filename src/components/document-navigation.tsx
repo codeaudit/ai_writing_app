@@ -30,6 +30,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ComparisonModeContext } from "@/contexts/ComparisonModeContext";
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 interface DocumentNavigationProps {
   onCompareDocuments?: (doc1Id: string, doc2Id: string) => void;
@@ -602,40 +604,124 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
     setShowDeleteConfirm(false);
   };
 
-  const handleImportDocuments = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportDocuments = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
     
-    // Process each file
-    Array.from(files).forEach(async (file) => {
+    // Check if it's a zip file
+    const file = files[0];
+    if (file.type === 'application/zip' || file.name.endsWith('.zip')) {
       try {
-        // Read file content
-        const content = await file.text();
+        // Show loading toast
+        toast({
+          title: "Importing vault",
+          description: "Please wait while we import your documents...",
+        });
         
-        // Create a new document with the file name (without extension) and content
-        const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove file extension
-        const newDocId = await addDocument(fileName, content, null);
+        // Read the zip file
+        const zipData = await JSZip.loadAsync(file);
+        let importCount = 0;
+        
+        // Process each file in the zip
+        const importPromises = Object.keys(zipData.files).map(async (fileName) => {
+          // Skip directories
+          if (zipData.files[fileName].dir) return;
+          
+          // Only process markdown files
+          if (!fileName.endsWith('.md') && !fileName.endsWith('.markdown') && !fileName.endsWith('.txt')) return;
+          
+          try {
+            // Get the file content
+            const content = await zipData.files[fileName].async('text');
+            
+            // Extract folder structure from path
+            const pathParts = fileName.split('/');
+            const docName = pathParts.pop()?.replace(/\.[^/.]+$/, "") || 'Untitled';
+            
+            // Create folders if needed and get the final folder ID
+            let currentFolderId: string | null = null;
+            
+            if (pathParts.length > 0) {
+              for (const folderName of pathParts) {
+                if (!folderName) continue; // Skip empty folder names
+                
+                // Check if folder already exists
+                let folder = folders.find(f => 
+                  f.name === folderName && f.parentId === currentFolderId
+                );
+                
+                if (!folder) {
+                  // Create the folder
+                  await addFolder(folderName, currentFolderId);
+                  
+                  // Get the newly created folder
+                  folder = folders.find(f => 
+                    f.name === folderName && f.parentId === currentFolderId
+                  );
+                }
+                
+                if (folder) {
+                  currentFolderId = folder.id;
+                }
+              }
+            }
+            
+            // Create the document in the appropriate folder
+            await addDocument(docName, content, currentFolderId);
+            importCount++;
+          } catch (error) {
+            console.error(`Error importing file ${fileName}:`, error);
+          }
+        });
+        
+        // Wait for all imports to complete
+        await Promise.all(importPromises);
         
         // Show success message
         toast({
-          title: "Document imported",
-          description: `"${fileName}" has been imported successfully.`,
+          title: "Vault imported",
+          description: `Successfully imported ${importCount} documents.`,
         });
-        
-        // Select the newly created document
-        if (newDocId) {
-          selectDocument(newDocId);
-          router.push(`/documents/${newDocId}`);
-        }
       } catch (error) {
-        console.error("Error importing document:", error);
+        console.error("Error importing zip file:", error);
         toast({
           title: "Import failed",
-          description: "Failed to import document. Please try again.",
+          description: "Failed to import vault. Please check the file format and try again.",
           variant: "destructive",
         });
       }
-    });
+    } else {
+      // Process individual files as before
+      Array.from(files).forEach(async (file) => {
+        try {
+          // Read file content
+          const content = await file.text();
+          
+          // Create a new document with the file name (without extension) and content
+          const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove file extension
+          const newDocId = await addDocument(fileName, content, null);
+          
+          // Show success message
+          toast({
+            title: "Document imported",
+            description: `"${fileName}" has been imported successfully.`,
+          });
+          
+          // Select the newly created document
+          if (newDocId) {
+            selectDocument(newDocId);
+            router.push(`/documents/${newDocId}`);
+          }
+        } catch (error) {
+          console.error("Error importing document:", error);
+          toast({
+            title: "Import failed",
+            description: "Failed to import document. Please try again.",
+            variant: "destructive",
+          });
+        }
+      });
+    }
     
     // Reset the file input
     if (fileInputRef.current) {
@@ -643,17 +729,57 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
     }
   };
 
-  const handleExportDocuments = () => {
-    // If a document is selected, export just that document
-    if (selectedDocumentId) {
-      const doc = documents.find(d => d.id === selectedDocumentId);
-      if (doc) {
-        exportDocument(doc);
+  const handleExportDocuments = async () => {
+    try {
+      // Show loading toast
+      toast({
+        title: "Exporting vault",
+        description: "Please wait while we prepare your documents...",
+      });
+      
+      const zip = new JSZip();
+      
+      // Helper function to get the full path for a document
+      const getDocumentPath = (doc: { id: string; name: string; folderId: string | null }): string => {
+        let path = `${doc.name}.md`;
+        let currentFolderId = doc.folderId;
+        
+        // Build the path by traversing up the folder hierarchy
+        while (currentFolderId) {
+          const folder = folders.find(f => f.id === currentFolderId);
+          if (!folder) break;
+          
+          path = `${folder.name}/${path}`;
+          currentFolderId = folder.parentId;
+        }
+        
+        return path;
+      };
+      
+      // Add all documents to the zip
+      for (const doc of documents) {
+        const path = getDocumentPath(doc);
+        zip.file(path, doc.content);
       }
-    } else {
-      // Otherwise, export all documents
-      documents.forEach(doc => {
-        exportDocument(doc);
+      
+      // Generate the zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Save the zip file
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      saveAs(zipBlob, `vault-export-${timestamp}.zip`);
+      
+      // Show success message
+      toast({
+        title: "Vault exported",
+        description: `Successfully exported ${documents.length} documents.`,
+      });
+    } catch (error) {
+      console.error("Error exporting vault:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export vault. Please try again.",
+        variant: "destructive",
       });
     }
   };
@@ -800,13 +926,13 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           className="flex-1 mr-2"
         >
           <Upload className="h-4 w-4 mr-2" />
-          Import
+          Import Vault
         </Button>
         <input
           type="file"
           ref={fileInputRef}
           onChange={handleImportDocuments}
-          accept=".md,.markdown,.txt"
+          accept=".md,.markdown,.txt,.zip"
           multiple
           className="hidden"
         />
@@ -817,7 +943,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           className="flex-1"
         >
           <Download className="h-4 w-4 mr-2" />
-          Export
+          Export Vault
         </Button>
       </div>
       
