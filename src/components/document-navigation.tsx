@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useContext, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock } from "lucide-react";
+import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download } from "lucide-react";
 import { useDocumentStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,7 +48,9 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
   const [isCreatingDocument, setIsCreatingDocument] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newItemName, setNewItemName] = useState("");
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
   
+  const router = useRouter();
   const {
     documents,
     folders,
@@ -61,6 +63,7 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
     addDocument,
     addFolder,
     moveDocument,
+    moveFolder,
   } = useDocumentStore();
 
   const childFolders = folders.filter(f => f.parentId === folder.id);
@@ -289,6 +292,7 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
   const [newName, setNewName] = useState(document.name);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   
+  const router = useRouter();
   const {
     selectedDocumentId,
     comparisonDocumentIds,
@@ -328,12 +332,21 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
       // This is a placeholder since we can't directly show diff from here
       // We'll select the document instead and let the user know to use the version history in the editor
       selectDocument(document.id);
+      // Update URL to reflect the selected document
+      router.push(`/documents/${document.id}`);
       toast({
         title: "Document selected",
         description: "Use the version history button in the editor to compare versions.",
       });
     }
-  }, [document.id, onCompareDocuments, selectDocument]);
+  }, [document.id, onCompareDocuments, selectDocument, router]);
+
+  // Handle document selection with URL update
+  const handleSelectDocument = () => {
+    selectDocument(document.id);
+    // Update URL to reflect the selected document
+    router.push(`/documents/${document.id}`);
+  };
 
   // Determine if this document can be selected for comparison
   const canSelect = comparisonDocumentIds.includes(document.id) || comparisonDocumentIds.length < 2;
@@ -373,7 +386,7 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
               if (comparisonDocumentIds.length > 0) {
                 handleToggleComparison();
               } else {
-                selectDocument(document.id);
+                handleSelectDocument();
               }
             }}
             disabled={!canSelect && comparisonDocumentIds.length > 0}
@@ -494,16 +507,22 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   const [newItemName, setNewItemName] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, type: 'folder' | 'document' } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredDocuments = documents.filter(doc => 
     doc.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const createNewDocument = () => {
-    addDocument(
+    const newDocId = addDocument(
       `New Document ${documents.length + 1}`, 
       `# New Document ${documents.length + 1}\n\nStart writing here...`
     );
+    
+    // Update URL to reflect the newly created document
+    if (newDocId) {
+      router.push(`/documents/${newDocId}`);
+    }
   };
 
   const handleCompare = () => {
@@ -550,9 +569,14 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   const handleCreateDocument = () => {
     if (newItemName.trim()) {
       // Create document at root level
-      addDocument(newItemName.trim(), "", null);
+      const newDocId = addDocument(newItemName.trim(), "", null);
       setNewItemName("");
       setIsCreatingDocument(false);
+      
+      // Update URL to reflect the newly created document
+      if (newDocId) {
+        router.push(`/documents/${newDocId}`);
+      }
     }
   };
 
@@ -576,6 +600,81 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
     
     setItemToDelete(null);
     setShowDeleteConfirm(false);
+  };
+
+  const handleImportDocuments = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    // Process each file
+    Array.from(files).forEach(async (file) => {
+      try {
+        // Read file content
+        const content = await file.text();
+        
+        // Create a new document with the file name (without extension) and content
+        const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove file extension
+        const newDocId = await addDocument(fileName, content, null);
+        
+        // Show success message
+        toast({
+          title: "Document imported",
+          description: `"${fileName}" has been imported successfully.`,
+        });
+        
+        // Select the newly created document
+        if (newDocId) {
+          selectDocument(newDocId);
+          router.push(`/documents/${newDocId}`);
+        }
+      } catch (error) {
+        console.error("Error importing document:", error);
+        toast({
+          title: "Import failed",
+          description: "Failed to import document. Please try again.",
+          variant: "destructive",
+        });
+      }
+    });
+    
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleExportDocuments = () => {
+    // If a document is selected, export just that document
+    if (selectedDocumentId) {
+      const doc = documents.find(d => d.id === selectedDocumentId);
+      if (doc) {
+        exportDocument(doc);
+      }
+    } else {
+      // Otherwise, export all documents
+      documents.forEach(doc => {
+        exportDocument(doc);
+      });
+    }
+  };
+
+  const exportDocument = (doc: { name: string; content: string }) => {
+    // Create a blob with the document content
+    const blob = new Blob([doc.content], { type: "text/markdown" });
+    
+    // Create a download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${doc.name}.md`;
+    
+    // Trigger the download
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const rootFolders = folders.filter(f => f.parentId === null);
@@ -691,6 +790,35 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
             onCompareDocuments={onCompareDocuments}
           />
         ))}
+      </div>
+      
+      <div className="mt-4 border-t pt-4 flex justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex-1 mr-2"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          Import
+        </Button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImportDocuments}
+          accept=".md,.markdown,.txt"
+          multiple
+          className="hidden"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportDocuments}
+          className="flex-1"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export
+        </Button>
       </div>
       
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

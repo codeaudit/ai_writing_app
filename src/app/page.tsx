@@ -57,7 +57,7 @@ export default function Home() {
     scrollToAnnotation?: (annotation: Annotation) => void;
   } | null>(null);
   const router = useRouter();
-  const { loadData: loadDocuments, selectDocument } = useDocumentStore();
+  const { loadData: loadDocuments, selectDocument, documents } = useDocumentStore();
   
   // Media queries for responsive layout
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -68,6 +68,31 @@ export default function Home() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Check URL for document ID on page load
+  useEffect(() => {
+    if (!isMounted) return;
+    
+    // Get the current path from the window location
+    const path = window.location.pathname;
+    const match = path.match(/\/documents\/([^\/]+)/);
+    
+    if (match && match[1]) {
+      const documentId = match[1];
+      // Check if this document exists in our store
+      const documentExists = documents.some(doc => doc.id === documentId);
+      
+      if (documentExists) {
+        // Select the document from the URL
+        selectDocument(documentId);
+        // Show the documents tab
+        setActiveTab("documents");
+      } else {
+        // If document doesn't exist, redirect to home
+        router.push('/');
+      }
+    }
+  }, [isMounted, documents, selectDocument, router]);
 
   // Load layout configuration from localStorage
   useEffect(() => {
@@ -138,6 +163,21 @@ export default function Home() {
       }
     }
   }, [isMounted]);
+
+  // Watch for changes to selectedDocumentId and update URL
+  const selectedDocumentId = useDocumentStore(state => state.selectedDocumentId);
+  
+  useEffect(() => {
+    if (!isMounted || !documents.length) return;
+    
+    if (selectedDocumentId) {
+      // Update URL to reflect the selected document without triggering a navigation
+      window.history.replaceState(null, '', `/documents/${selectedDocumentId}`);
+    } else {
+      // If no document is selected, reset URL to home
+      window.history.replaceState(null, '', '/');
+    }
+  }, [isMounted, documents, selectedDocumentId]);
 
   // Layout management functions
   const toggleLeftPanel = useCallback(() => {

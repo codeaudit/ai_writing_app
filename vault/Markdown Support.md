@@ -1,10 +1,12 @@
 ---
-id: doc-1741739766314-markdown
-createdAt: '2025-03-12T00:36:06.314Z'
-updatedAt: '2025-03-12T00:36:06.314Z'
-tags:
-  - reference
-  - markdown
+id: doc-1741812680601
+createdAt: '2025-03-12T20:51:20.601Z'
+updatedAt: '2025-03-12T20:51:20.601Z'
+versions:
+  - id: ver-1741812680601-initial
+    createdAt: '2025-03-12T20:51:20.601Z'
+    message: Initial version
+annotations: []
 ---
 # Markdown Support
 

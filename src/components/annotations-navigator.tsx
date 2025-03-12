@@ -10,6 +10,7 @@ import { Search, Tag, Clock, Trash2, Edit, ExternalLink, BookmarkIcon } from "lu
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { AnnotationDialog } from "./annotation-dialog";
+import { useRouter } from "next/navigation";
 
 interface AnnotationsNavigatorProps {
   onNavigateToAnnotation?: (documentId: string, annotation: Annotation) => void;
@@ -19,6 +20,7 @@ export default function AnnotationsNavigator({
   onNavigateToAnnotation,
 }: AnnotationsNavigatorProps) {
   const { documents, deleteAnnotation, searchAnnotations } = useDocumentStore();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [filteredAnnotations, setFilteredAnnotations] = useState<(Annotation & { documentName: string })[]>([]);
@@ -124,12 +126,12 @@ export default function AnnotationsNavigator({
     setShowEditDialog(true);
   };
   
-  const handleNavigate = (annotation: Annotation) => {
-    if (onNavigateToAnnotation && annotation.documentId) {
-      onNavigateToAnnotation(annotation.documentId, annotation);
-    } else if (onNavigateToAnnotation) {
-      // Handle case where documentId is undefined
-      console.warn("Cannot navigate to annotation with undefined documentId");
+  // Handle navigation to annotation with URL update
+  const handleNavigateToAnnotation = (documentId: string, annotation: Annotation) => {
+    if (onNavigateToAnnotation) {
+      onNavigateToAnnotation(documentId, annotation);
+      // Update URL to reflect the document being viewed
+      router.push(`/documents/${documentId}`);
     }
   };
 
@@ -175,7 +177,7 @@ export default function AnnotationsNavigator({
                         annotation={anno}
                         onDelete={() => anno.id ? handleDeleteAnnotation(anno.id) : null}
                         onEdit={() => handleEditAnnotation(anno)}
-                        onNavigate={() => handleNavigate(anno)}
+                        onNavigate={() => handleNavigateToAnnotation(anno.documentId, anno)}
                       />
                     ))}
                   </div>
@@ -197,7 +199,7 @@ export default function AnnotationsNavigator({
                         annotation={anno}
                         onDelete={() => anno.id ? handleDeleteAnnotation(anno.id) : null}
                         onEdit={() => handleEditAnnotation(anno)}
-                        onNavigate={() => handleNavigate(anno)}
+                        onNavigate={() => handleNavigateToAnnotation(anno.documentId, anno)}
                       />
                     ))}
                   </div>
@@ -235,7 +237,7 @@ export default function AnnotationsNavigator({
                         annotation={anno}
                         onDelete={() => anno.id ? handleDeleteAnnotation(anno.id) : null}
                         onEdit={() => handleEditAnnotation(anno)}
-                        onNavigate={() => handleNavigate(anno)}
+                        onNavigate={() => handleNavigateToAnnotation(anno.documentId, anno)}
                       />
                     ))}
                   </div>

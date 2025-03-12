@@ -848,14 +848,6 @@ const MarkdownEditor = forwardRef<
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowLLMDialog(true)}
-              title="AI Assistant"
-            >
-              <Sparkles className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
               onClick={() => {
                 if (selectedTextRange && selectedDocumentId) {
                   setShowAnnotationDialog(true);

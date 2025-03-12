@@ -69,7 +69,7 @@ interface DocumentStore {
   backlinks: { id: string, name: string }[];
   
   // Document operations
-  addDocument: (name: string, content: string, folderId?: string | null) => Promise<void>;
+  addDocument: (name: string, content: string, folderId?: string | null) => Promise<string>;
   updateDocument: (id: string, data: Partial<Document>, createVersion?: boolean, versionMessage?: string) => Promise<void>;
   deleteDocument: (id: string) => Promise<void>;
   moveDocument: (documentId: string, folderId: string | null) => Promise<void>;
@@ -207,6 +207,9 @@ export const useDocumentStore = create<DocumentStore>()(
           console.error('Error saving document to server:', error);
           set({ error: 'Failed to save document to server. Changes may not persist.' });
         }
+        
+        // Return the new document ID
+        return newDocument.id;
       },
       
       updateDocument: async (id, data, createVersion = false, versionMessage = "") => {
