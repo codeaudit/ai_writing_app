@@ -15,91 +15,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { LLMDialog } from "./llm-dialog";
 import React from "react";
-import { useMemo } from "react";
-import { marked } from 'marked';
-import type { MarkedOptions } from 'marked';
-import DOMPurify from 'dompurify';
-import hljs from 'highlight.js';
-import 'highlight.js/styles/github-dark.css';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { MarkdownRenderer } from "./markdown-renderer";
 
 // Dynamically import components that might cause hydration issues
 const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.default), { ssr: false });
 const DiffEditor = dynamic(() => import('@monaco-editor/react').then(mod => mod.DiffEditor), { ssr: false });
 
 interface MarkdownEditorProps {}
-
-// Marked.js preview component with KaTeX support
-const MarkedPreview = ({ content }: { content: string }) => {
-  const [html, setHtml] = useState('');
-  const { theme } = useTheme();
-  
-  useEffect(() => {
-    // Function to render markdown with LaTeX support
-    const renderMarkdown = () => {
-      try {
-        // Pre-process content to handle LaTeX before passing to marked
-        let processedContent = content;
-        
-        // Process block LaTeX: $$...$$
-        processedContent = processedContent.replace(/\$\$([\s\S]+?)\$\$/g, (match, latex) => {
-          try {
-            return `<div class="katex-block">${katex.renderToString(latex.trim(), { 
-              displayMode: true,
-              throwOnError: false
-            })}</div>`;
-          } catch (error) {
-            console.error('KaTeX block error:', error);
-            return `<div class="text-red-500 my-4">LaTeX Error: ${latex}</div>`;
-          }
-        });
-        
-        // Process inline LaTeX: $...$
-        processedContent = processedContent.replace(/\$([^\$]+?)\$/g, (match, latex) => {
-          try {
-            return katex.renderToString(latex.trim(), { 
-              displayMode: false,
-              throwOnError: false
-            });
-          } catch (error) {
-            console.error('KaTeX inline error:', error);
-            return `<span class="text-red-500">LaTeX Error: ${latex}</span>`;
-          }
-        });
-        
-        // Parse markdown with type assertion to avoid TypeScript errors
-        const rawHtml = marked.parse(processedContent) as string;
-        
-        // Configure DOMPurify to allow KaTeX classes and attributes
-        const purifyConfig = {
-          ADD_TAGS: ['math', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'msubsup', 'munderover', 'munder', 'mover'],
-          ADD_ATTR: ['class', 'style', 'data-*'],
-          KEEP_CONTENT: true
-        };
-        
-        const cleanHtml = DOMPurify.sanitize(rawHtml, purifyConfig);
-        setHtml(cleanHtml);
-      } catch (error) {
-        console.error('Error parsing markdown:', error);
-        setHtml('<p>Error rendering markdown</p>');
-      }
-    };
-    
-    renderMarkdown();
-  }, [content]);
-  
-  if (!html) {
-    return <div className="animate-pulse h-40 bg-muted rounded-md"></div>;
-  }
-  
-  return (
-    <div 
-      className="prose prose-sm md:prose-base dark:prose-invert max-w-none"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  );
-};
 
 // Export the component with forwardRef to expose methods to the parent
 const MarkdownEditor = forwardRef<
@@ -806,7 +728,7 @@ const MarkdownEditor = forwardRef<
         
         <TabsContent value="preview" className="flex-1 overflow-auto">
           <div className="p-4">
-            <MarkedPreview content={content} />
+            <MarkdownRenderer content={content} />
           </div>
         </TabsContent>
       </Tabs>

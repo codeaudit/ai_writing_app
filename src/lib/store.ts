@@ -6,7 +6,12 @@ import {
   saveDocumentToServer, 
   saveFolderToServer, 
   deleteDocumentFromServer, 
-  deleteFolderFromServer 
+  deleteFolderFromServer,
+  renameDocumentOnServer,
+  moveDocumentOnServer,
+  renameFolderOnServer,
+  moveFolderOnServer,
+  getBacklinksFromServer
 } from './api-service';
 import { 
   DEFAULT_LLM_PROVIDER, 
@@ -47,19 +52,26 @@ interface DocumentStore {
   comparisonDocumentIds: string[];
   isLoading: boolean;
   error: string | null;
+  backlinks: { id: string, name: string }[];
   
   // Document operations
   addDocument: (name: string, content: string, folderId?: string | null) => Promise<void>;
   updateDocument: (id: string, data: Partial<Document>, createVersion?: boolean, versionMessage?: string) => Promise<void>;
   deleteDocument: (id: string) => Promise<void>;
   moveDocument: (documentId: string, folderId: string | null) => Promise<void>;
+  renameDocument: (documentId: string, newName: string) => Promise<void>;
   selectDocument: (id: string | null) => void;
   
   // Folder operations
   addFolder: (name: string, parentId?: string | null) => Promise<void>;
   updateFolder: (id: string, name: string, parentId?: string | null) => Promise<void>;
   deleteFolder: (id: string) => Promise<void>;
+  renameFolder: (folderId: string, newName: string) => Promise<void>;
+  moveFolder: (folderId: string, parentId: string | null) => Promise<void>;
   selectFolder: (id: string | null) => void;
+  
+  // Backlinks operations
+  loadBacklinks: (documentId: string) => Promise<void>;
   
   // Comparison operations
   toggleComparisonDocument: (id: string) => void;
@@ -108,6 +120,7 @@ export const useDocumentStore = create<DocumentStore>()(
       comparisonDocumentIds: [],
       isLoading: false,
       error: null,
+      backlinks: [],
       
       setError: (error) => set({ error }),
       
@@ -218,28 +231,19 @@ export const useDocumentStore = create<DocumentStore>()(
       
       moveDocument: async (documentId, folderId) => {
         set({ error: null });
-        const state = get();
-        const documentToMove = state.documents.find(doc => doc.id === documentId);
         
-        if (!documentToMove) return;
-        
-        const updatedDoc = { ...documentToMove, folderId };
-        
-        // Update local state immediately
-        set((state) => ({
-          documents: state.documents.map((doc) =>
-            doc.id === documentId
-              ? updatedDoc
-              : doc
-          ),
-        }));
-        
-        // Then save to server
         try {
-          await saveDocumentToServer(updatedDoc);
+          const document = await moveDocumentOnServer(documentId, folderId);
+          
+          // Update local state
+          set((state) => ({
+            documents: state.documents.map((doc) => 
+              doc.id === documentId ? document : doc
+            ),
+          }));
         } catch (error) {
-          console.error('Error moving document on server:', error);
-          set({ error: 'Failed to move document on server. Changes may not persist.' });
+          console.error('Error moving document:', error);
+          set({ error: error instanceof Error ? error.message : 'Failed to move document' });
         }
       },
 
@@ -384,6 +388,82 @@ export const useDocumentStore = create<DocumentStore>()(
         const state = get();
         const document = state.documents.find(doc => doc.id === id);
         return document?.versions || [];
+      },
+      
+      // Add new methods for Obsidian-like features
+      renameDocument: async (documentId, newName) => {
+        set({ error: null });
+        
+        try {
+          const { document, updatedLinks } = await renameDocumentOnServer(documentId, newName);
+          
+          // Update local state
+          set((state) => ({
+            documents: state.documents.map((doc) => 
+              doc.id === documentId ? document : doc
+            ),
+          }));
+          
+          // Show success message if links were updated
+          if (updatedLinks > 0) {
+            set({ error: `Updated ${updatedLinks} links to this document` });
+          }
+        } catch (error) {
+          console.error('Error renaming document:', error);
+          set({ error: error instanceof Error ? error.message : 'Failed to rename document' });
+        }
+      },
+      
+      renameFolder: async (folderId, newName) => {
+        set({ error: null });
+        
+        try {
+          const folder = await renameFolderOnServer(folderId, newName);
+          
+          // Update local state
+          set((state) => ({
+            folders: state.folders.map((f) => 
+              f.id === folderId ? folder : f
+            ),
+          }));
+        } catch (error) {
+          console.error('Error renaming folder:', error);
+          set({ error: error instanceof Error ? error.message : 'Failed to rename folder' });
+        }
+      },
+      
+      moveFolder: async (folderId, parentId) => {
+        set({ error: null });
+        
+        try {
+          const folder = await moveFolderOnServer(folderId, parentId);
+          
+          // Update local state
+          set((state) => ({
+            folders: state.folders.map((f) => 
+              f.id === folderId ? folder : f
+            ),
+          }));
+        } catch (error) {
+          console.error('Error moving folder:', error);
+          set({ error: error instanceof Error ? error.message : 'Failed to move folder' });
+        }
+      },
+      
+      loadBacklinks: async (documentId) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const backlinks = await getBacklinksFromServer(documentId);
+          set({ backlinks, isLoading: false });
+        } catch (error) {
+          console.error('Error loading backlinks:', error);
+          set({ 
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to load backlinks',
+            backlinks: []
+          });
+        }
       },
     }),
     {

@@ -60,6 +60,71 @@ export const deleteDocumentFromServer = async (id: string): Promise<void> => {
   }
 };
 
+export const renameDocumentOnServer = async (id: string, newName: string): Promise<{ document: Document, updatedLinks: number }> => {
+  try {
+    const response = await fetch('/api/documents/rename', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id, newName }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to rename document: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error renaming document:', error);
+    throw error;
+  }
+};
+
+export const moveDocumentOnServer = async (id: string, targetFolderId: string | null): Promise<Document> => {
+  try {
+    const response = await fetch('/api/documents/move', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id, targetFolderId }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to move document: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error moving document:', error);
+    throw error;
+  }
+};
+
+export const getBacklinksFromServer = async (id: string): Promise<{ id: string, name: string }[]> => {
+  try {
+    const response = await fetch(`/api/backlinks?id=${encodeURIComponent(id)}`, {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to get backlinks: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting backlinks:', error);
+    throw error;
+  }
+};
+
 // Folder API functions
 export const fetchFolders = async (): Promise<Folder[]> => {
   try {
@@ -116,6 +181,50 @@ export const deleteFolderFromServer = async (id: string): Promise<void> => {
     }
   } catch (error) {
     console.error('Error deleting folder:', error);
+    throw error;
+  }
+};
+
+export const renameFolderOnServer = async (id: string, newName: string): Promise<Folder> => {
+  try {
+    const response = await fetch('/api/folders/rename', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id, newName }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to rename folder: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error renaming folder:', error);
+    throw error;
+  }
+};
+
+export const moveFolderOnServer = async (id: string, targetParentId: string | null): Promise<Folder> => {
+  try {
+    const response = await fetch('/api/folders/move', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id, targetParentId }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to move folder: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error moving folder:', error);
     throw error;
   }
 }; 

@@ -65,7 +65,7 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
 
   const childFolders = folders.filter(f => f.parentId === folder.id);
   const folderDocuments = documents.filter(d => d.folderId === folder.id);
-
+  
   const handleRename = () => {
     if (newName.trim() && newName !== folder.name) {
       updateFolder(folder.id, newName.trim());
