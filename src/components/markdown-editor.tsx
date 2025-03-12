@@ -4,11 +4,10 @@ import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHand
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
-import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo, BookmarkIcon, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useDocumentStore } from "@/lib/store";
-import { OnMount, useMonaco } from "@monaco-editor/react";
-import { editor } from "monaco-editor";
+import { useDocumentStore, Annotation } from "@/lib/store";
+import { OnMount, useMonaco, type Monaco, type EditorProps } from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 import { VersionHistory } from "./version-history";
 import { useToast } from "@/components/ui/use-toast";
@@ -16,6 +15,7 @@ import { formatDistanceToNow } from "date-fns";
 import { LLMDialog } from "./llm-dialog";
 import React from "react";
 import { MarkdownRenderer } from "./markdown-renderer";
+import { AnnotationDialog } from "./annotation-dialog";
 
 // Dynamically import components that might cause hydration issues
 const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.default), { ssr: false });
@@ -25,15 +25,18 @@ interface MarkdownEditorProps {}
 
 // Export the component with forwardRef to expose methods to the parent
 const MarkdownEditor = forwardRef<
-  { compareDocuments: (doc1Id: string, doc2Id: string) => void },
+  { 
+    compareDocuments: (doc1Id: string, doc2Id: string) => void;
+    scrollToAnnotation?: (annotation: Annotation) => void;
+  },
   MarkdownEditorProps
 >((props, ref) => {
-  const { documents, selectedDocumentId, updateDocument } = useDocumentStore();
+  const { documents, selectedDocumentId, updateDocument, selectDocument } = useDocumentStore();
   const [content, setContent] = useState("");
   const [activeTab, setActiveTab] = useState("edit");
   const [isSaving, setIsSaving] = useState(false);
   const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<any>(null);
   const monaco = useMonaco();
   const { theme, systemTheme } = useTheme();
   const [editorTheme, setEditorTheme] = useState<string>(() => {
@@ -70,6 +73,18 @@ const MarkdownEditor = forwardRef<
   // Get the selected document
   const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
 
+  // Comparison state
+  const [comparisonMode, setComparisonMode] = useState(false);
+  const [comparisonDocuments, setComparisonDocuments] = useState<{
+    original: string;
+    modified: string;
+    originalTitle?: string;
+    modifiedTitle?: string;
+  }>({
+    original: "",
+    modified: "",
+  });
+
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
     compareDocuments: (doc1Id: string, doc2Id: string) => {
@@ -77,6 +92,15 @@ const MarkdownEditor = forwardRef<
       const doc2 = documents.find(doc => doc.id === doc2Id);
       
       if (doc1 && doc2) {
+        setComparisonMode(true);
+        setComparisonDocuments({
+          original: doc1.content || "",
+          modified: doc2.content || "",
+          originalTitle: doc1.name,
+          modifiedTitle: doc2.name
+        });
+        
+        // Switch to diff view
         handleShowDiff(
           doc1.content,
           doc2.content,
@@ -84,6 +108,42 @@ const MarkdownEditor = forwardRef<
           doc2.name
         );
       }
+    },
+    scrollToAnnotation: (annotation: Annotation) => {
+      // Switch to edit tab
+      setActiveTab("edit");
+      
+      // Wait for the editor to be ready
+      setTimeout(() => {
+        if (editorRef.current && annotation.startOffset !== undefined) {
+          // Get the position from the offset
+          const position = editorRef.current.getModel()?.getPositionAt(annotation.startOffset);
+          
+          if (position) {
+            // Scroll to the position
+            editorRef.current.revealPositionInCenter(position);
+            
+            // Set the cursor at the position
+            editorRef.current.setPosition(position);
+            
+            // Focus the editor
+            editorRef.current.focus();
+            
+            // Highlight the text range if we have both start and end offsets
+            if (annotation.endOffset !== undefined) {
+              const endPosition = editorRef.current.getModel()?.getPositionAt(annotation.endOffset);
+              if (endPosition) {
+                editorRef.current.setSelection({
+                  startLineNumber: position.lineNumber,
+                  startColumn: position.column,
+                  endLineNumber: endPosition.lineNumber,
+                  endColumn: endPosition.column
+                });
+              }
+            }
+          }
+        }
+      }, 100);
     }
   }));
 
@@ -126,7 +186,7 @@ const MarkdownEditor = forwardRef<
         },
         {
           keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK,
-          command: "editor.action.showLLMDialog",
+          command: "editor.action.customLLMDialog",
           when: "editorTextFocus"
         },
         // Explicitly register undo shortcut to ensure it works as expected
@@ -175,38 +235,70 @@ const MarkdownEditor = forwardRef<
     editorRef.current = editor;
     
     // Register custom commands
-    monaco.editor.registerCommand("editor.action.customSave", () => {
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       handleSave();
-    });
-
     monaco.editor.registerCommand("editor.action.showLLMDialog", () => {
-      const selection = editor.getSelection();
-      if (selection) {
-        const selectedText = editor.getModel()?.getValueInRange(selection) || "";
-        
-        // Get the coordinates of the selection
-        const selectionCoords = editor.getScrolledVisiblePosition({
-          lineNumber: selection.startLineNumber,
           column: selection.startColumn
         });
 
-        if (selectionCoords) {
-          // Get the editor container's position
-          const editorContainer = editor.getContainerDomNode();
-          const editorRect = editorContainer.getBoundingClientRect();
+    }, "editorTextFocus");
+    
+    // Use the same command ID as registered in the keyboard shortcuts
+    editor.addAction({
+      id: "editor.action.customLLMDialog",
+      label: "Show AI Assistant",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK],
+      contextMenuGroupId: "navigation",
+      run: (ed) => {
+        const selection = ed.getSelection();
+        if (selection) {
+          const selectedText = ed.getModel()?.getValueInRange(selection) || "";
+          
+          // Get the coordinates of the selection
+          const selectionCoords = ed.getScrolledVisiblePosition({
+            lineNumber: selection.startLineNumber,
+            column: selection.startColumn
+          });
 
-          // Calculate absolute position
-          const x = editorRect.left + selectionCoords.left;
-          const y = editorRect.top + selectionCoords.top;
+          if (selectionCoords) {
+            // Get the editor container's position
+            const editorContainer = ed.getContainerDomNode();
+            const editorRect = editorContainer.getBoundingClientRect();
 
-          setDialogPosition({ x, y });
-          setSelectedText(selectedText);
-          setCurrentSelection(selection);
-          setShowLLMDialog(true);
+            // Calculate absolute position
+            const x = editorRect.left + selectionCoords.left;
+            // Position it above the cursor by subtracting some pixels
+            const y = editorRect.top + selectionCoords.top - 10;
+
+            setDialogPosition({ x, y });
+            setSelectedText(selectedText);
+            setCurrentSelection(selection);
+            setShowLLMDialog(true);
+          }
+        } else {
+          // If no text is selected, show the dialog at the current cursor position
+          const position = ed.getPosition();
+          if (position) {
+            const cursorCoords = ed.getScrolledVisiblePosition(position);
+            
+            if (cursorCoords) {
+              const editorContainer = ed.getContainerDomNode();
+              const editorRect = editorContainer.getBoundingClientRect();
+              
+              const x = editorRect.left + cursorCoords.left;
+              // Position it above the cursor by subtracting some pixels
+              const y = editorRect.top + cursorCoords.top - 10;
+              
+              setDialogPosition({ x, y });
+              setSelectedText("");
+              setCurrentSelection(null);
+              setShowLLMDialog(true);
+            }
+          }
         }
       }
     });
-    
+
     // Configure editor options for better undo/redo experience
     editor.getModel()?.setEOL(monaco.editor.EndOfLineSequence.LF);
   };
@@ -356,7 +448,8 @@ const MarkdownEditor = forwardRef<
 
               // Calculate absolute position
               const x = editorRect.left + selectionCoords.left;
-              const y = editorRect.top + selectionCoords.top;
+              // Position it above the cursor by subtracting some pixels
+              const y = editorRect.top + selectionCoords.top - 10;
 
               setDialogPosition({ x, y });
               setSelectedText(selectedText);
@@ -374,7 +467,8 @@ const MarkdownEditor = forwardRef<
                 const editorRect = editorContainer.getBoundingClientRect();
                 
                 const x = editorRect.left + cursorCoords.left;
-                const y = editorRect.top + cursorCoords.top;
+                // Position it above the cursor by subtracting some pixels
+                const y = editorRect.top + cursorCoords.top - 10;
                 
                 setDialogPosition({ x, y });
                 setSelectedText("");
@@ -418,7 +512,8 @@ const MarkdownEditor = forwardRef<
 
           // Calculate absolute position
           const x = editorRect.left + selectionCoords.left;
-          const y = editorRect.top + selectionCoords.top;
+          // Position it above the cursor by subtracting some pixels
+          const y = editorRect.top + selectionCoords.top - 10;
 
           setDialogPosition({ x, y });
           setSelectedText(selectedText);
@@ -436,7 +531,8 @@ const MarkdownEditor = forwardRef<
             const editorRect = editorContainer.getBoundingClientRect();
             
             const x = editorRect.left + cursorCoords.left;
-            const y = editorRect.top + cursorCoords.top;
+            // Position it above the cursor by subtracting some pixels
+            const y = editorRect.top + cursorCoords.top - 10;
             
             setDialogPosition({ x, y });
             setSelectedText("");
@@ -445,6 +541,117 @@ const MarkdownEditor = forwardRef<
           }
         }
       }
+    }
+  };
+
+  // Handle text selection for annotations
+  useEffect(() => {
+    if (!editorRef.current) return;
+    
+    const editor = editorRef.current;
+    const selectionChangeDisposable = editor.onDidChangeCursorSelection((e: any) => {
+      const selection = editor.getSelection();
+      if (selection && !selection.isEmpty()) {
+        const model = editor.getModel();
+        if (model) {
+          const startOffset = model.getOffsetAt(selection.getStartPosition());
+          const endOffset = model.getOffsetAt(selection.getEndPosition());
+          const selectedText = model.getValueInRange(selection);
+          
+          setSelectedTextRange({
+            startOffset,
+            endOffset,
+            selectedText
+          });
+        }
+      } else {
+        setSelectedTextRange(null);
+      }
+    });
+    
+    return () => {
+      selectionChangeDisposable.dispose();
+    };
+  }, [editorRef.current]);
+  
+  // Handle adding annotation from selection
+  const handleAddAnnotation = () => {
+    if (selectedTextRange && selectedDocumentId) {
+      setShowAnnotationDialog(true);
+    } else {
+      toast({
+        title: "No text selected",
+        description: "Please select some text to annotate",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle navigating to an annotation
+  const handleNavigateToAnnotation = (documentId: string, annotation: Annotation) => {
+    if (documentId !== selectedDocumentId) {
+      // If the annotation is in a different document, select that document first
+      selectDocument(documentId);
+    }
+    
+    // Wait for the editor to load the document
+    setTimeout(() => {
+      if (editorRef.current) {
+        const editor = editorRef.current;
+        const model = editor.getModel();
+        
+        if (model) {
+          // Get the position from the offset
+          const startPosition = model.getPositionAt(annotation.startOffset);
+          const endPosition = model.getPositionAt(annotation.endOffset);
+          
+          // Set selection and reveal range
+          editor.setSelection({
+            startLineNumber: startPosition.lineNumber,
+            startColumn: startPosition.column,
+            endLineNumber: endPosition.lineNumber,
+            endColumn: endPosition.column
+          });
+          
+          editor.revealRangeInCenter({
+            startLineNumber: startPosition.lineNumber,
+            startColumn: startPosition.column,
+            endLineNumber: endPosition.lineNumber,
+            endColumn: endPosition.column
+          });
+          
+          // Focus the editor
+          editor.focus();
+        }
+      }
+    }, 100);
+  };
+
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showAnnotationDialog, setShowAnnotationDialog] = useState(false);
+  const [selectedTextRange, setSelectedTextRange] = useState<{
+    startOffset: number;
+    endOffset: number;
+    selectedText: string;
+  } | null>(null);
+
+  // Handle restoring a version from version history
+  const handleRestoreVersion = (content: string) => {
+    if (selectedDocumentId) {
+      updateDocument(
+        selectedDocumentId,
+        { content },
+        true,
+        `Restored from version history on ${new Date().toLocaleString()}`
+      );
+      setContent(content);
+      setShowVersionHistory(false);
+      
+      // Show toast notification
+      toast({
+        title: "Version restored",
+        description: "The selected version has been restored.",
+      });
     }
   };
 
@@ -633,6 +840,42 @@ const MarkdownEditor = forwardRef<
               <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
             </svg>
           </Button>
+          <div className="flex items-center space-x-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowVersionHistory(true)}
+              title="Version History"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowLLMDialog(true)}
+              title="AI Assistant"
+            >
+              <Sparkles className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (selectedTextRange && selectedDocumentId) {
+                  setShowAnnotationDialog(true);
+                } else {
+                  toast({
+                    title: "No text selected",
+                    description: "Please select some text to annotate",
+                    variant: "destructive"
+                  });
+                }
+              }}
+              title="Add Annotation"
+            >
+              <BookmarkIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
         <div className="flex items-center gap-2">
@@ -732,6 +975,26 @@ const MarkdownEditor = forwardRef<
           </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Version History Dialog */}
+      {showVersionHistory && selectedDocument && (
+        <VersionHistory 
+          documentId={selectedDocument.id}
+          onClose={() => setShowVersionHistory(false)} 
+          onRestore={handleRestoreVersion}
+        />
+      )}
+      
+      {/* Annotation Dialog */}
+      {showAnnotationDialog && selectedDocument && selectedTextRange && (
+        <AnnotationDialog
+          open={showAnnotationDialog}
+          onOpenChange={setShowAnnotationDialog}
+          documentId={selectedDocument.id}
+          selectionRange={selectedTextRange}
+        />
+      )}
+      
     </div>
   );
 });

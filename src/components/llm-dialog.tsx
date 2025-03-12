@@ -275,7 +275,7 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
           className="w-80" 
           side="top" 
           align="start"
-          sideOffset={5}
+          sideOffset={20}
         >
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">

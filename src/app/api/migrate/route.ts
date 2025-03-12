@@ -25,6 +25,7 @@ export async function POST() {
         updatedAt: new Date(),
         versions: [],
         folderId: "folder-1",
+        annotations: []
       },
       {
         id: "doc2",
@@ -34,6 +35,7 @@ export async function POST() {
         updatedAt: new Date(),
         versions: [],
         folderId: null,
+        annotations: []
       },
       {
         id: "doc3",
@@ -43,6 +45,7 @@ export async function POST() {
         updatedAt: new Date(),
         versions: [],
         folderId: null,
+        annotations: []
       },
     ];
     

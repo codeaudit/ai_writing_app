@@ -2,15 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import DocumentNavigation from "@/components/document-navigation";
+import AnnotationsNavigator from "@/components/annotations-navigator";
 import MarkdownEditor from "@/components/markdown-editor";
 import AIComposer from "@/components/ai-composer";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { PanelLeft, PanelRight, Maximize2, Minimize2, GripVertical, Settings, FileText, Palette, Info, ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
+import { PanelLeft, PanelRight, Maximize2, Minimize2, GripVertical, Settings, FileText, Palette, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useRouter } from "next/navigation";
-import { useDocumentStore } from "@/lib/store";
+import { useDocumentStore, Annotation } from "@/lib/store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AboutSplash } from "@/components/about-splash";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -51,9 +52,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("documents");
   const [showAboutSplash, setShowAboutSplash] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
-  const editorRef = useRef<{ compareDocuments: (doc1Id: string, doc2Id: string) => void } | null>(null);
+  const editorRef = useRef<{ 
+    compareDocuments: (doc1Id: string, doc2Id: string) => void;
+    scrollToAnnotation?: (annotation: Annotation) => void;
+  } | null>(null);
   const router = useRouter();
-  const { loadData: loadDocuments } = useDocumentStore();
+  const { loadData: loadDocuments, selectDocument } = useDocumentStore();
   
   // Media queries for responsive layout
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -243,6 +247,10 @@ export default function Home() {
       if (e.altKey && e.key === 'd') {
         setActiveTab("documents");
       }
+      // Alt+A to switch to Annotations tab
+      if (e.altKey && e.key === 'a') {
+        setActiveTab("annotations");
+      }
     };
 
     if (isMounted) {
@@ -365,6 +373,15 @@ export default function Home() {
                       >
                         <FileText className="h-5 w-5" />
                       </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={cn(activeTab === "annotations" && "bg-secondary")}
+                        onClick={() => setActiveTab("annotations")}
+                        title="Annotations"
+                      >
+                        <BookmarkIcon className="h-5 w-5" />
+                      </Button>
                     </div>
                   ) : (
                     // Expanded view - show full navigation
@@ -374,6 +391,10 @@ export default function Home() {
                           <TabsTrigger value="documents" title="Documents (Alt+D)">
                             <FileText className="h-4 w-4 mr-2" />
                             Docs
+                          </TabsTrigger>
+                          <TabsTrigger value="annotations" title="Annotations (Alt+A)">
+                            <BookmarkIcon className="h-4 w-4 mr-2" />
+                            Notes
                           </TabsTrigger>
                         </TabsList>
                         <Button 
@@ -389,6 +410,17 @@ export default function Home() {
                       <TabsContent value="documents" className="p-0 h-[calc(100%-40px)]">
                         <div className="p-4 h-full flex flex-col overflow-auto">
                           <DocumentNavigation onCompareDocuments={handleCompareDocuments} />
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="annotations" className="p-0 h-[calc(100%-40px)]">
+                        <div className="p-4 h-full flex flex-col overflow-auto">
+                          <AnnotationsNavigator onNavigateToAnnotation={(documentId, annotation) => {
+                            selectDocument(documentId);
+                            // Use the scrollToAnnotation method if available
+                            if (editorRef.current && editorRef.current.scrollToAnnotation) {
+                              editorRef.current.scrollToAnnotation(annotation);
+                            }
+                          }} />
                         </div>
                       </TabsContent>
                     </Tabs>

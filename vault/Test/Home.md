@@ -1,7 +1,7 @@
 ---
 id: doc-1741739851538
 createdAt: '2025-03-12T00:37:31.538Z'
-updatedAt: '2025-03-12T01:16:37.756Z'
+updatedAt: '2025-03-12T18:43:53.972Z'
 versions:
   - id: ver-1741739921469
     createdAt: '2025-03-12T00:38:41.469Z'
@@ -9,6 +9,35 @@ versions:
   - id: ver-1741739851538-initial
     createdAt: '2025-03-12T00:37:31.538Z'
     message: Initial version
+annotations:
+  - id: anno-1741803908739
+    documentId: doc-1741739851538
+    startOffset: 1656
+    endOffset: 1890
+    content: test
+    color: yellow
+    createdAt: '2025-03-12T18:25:08.739Z'
+    updatedAt: '2025-03-12T18:25:08.739Z'
+    tags: []
+  - id: anno-1741804058733
+    documentId: doc-1741739851538
+    startOffset: 2283
+    endOffset: 2574
+    content: cool
+    color: red
+    createdAt: '2025-03-12T18:27:38.733Z'
+    updatedAt: '2025-03-12T18:27:38.733Z'
+    tags: []
+  - id: anno-1741804114466
+    documentId: doc-1741739851538
+    startOffset: 2024
+    endOffset: 2281
+    content: fooo
+    color: yellow
+    createdAt: '2025-03-12T18:28:34.466Z'
+    updatedAt: '2025-03-12T18:29:00.592Z'
+    tags:
+      - '#interesting'
 ---
 # Home
 

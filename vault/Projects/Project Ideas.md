@@ -2,9 +2,7 @@
 id: doc-1741739766314-project-ideas
 createdAt: '2025-03-12T00:36:06.314Z'
 updatedAt: '2025-03-12T00:36:06.314Z'
-tags:
-  - projects
-  - ideas
+versions: []
 ---
 # Project Ideas
 

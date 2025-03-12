@@ -123,7 +123,19 @@ const documentToMarkdown = (document: Document): string => {
       id: v.id,
       createdAt: v.createdAt.toISOString(),
       message: v.message
-    }))
+    })),
+    // Add annotations to frontmatter
+    annotations: Array.isArray(document.annotations) ? document.annotations.map(anno => ({
+      id: anno.id,
+      documentId: anno.documentId,
+      startOffset: anno.startOffset,
+      endOffset: anno.endOffset,
+      content: anno.content,
+      color: anno.color,
+      createdAt: anno.createdAt instanceof Date ? anno.createdAt.toISOString() : new Date(anno.createdAt).toISOString(),
+      updatedAt: anno.updatedAt instanceof Date ? anno.updatedAt.toISOString() : new Date(anno.updatedAt).toISOString(),
+      tags: anno.tags
+    })) : []
   };
   
   return matter.stringify(document.content, frontmatter);
@@ -173,6 +185,19 @@ const markdownToDocument = (filePath: string, relativePath: string): Document =>
     writeJsonFile(FOLDERS_INDEX, folders);
   }
   
+  // Parse annotations from frontmatter
+  const annotations = Array.isArray(data.annotations) ? data.annotations.map((anno: any) => ({
+    id: anno.id,
+    documentId: anno.documentId,
+    startOffset: anno.startOffset,
+    endOffset: anno.endOffset,
+    content: anno.content,
+    color: anno.color,
+    createdAt: anno.createdAt ? new Date(anno.createdAt) : new Date(),
+    updatedAt: anno.updatedAt ? new Date(anno.updatedAt) : new Date(),
+    tags: Array.isArray(anno.tags) ? anno.tags : []
+  })) : [];
+  
   // Create a document object
   const doc: Document = {
     id: data.id || `doc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -186,7 +211,18 @@ const markdownToDocument = (filePath: string, relativePath: string): Document =>
       createdAt: new Date(v.createdAt),
       message: v.message
     })),
-    folderId
+    folderId,
+    annotations: Array.isArray(data.annotations) ? data.annotations.map((anno: any) => ({
+      id: anno.id,
+      documentId: anno.documentId || doc.id, // Default to the document ID if not specified
+      startOffset: anno.startOffset,
+      endOffset: anno.endOffset,
+      content: anno.content || '',
+      color: anno.color || 'yellow',
+      createdAt: anno.createdAt ? new Date(anno.createdAt) : new Date(),
+      updatedAt: anno.updatedAt ? new Date(anno.updatedAt) : new Date(),
+      tags: Array.isArray(anno.tags) ? anno.tags : []
+    })) : []
   };
   
   return doc;
@@ -351,7 +387,18 @@ export const loadDocuments = (): Document[] => {
               createdAt: new Date(v.createdAt),
               message: v.message
             })),
-            folderId
+            folderId,
+            annotations: Array.isArray(data.annotations) ? data.annotations.map((anno: any) => ({
+              id: anno.id,
+              documentId: anno.documentId || docId, // Default to the document ID if not specified
+              startOffset: anno.startOffset,
+              endOffset: anno.endOffset,
+              content: anno.content || '',
+              color: anno.color || 'yellow',
+              createdAt: anno.createdAt ? new Date(anno.createdAt) : new Date(),
+              updatedAt: anno.updatedAt ? new Date(anno.updatedAt) : new Date(),
+              tags: Array.isArray(anno.tags) ? anno.tags : []
+            })) : []
           };
           
           documents.push(doc);

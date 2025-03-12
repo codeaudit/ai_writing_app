@@ -6,7 +6,8 @@
     "createdAt": "2025-03-12T00:36:06.314Z",
     "updatedAt": "2025-03-12T00:36:06.314Z",
     "versions": [],
-    "folderId": null
+    "folderId": null,
+    "annotations": []
   },
   {
     "id": "doc-1741739971756",
@@ -22,7 +23,8 @@
         "message": "Initial version"
       }
     ],
-    "folderId": null
+    "folderId": null,
+    "annotations": []
   },
   {
     "id": "doc-1741739766314-folders",
@@ -31,7 +33,8 @@
     "createdAt": "2025-03-12T00:36:06.314Z",
     "updatedAt": "2025-03-12T00:36:06.314Z",
     "versions": [],
-    "folderId": null
+    "folderId": null,
+    "annotations": []
   },
   {
     "id": "doc-1741739766314-links",
@@ -40,7 +43,8 @@
     "createdAt": "2025-03-12T00:36:06.314Z",
     "updatedAt": "2025-03-12T00:36:06.314Z",
     "versions": [],
-    "folderId": null
+    "folderId": null,
+    "annotations": []
   },
   {
     "id": "doc-1741739766314-markdown",
@@ -49,7 +53,8 @@
     "createdAt": "2025-03-12T00:36:06.314Z",
     "updatedAt": "2025-03-12T00:36:06.314Z",
     "versions": [],
-    "folderId": null
+    "folderId": null,
+    "annotations": []
   },
   {
     "id": "doc-1741740025782",
@@ -65,7 +70,8 @@
         "message": "Initial version"
       }
     ],
-    "folderId": null
+    "folderId": null,
+    "annotations": []
   },
   {
     "id": "doc-1741739766314-project-ideas",
@@ -74,7 +80,8 @@
     "createdAt": "2025-03-12T00:36:06.314Z",
     "updatedAt": "2025-03-12T00:36:06.314Z",
     "versions": [],
-    "folderId": "folder-1741742086204-6xmvmgg"
+    "folderId": "folder-1741742086204-6xmvmgg",
+    "annotations": []
   },
   {
     "id": "doc-1741739766314-web-resources",
@@ -83,14 +90,15 @@
     "createdAt": "2025-03-12T00:36:06.314Z",
     "updatedAt": "2025-03-12T01:32:05.235Z",
     "versions": [],
-    "folderId": "folder-1741742086204-g8lm722"
+    "folderId": "folder-1741742086204-g8lm722",
+    "annotations": []
   },
   {
     "id": "doc-1741739851538",
     "name": "Home",
     "content": "# Home\n\nWelcome to my Obsidian vault! This is the starting point.\n\nFrom here, you can navigate to other notes.\n\nSee my [[Daily Routine]] or learn more about [[Project Alpha]].\n\nThis is a simple example to demonstrate backlinks.\n\n\n\n\n**Explanation:**\n\n*   **Backlinks:** In Obsidian, backlinks are links *to* a note.  So, if you open `Daily Routine.md`, you'll see backlinks from `Home.md` and potentially `Project Alpha.md` (depending on how Obsidian displays them - sometimes it's only direct links, other times it's all mentions).  Similarly, `Project Alpha.md` will show backlinks from `Home.md` and `Daily Routine.md`.  `Home.md` will not show any backlinks.\n\n*   **Link Syntax:** Obsidian uses `[[ ... ]]` to create internal links.  `[[Note Name]]` creates a link to a note named \"Note Name\".  `[[Note Name|Display Text]]` creates a link to a note named \"Note Name\" but displays \"Display Text\" in the link.  This allows you to make the link more readable in context.\n\n*   **File Names:**  The file names (`Home.md`, `Daily Routine.md`, `Project Alpha.md`) are crucial. Obsidian uses the file name (without the `.md` extension) as the default \"note name\" for linking purposes.\n\n*   **Creating the Files:** To use this example:\n    1.  Open your Obsidian vault.\n    2.  Create three new files named `Home.md`, `Daily Routine.md`, and `Project Alpha.md`.\n    3.  Copy and paste the content for each file into the corresponding Obsidian file.\n    4.  Obsidian should automatically detect and display the backlinks.  Look for a \"Backlinks\" pane or section within Obsidian.  You might need to enable it in the Obsidian settings (Core Plugins -> Backlinks).\n\n*   **Purpose of the Example:** This example demonstrates how linking different notes together creates a network of information.  Obsidian's backlink feature helps you see how different ideas and concepts are connected in your vault.\n\n**How to Use This:**\n\n1.  **Copy and Paste:**  Copy the content of each file into a corresponding `.md` file in your Obsidian vault.\n2.  **Open the Backlinks Pane:** In Obsidian, make sure the \"Backlinks\" core plugin is enabled. Then, open the Backlinks pane (usually found in the right sidebar).\n3.  **Navigate:** Open each file and observe the backlinks that appear in the Backlinks pane.\n\nThis simple example should give you a good starting point for understanding and using backlinks in Obsidian. You can expand on this by creating more notes and linking them together in different ways. Remember to experiment and see how backlinks can help you organize and connect your ideas.\n",
     "createdAt": "2025-03-12T00:37:31.538Z",
-    "updatedAt": "2025-03-12T01:16:37.756Z",
+    "updatedAt": "2025-03-12T18:43:53.972Z",
     "versions": [
       {
         "id": "ver-1741739921469",
@@ -105,10 +113,47 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1741742086204-863tcy1"
+    "folderId": "folder-1741742086204-863tcy1",
+    "annotations": [
+      {
+        "id": "anno-1741803908739",
+        "documentId": "doc-1741739851538",
+        "startOffset": 1656,
+        "endOffset": 1890,
+        "content": "test",
+        "color": "yellow",
+        "createdAt": "2025-03-12T18:25:08.739Z",
+        "updatedAt": "2025-03-12T18:25:08.739Z",
+        "tags": []
+      },
+      {
+        "id": "anno-1741804058733",
+        "documentId": "doc-1741739851538",
+        "startOffset": 2283,
+        "endOffset": 2574,
+        "content": "cool",
+        "color": "red",
+        "createdAt": "2025-03-12T18:27:38.733Z",
+        "updatedAt": "2025-03-12T18:27:38.733Z",
+        "tags": []
+      },
+      {
+        "id": "anno-1741804114466",
+        "documentId": "doc-1741739851538",
+        "startOffset": 2024,
+        "endOffset": 2281,
+        "content": "fooo",
+        "color": "yellow",
+        "createdAt": "2025-03-12T18:28:34.466Z",
+        "updatedAt": "2025-03-12T18:29:00.592Z",
+        "tags": [
+          "#interesting"
+        ]
+      }
+    ]
   },
   {
-    "id": "doc-1741743253722-b0081ar",
+    "id": "doc-1741805168930-zvwig10",
     "name": "Home.md",
     "content": "# Home\n\nWelcome to my Obsidian vault! This is the starting point.\n\nFrom here, you can navigate to other notes.\n\nSee my [[Daily Routine]] or learn more about [[Project Alpha]].\n\nThis is a simple example to demonstrate backlinks.\n\n\n\n\n**Explanation:**\n\n*   **Backlinks:** In Obsidian, backlinks are links *to* a note.  So, if you open `Daily Routine.md`, you'll see backlinks from `Home.md` and potentially `Project Alpha.md` (depending on how Obsidian displays them - sometimes it's only direct links, other times it's all mentions).  Similarly, `Project Alpha.md` will show backlinks from `Home.md` and `Daily Routine.md`.  `Home.md` will not show any backlinks.\n\n*   **Link Syntax:** Obsidian uses `[[ ... ]]` to create internal links.  `[[Note Name]]` creates a link to a note named \"Note Name\".  `[[Note Name|Display Text]]` creates a link to a note named \"Note Name\" but displays \"Display Text\" in the link.  This allows you to make the link more readable in context.\n\n*   **File Names:**  The file names (`Home.md`, `Daily Routine.md`, `Project Alpha.md`) are crucial. Obsidian uses the file name (without the `.md` extension) as the default \"note name\" for linking purposes.\n\n*   **Creating the Files:** To use this example:\n    1.  Open your Obsidian vault.\n    2.  Create three new files named `Home.md`, `Daily Routine.md`, and `Project Alpha.md`.\n    3.  Copy and paste the content for each file into the corresponding Obsidian file.\n    4.  Obsidian should automatically detect and display the backlinks.  Look for a \"Backlinks\" pane or section within Obsidian.  You might need to enable it in the Obsidian settings (Core Plugins -> Backlinks).\n\n*   **Purpose of the Example:** This example demonstrates how linking different notes together creates a network of information.  Obsidian's backlink feature helps you see how different ideas and concepts are connected in your vault.\n\n**How to Use This:**\n\n1.  **Copy and Paste:**  Copy the content of each file into a corresponding `.md` file in your Obsidian vault.\n2.  **Open the Backlinks Pane:** In Obsidian, make sure the \"Backlinks\" core plugin is enabled. Then, open the Backlinks pane (usually found in the right sidebar).\n3.  **Navigate:** Open each file and observe the backlinks that appear in the Backlinks pane.\n\nThis simple example should give you a good starting point for understanding and using backlinks in Obsidian. You can expand on this by creating more notes and linking them together in different ways. Remember to experiment and see how backlinks can help you organize and connect your ideas.\n",
     "createdAt": "2025-03-12T00:37:31.538Z",
@@ -127,7 +172,8 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1741742086204-863tcy1"
+    "folderId": "folder-1741742086204-863tcy1",
+    "annotations": []
   },
   {
     "id": "doc-1741742111009-6v4zjon",
@@ -149,15 +195,24 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1741742086204-863tcy1"
+    "folderId": "folder-1741742086204-863tcy1",
+    "annotations": []
   },
   {
     "id": "doc-1741739766313-welcome",
     "name": "Welcome",
-    "content": "# Welcome to Your Obsidian-like Vault\n\nThis is your personal knowledge base. You can create and organize notes, link between them, and build your own knowledge graph.\n\n## Features\n\n- **[[Markdown Support]]** - Write in Markdown with support for formatting, lists, and more\n- **[[Internal Links]]** - Create links between notes using the `[[Note Name]]` syntax\n- **[[Folder Structure]]** - Organize your notes in folders and subfolders\n- **[[Backlinks]]** - See which notes link to the current note\n\n## Getting Started\n\n1. Create a new note using the \"New Note\" button\n2. Organize your notes in folders\n3. Link between notes using `[[Note Name]]` syntax\n4. Use the search to find notes quickly\n",
+    "content": "# Web Development Resources\n\nA collection of useful resources for web development projects.\n\n## Learning Platforms\n\n- [MDN Web Docs](https://developer.mozilla.org)\n- [freeCodeCamp](https://www.freecodecamp.org)\n- [Frontend Masters](https://frontendmasters.com)\n\n\n\nOkay, here's the selected text with descriptions added for each item, based on common understanding of these technologies:\n\n## Frameworks and Libraries\n\n- **React:** A JavaScript library for building user interfaces. It uses a component-based architecture and a virtual DOM for efficient updates. React is known for its flexibility and large community.\n- **Vue:** A progressive JavaScript framework for building user interfaces. Vue is known for its ease of use, gentle learning curve, and focus on the view layer. It's often used for single-page applications and interactive components.\n- **Angular:** A comprehensive, TypeScript-based framework for building complex client-side applications. Developed and maintained by Google, Angular provides a structured environment with features like dependency injection, data binding, and routing.\n- **Next.js:** A React framework for building full-stack web applications. It offers features like server-side rendering, static site generation, and API routes, making it ideal for building performant and SEO-friendly websites.\n- **Svelte:** A JavaScript compiler that transforms your code into highly efficient, vanilla JavaScript at build time. Svelte offers a reactive programming model and eliminates the need for a virtual DOM, resulting in smaller bundle sizes and improved performance.\n\n\n## Design Resources\n\n- [Figma](https://www.figma.com)\n- [Dribbble](https://dribbble.com)\n- [Unsplash](https://unsplash.com) (free images)\n\n## Tools\n\n- VS Code\n- GitHub\n- Vercel\n- Netlify\n\n## Related Notes\n\n- [[Project Ideas]]\n",
     "createdAt": "2025-03-12T00:36:06.313Z",
-    "updatedAt": "2025-03-12T00:36:06.314Z",
-    "versions": [],
-    "folderId": null
+    "updatedAt": "2025-03-12T18:46:08.854Z",
+    "versions": [
+      {
+        "id": "ver-1741805168854",
+        "content": "# Welcome to Your Obsidian-like Vault\n\nThis is your personal knowledge base. You can create and organize notes, link between them, and build your own knowledge graph.\n\n## Features\n\n- **[[Markdown Support]]** - Write in Markdown with support for formatting, lists, and more\n- **[[Internal Links]]** - Create links between notes using the `[[Note Name]]` syntax\n- **[[Folder Structure]]** - Organize your notes in folders and subfolders\n- **[[Backlinks]]** - See which notes link to the current note\n\n## Getting Started\n\n1. Create a new note using the \"New Note\" button\n2. Organize your notes in folders\n3. Link between notes using `[[Note Name]]` syntax\n4. Use the search to find notes quickly\n",
+        "createdAt": "2025-03-12T18:46:08.854Z",
+        "message": "Restored from diff view on 3/12/2025, 2:46:08 PM"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
   }
 ]
