@@ -584,7 +584,6 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Documents</h2>
         <div className="flex gap-2">
           <Button 
             variant="ghost" 
