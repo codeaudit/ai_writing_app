@@ -237,10 +237,6 @@ const MarkdownEditor = forwardRef<
     // Register custom commands
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       handleSave();
-    monaco.editor.registerCommand("editor.action.showLLMDialog", () => {
-          column: selection.startColumn
-        });
-
     }, "editorTextFocus");
     
     // Use the same command ID as registered in the keyboard shortcuts
