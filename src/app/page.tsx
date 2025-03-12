@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import DocumentNavigation from "@/components/document-navigation";
-import PatternNavigation from "@/components/pattern-navigation";
 import MarkdownEditor from "@/components/markdown-editor";
 import AIComposer from "@/components/ai-composer";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -12,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useRouter } from "next/navigation";
 import { useDocumentStore } from "@/lib/store";
-import { usePatternStore } from "@/lib/pattern-store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AboutSplash } from "@/components/about-splash";
 
@@ -26,7 +24,7 @@ export default function Home() {
   const editorRef = useRef<{ compareDocuments: (doc1Id: string, doc2Id: string) => void } | null>(null);
   const router = useRouter();
   const { loadData: loadDocuments } = useDocumentStore();
-  const { loadData: loadPatterns } = usePatternStore();
+  
 
   // Handle client-side mounting
   useEffect(() => {
@@ -36,8 +34,7 @@ export default function Home() {
   // Load data from server when the app starts
   useEffect(() => {
     loadDocuments();
-    loadPatterns();
-  }, [loadDocuments, loadPatterns]);
+  }, [loadDocuments]);
 
   // Check if user has visited before - only run on client side
   useEffect(() => {
@@ -81,11 +78,6 @@ export default function Home() {
     }
   };
 
-  const handleComparePatterns = (pattern1Id: string, pattern2Id: string) => {
-    if (editorRef.current) {
-      editorRef.current.compareDocuments(pattern1Id, pattern2Id);
-    }
-  };
 
   // Add keyboard shortcuts for toggling panels
   useEffect(() => {
@@ -114,10 +106,6 @@ export default function Home() {
       // Alt+D to switch to Documents tab
       if (e.altKey && e.key === 'd') {
         setActiveTab("documents");
-      }
-      // Alt+P to switch to Patterns tab
-      if (e.altKey && e.key === 'p') {
-        setActiveTab("patterns");
       }
     };
 
@@ -202,19 +190,10 @@ export default function Home() {
                   <FileText className="h-4 w-4 mr-2" />
                   Docs
                 </TabsTrigger>
-                <TabsTrigger value="patterns" title="Patterns (Alt+P)">
-                  <Palette className="h-4 w-4 mr-2" />
-                  Patterns
-                </TabsTrigger>
               </TabsList>
               <TabsContent value="documents" className="p-0 h-[calc(100%-40px)]">
                 <div className="p-4 h-full flex flex-col overflow-auto">
                   <DocumentNavigation onCompareDocuments={handleCompareDocuments} />
-                </div>
-              </TabsContent>
-              <TabsContent value="patterns" className="p-0 h-[calc(100%-40px)]">
-                <div className="p-4 h-full flex flex-col overflow-auto">
-                  <PatternNavigation onComparePatterns={handleComparePatterns} />
                 </div>
               </TabsContent>
             </Tabs>
