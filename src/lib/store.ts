@@ -68,6 +68,7 @@ interface DocumentStore {
   selectedDocumentId: string | null;
   selectedFolderId: string | null;
   comparisonDocumentIds: string[];
+  selectedFolderIds: string[]; // Add selected folder IDs
   isLoading: boolean;
   error: string | null;
   backlinks: { id: string, name: string }[];
@@ -100,6 +101,7 @@ interface DocumentStore {
   
   // Comparison operations
   toggleComparisonDocument: (id: string) => void;
+  toggleComparisonFolder: (folderId: string) => void; // Add toggle folder selection
   clearComparisonDocuments: () => void;
   getDocumentVersions: (id: string) => DocumentVersion[];
   
@@ -143,6 +145,7 @@ export const useDocumentStore = create<DocumentStore>()(
       selectedDocumentId: null,
       selectedFolderId: null,
       comparisonDocumentIds: [],
+      selectedFolderIds: [], // Initialize selected folder IDs
       isLoading: false,
       error: null,
       backlinks: [],
@@ -399,19 +402,61 @@ export const useDocumentStore = create<DocumentStore>()(
         const { comparisonDocumentIds } = state;
         
         if (comparisonDocumentIds.includes(id)) {
+          // Remove the document from selection
           return {
             comparisonDocumentIds: comparisonDocumentIds.filter((docId) => docId !== id),
           };
         } else {
-          // Only allow up to 2 documents for comparison
-          const newComparisonIds = [...comparisonDocumentIds, id].slice(-2);
+          // Add the document to selection (no limit on number of documents)
           return {
-            comparisonDocumentIds: newComparisonIds,
+            comparisonDocumentIds: [...comparisonDocumentIds, id],
           };
         }
       }),
       
-      clearComparisonDocuments: () => set({ comparisonDocumentIds: [] }),
+      toggleComparisonFolder: (folderId) => set((state) => {
+        const { comparisonDocumentIds, documents, selectedFolderIds } = state;
+        
+        // Get all document IDs in this folder
+        const folderDocumentIds = documents
+          .filter(doc => doc.folderId === folderId)
+          .map(doc => doc.id);
+        
+        // Check if folder is already selected (all documents in folder are selected)
+        const isFolderSelected = folderDocumentIds.every(docId => 
+          comparisonDocumentIds.includes(docId)
+        );
+        
+        if (isFolderSelected) {
+          // If folder is selected, remove all its documents from selection
+          return {
+            comparisonDocumentIds: comparisonDocumentIds.filter(
+              docId => !folderDocumentIds.includes(docId)
+            ),
+            selectedFolderIds: selectedFolderIds.filter(id => id !== folderId)
+          };
+        } else {
+          // If folder is not selected, add all its documents to selection
+          const newComparisonIds = [...comparisonDocumentIds];
+          
+          // Add only documents that aren't already selected
+          folderDocumentIds.forEach(docId => {
+            if (!newComparisonIds.includes(docId)) {
+              newComparisonIds.push(docId);
+            }
+          });
+          
+          return {
+            comparisonDocumentIds: newComparisonIds,
+            selectedFolderIds: [...selectedFolderIds, folderId]
+          };
+        }
+      }),
+      
+      clearComparisonDocuments: () => set({ 
+        comparisonDocumentIds: [],
+        selectedFolderIds: []
+      }),
       
       getDocumentVersions: (id) => {
         const state = get();
@@ -648,15 +693,14 @@ export const useDocumentStore = create<DocumentStore>()(
         folders: state.folders,
         selectedDocumentId: state.selectedDocumentId,
         selectedFolderId: state.selectedFolderId,
+        // Don't persist comparison state
+        // comparisonDocumentIds: state.comparisonDocumentIds,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           // Fix dates after rehydration
           state.documents = fixDates(state.documents);
           state.folders = fixDates(state.folders);
-          
-          // Load data from server
-          state.loadData();
         }
       },
     }

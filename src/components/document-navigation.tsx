@@ -32,18 +32,18 @@ import {
 import { ComparisonModeContext } from "@/contexts/ComparisonModeContext";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { MultiFileTokenCounterDialog } from "./multi-file-token-counter-dialog";
+import { Document } from "@/lib/store";
 
-interface DocumentNavigationProps {
-  onCompareDocuments?: (doc1Id: string, doc2Id: string) => void;
-}
+interface DocumentNavigationProps {}
 
 interface FolderItemProps {
   folder: { id: string; name: string; parentId: string | null };
   level: number;
-  onCompareDocuments?: (doc1Id: string, doc2Id: string) => void;
+  comparisonMode: boolean;
 }
 
-function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
+function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(folder.name);
@@ -51,6 +51,7 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
   
   const router = useRouter();
   const {
@@ -59,6 +60,7 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
     selectedFolderId,
     selectedDocumentId,
     comparisonDocumentIds,
+    selectedFolderIds,
     updateFolder,
     deleteFolder,
     selectFolder,
@@ -66,6 +68,7 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
     addFolder,
     moveDocument,
     moveFolder,
+    toggleComparisonFolder,
   } = useDocumentStore();
 
   const childFolders = folders.filter(f => f.parentId === folder.id);
@@ -110,27 +113,48 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
     return folders.filter(f => !descendantIds.has(f.id));
   };
 
+  // Check if folder is selected (all documents in folder are selected)
+  const isFolderSelected = folderDocuments.length > 0 && 
+    folderDocuments.every(doc => comparisonDocumentIds.includes(doc.id));
+  
+  // Check if folder is partially selected (some documents in folder are selected)
+  const isPartiallySelected = folderDocuments.some(doc => comparisonDocumentIds.includes(doc.id)) && 
+    !isFolderSelected;
+
+  // Get all selected documents from the store
+  const selectedDocuments = documents.filter(doc => comparisonDocumentIds.includes(doc.id));
+
   return (
     <div>
       <div 
         className={cn(
           "flex items-center gap-1 py-1 px-2 rounded-md hover:bg-muted group",
-          selectedFolderId === folder.id && "bg-muted",
+          selectedFolderId === folder.id && "bg-muted"
         )}
-        style={{ paddingLeft: `${level * 12}px` }}
+        style={{ paddingLeft: `${level * 12 + 4}px` }}
       >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-4 w-4"
+        <button
           onClick={() => setIsExpanded(!isExpanded)}
+          className="w-4 h-4 flex items-center justify-center text-muted-foreground"
         >
           {isExpanded ? (
             <ChevronDown className="h-4 w-4" />
           ) : (
             <ChevronRight className="h-4 w-4" />
           )}
-        </Button>
+        </button>
+        
+        <div className="flex items-center justify-center w-5 h-5">
+          <Checkbox
+            checked={isFolderSelected}
+            className={cn(
+              "transition-opacity folder-checkbox",
+              comparisonMode ? "opacity-100" : "opacity-0"
+            )}
+            onCheckedChange={() => toggleComparisonFolder(folder.id)}
+            aria-label={`Select folder ${folder.name}`}
+          />
+        </div>
         
         <Folder className="h-4 w-4 text-muted-foreground" />
         
@@ -148,7 +172,10 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
           />
         ) : (
           <button
-            className="flex-1 text-left text-sm truncate"
+            className={cn(
+              "flex-1 text-left text-sm truncate",
+              isPartiallySelected && "font-medium text-primary"
+            )}
             onClick={() => selectFolder(folder.id)}
           >
             {folder.name}
@@ -166,6 +193,9 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setIsRenaming(true)}>
+              Rename
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setIsCreatingDocument(true)}>
               New Document
             </DropdownMenuItem>
@@ -173,32 +203,22 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
               New Folder
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setIsRenaming(true)}>
-              Rename
-            </DropdownMenuItem>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Move className="h-4 w-4 mr-2" />
-                Move to
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => updateFolder(folder.id, folder.name, null)}>
-                  Root
-                </DropdownMenuItem>
-                {getAvailableFolders().map(f => (
-                  <DropdownMenuItem 
-                    key={f.id}
-                    onClick={() => updateFolder(folder.id, folder.name, f.id)}
-                  >
-                    {f.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSeparator />
             <DropdownMenuItem 
-              onClick={() => deleteFolder(folder.id)}
+              onClick={() => {
+                toggleComparisonFolder(folder.id);
+                setShowTokenCounterDialog(true);
+              }}
+            >
+              Count Tokens
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
               className="text-destructive"
+              onClick={() => {
+                if (confirm(`Are you sure you want to delete the folder "${folder.name}" and all its contents?`)) {
+                  deleteFolder(folder.id);
+                }
+              }}
             >
               Delete
             </DropdownMenuItem>
@@ -265,7 +285,7 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
               key={childFolder.id}
               folder={childFolder}
               level={level + 1}
-              onCompareDocuments={onCompareDocuments}
+              comparisonMode={comparisonMode}
             />
           ))}
           
@@ -274,25 +294,32 @@ function FolderItem({ folder, level, onCompareDocuments }: FolderItemProps) {
               key={doc.id}
               document={doc}
               level={level + 1}
-              onCompareDocuments={onCompareDocuments}
             />
           ))}
         </>
+      )}
+
+      {showTokenCounterDialog && (
+        <MultiFileTokenCounterDialog
+          isOpen={showTokenCounterDialog}
+          onClose={() => setShowTokenCounterDialog(false)}
+          documents={selectedDocuments}
+        />
       )}
     </div>
   );
 }
 
 interface DocumentItemProps {
-  document: { id: string; name: string };
+  document: { id: string; name: string; folderId: string | null };
   level: number;
-  onCompareDocuments?: (doc1Id: string, doc2Id: string) => void;
 }
 
-function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps) {
+function DocumentItem({ document, level }: DocumentItemProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(document.name);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
   
   const router = useRouter();
   const {
@@ -304,6 +331,7 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
     toggleComparisonDocument,
     moveDocument,
     folders,
+    documents,
   } = useDocumentStore();
 
   const handleRename = () => {
@@ -314,34 +342,21 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
   };
 
   const handleToggleComparison = () => {
-    // If already selected, always allow deselecting
-    if (comparisonDocumentIds.includes(document.id)) {
-      toggleComparisonDocument(document.id);
-      return;
-    }
-    
-    // If trying to select a third document, do nothing
-    if (comparisonDocumentIds.length >= 2) {
-      return;
-    }
-    
-    // Otherwise, toggle the document selection
+    // Toggle document selection for token counting
     toggleComparisonDocument(document.id);
   };
 
   const handleShowDiff = useCallback((originalContent: string, modifiedContent: string, originalTitle: string, modifiedTitle: string) => {
-    if (onCompareDocuments) {
-      // This is a placeholder since we can't directly show diff from here
-      // We'll select the document instead and let the user know to use the version history in the editor
-      selectDocument(document.id);
-      // Update URL to reflect the selected document
-      router.push(`/documents/${document.id}`);
-      toast({
-        title: "Document selected",
-        description: "Use the version history button in the editor to compare versions.",
-      });
-    }
-  }, [document.id, onCompareDocuments, selectDocument, router]);
+    // This is a placeholder since we can't directly show diff from here
+    // We'll select the document instead and let the user know to use the version history in the editor
+    selectDocument(document.id);
+    // Update URL to reflect the selected document
+    router.push(`/documents/${document.id}`);
+    toast({
+      title: "Document selected",
+      description: "Use the version history button in the editor to compare versions.",
+    });
+  }, [document.id, selectDocument, router]);
 
   // Handle document selection with URL update
   const handleSelectDocument = () => {
@@ -350,8 +365,11 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
     router.push(`/documents/${document.id}`);
   };
 
-  // Determine if this document can be selected for comparison
-  const canSelect = comparisonDocumentIds.includes(document.id) || comparisonDocumentIds.length < 2;
+  // Document can always be selected
+  const canSelect = true;
+
+  // Get all selected documents from the store
+  const selectedDocuments = documents.filter(doc => comparisonDocumentIds.includes(doc.id));
 
   return (
     <>
@@ -359,8 +377,7 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
         className={cn(
           "flex items-center gap-1 py-1 px-2 rounded-md hover:bg-muted group",
           selectedDocumentId === document.id && "bg-muted",
-          comparisonDocumentIds.includes(document.id) && "border-l-2 border-primary",
-          !canSelect && comparisonDocumentIds.length > 0 && "opacity-50 cursor-not-allowed"
+          comparisonDocumentIds.includes(document.id) && "border-l-2 border-primary"
         )}
         style={{ paddingLeft: `${level * 12 + 20}px` }}
       >
@@ -380,18 +397,12 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
           />
         ) : (
           <button
-            className={cn(
-              "flex-1 text-left text-sm truncate",
-              !canSelect && comparisonDocumentIds.length > 0 && "cursor-not-allowed"
-            )}
+            className="flex-1 text-left text-sm truncate"
             onClick={() => {
-              if (comparisonDocumentIds.length > 0) {
-                handleToggleComparison();
-              } else {
+              if (canSelect) {
                 handleSelectDocument();
               }
             }}
-            disabled={!canSelect && comparisonDocumentIds.length > 0}
           >
             {document.name}
           </button>
@@ -404,7 +415,6 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
             "document-checkbox transition-opacity",
             comparisonDocumentIds.length > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           )}
-          disabled={!canSelect && !comparisonDocumentIds.includes(document.id)}
         />
         
         <DropdownMenu>
@@ -422,9 +432,19 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
               Rename
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShowVersionHistory(true)}>
-              <Clock className="h-4 w-4 mr-2" />
               Version History
             </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => {
+                if (!comparisonDocumentIds.includes(document.id)) {
+                  toggleComparisonDocument(document.id);
+                }
+                setShowTokenCounterDialog(true);
+              }}
+            >
+              Count Tokens
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <Move className="h-4 w-4 mr-2" />
@@ -434,10 +454,12 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
                 <DropdownMenuItem onClick={() => moveDocument(document.id, null)}>
                   Root
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 {folders.map(folder => (
                   <DropdownMenuItem 
                     key={folder.id}
                     onClick={() => moveDocument(document.id, folder.id)}
+                    disabled={document.folderId === folder.id}
                   >
                     {folder.name}
                   </DropdownMenuItem>
@@ -445,9 +467,17 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
               </DropdownMenuSubContent>
             </DropdownMenuSub>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={() => deleteDocument(document.id)}
+            <DropdownMenuItem
               className="text-destructive"
+              onClick={() => {
+                if (confirm(`Are you sure you want to delete "${document.name}"?`)) {
+                  deleteDocument(document.id);
+                  toast({
+                    title: "Document deleted",
+                    description: `"${document.name}" has been deleted.`,
+                  });
+                }
+              }}
             >
               Delete
             </DropdownMenuItem>
@@ -481,11 +511,19 @@ function DocumentItem({ document, level, onCompareDocuments }: DocumentItemProps
           </DialogContent>
         </Dialog>
       )}
+
+      {showTokenCounterDialog && (
+        <MultiFileTokenCounterDialog
+          isOpen={showTokenCounterDialog}
+          onClose={() => setShowTokenCounterDialog(false)}
+          documents={selectedDocuments}
+        />
+      )}
     </>
   );
 }
 
-export default function DocumentNavigation({ onCompareDocuments }: DocumentNavigationProps) {
+export default function DocumentNavigation({}: DocumentNavigationProps) {
   const router = useRouter();
   const { 
     documents, 
@@ -509,6 +547,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   const [newItemName, setNewItemName] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, type: 'folder' | 'document' } | null>(null);
+  const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredDocuments = documents.filter(doc => 
@@ -524,14 +563,6 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
     // Update URL to reflect the newly created document
     if (newDocId) {
       router.push(`/documents/${newDocId}`);
-    }
-  };
-
-  const handleCompare = () => {
-    if (comparisonDocumentIds.length === 2 && onCompareDocuments) {
-      onCompareDocuments(comparisonDocumentIds[0], comparisonDocumentIds[1]);
-      setComparisonMode(false);
-      clearComparisonDocuments();
     }
   };
 
@@ -806,11 +837,17 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   const rootFolders = folders.filter(f => f.parentId === null);
   const rootDocuments = documents.filter(d => d.folderId === null);
 
+  // Get selected documents for token counter
+  const selectedDocuments = documents.filter(doc => 
+    comparisonDocumentIds.includes(doc.id)
+  );
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-2">
-          <Button 
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">Documents</h2>
+          <Button
             variant="ghost" 
             size="icon" 
             onClick={() => setIsCreatingDocument(true)}
@@ -818,7 +855,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           >
             <Plus className="h-5 w-5" />
           </Button>
-          <Button 
+          <Button
             variant="ghost" 
             size="icon" 
             onClick={() => setIsCreatingFolder(true)}
@@ -826,13 +863,24 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           >
             <FolderPlus className="h-5 w-5" />
           </Button>
-          <Button 
-            variant={comparisonMode ? "secondary" : "ghost"}
-            size="icon"
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={comparisonMode ? "secondary" : "outline"}
+            size="sm"
             onClick={toggleComparisonMode}
-            title={comparisonMode ? "Exit comparison mode" : "Enter comparison mode"}
+            className={cn(comparisonMode && "bg-primary text-primary-foreground")}
           >
-            <GitCompare className="h-5 w-5" />
+            <GitCompare className="h-4 w-4 mr-2" />
+            {comparisonMode ? "Cancel" : "Select"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTokenCounterDialog(true)}
+            disabled={comparisonDocumentIds.length === 0}
+          >
+            Count Tokens
           </Button>
         </div>
       </div>
@@ -874,25 +922,22 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
       {comparisonMode && (
         <div className="mb-4 p-3 bg-muted rounded-md">
           <div className="text-sm font-medium mb-2">
-            Comparison Mode: Select up to 2 documents
+            Selection Mode: Select documents to count tokens
             <span className="ml-2 font-bold">
-              ({comparisonDocumentIds.length}/2)
+              ({comparisonDocumentIds.length} selected)
             </span>
           </div>
-          {comparisonDocumentIds.length === 2 ? (
+          {comparisonDocumentIds.length > 0 ? (
             <Button 
               variant="default" 
               className="w-full"
-              onClick={handleCompare}
+              onClick={() => setShowTokenCounterDialog(true)}
             >
-              <GitCompare className="h-4 w-4 mr-2" />
-              Compare Documents
+              Count Tokens for Selected Documents
             </Button>
           ) : (
             <div className="text-sm text-muted-foreground">
-              {comparisonDocumentIds.length === 0 
-                ? "Select 2 documents to compare" 
-                : "Select 1 more document"}
+              Select documents to count tokens
             </div>
           )}
         </div>
@@ -904,7 +949,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
             key={folder.id}
             folder={folder}
             level={0}
-            onCompareDocuments={onCompareDocuments}
+            comparisonMode={comparisonMode}
           />
         ))}
         
@@ -913,7 +958,6 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
             key={doc.id}
             document={doc}
             level={0}
-            onCompareDocuments={onCompareDocuments}
           />
         ))}
       </div>
@@ -967,6 +1011,14 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {showTokenCounterDialog && (
+        <MultiFileTokenCounterDialog
+          isOpen={showTokenCounterDialog}
+          onClose={() => setShowTokenCounterDialog(false)}
+          documents={selectedDocuments}
+        />
+      )}
     </div>
   );
 } 
