@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@/lib/kv-provider';
+import { config } from './middleware.config';
 
 // This middleware handles AI session management using Vercel KV
 export async function middleware(req: NextRequest) {
-  // Skip middleware for non-AI routes
-  if (!req.nextUrl.pathname.startsWith('/api/ai')) {
-    return NextResponse.next();
-  }
-
   // Get or create session ID from cookies
   const sessionId = req.cookies.get('ai-session-id')?.value || generateSessionId();
   
@@ -43,7 +39,5 @@ function generateSessionId(): string {
   return `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-// Configure middleware to run only on API routes
-export const config = {
-  matcher: '/api/ai/:path*',
-}; 
+// Export the config from middleware.config.ts
+export { config }; 

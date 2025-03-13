@@ -53,25 +53,63 @@ export default function SettingsPage() {
     }
   }, [provider, model]);
   
-  const handleSave = () => {
+  // Add a function to save API keys immediately
+  const saveApiKeys = async () => {
+    try {
+      const response = await fetch('/api/set-api-keys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          openaiKey: apiKey,
+          googleKey: googleApiKey,
+          anthropicKey: anthropicApiKey,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save API keys');
+      }
+    } catch (error) {
+      console.error('Error saving API keys:', error);
+      toast.error('Failed to save API keys');
+    }
+  };
+
+  // Update the handleSave function to call saveApiKeys
+  const handleSave = async () => {
     setIsSaving(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
+    try {
+      // Save API keys first
+      await saveApiKeys();
+      
+      // Update the configuration in the store
       updateConfig({
         provider,
-        apiKey,
-        googleApiKey,
-        anthropicApiKey,
+        apiKey: provider === 'openai' ? apiKey : config.apiKey,
+        googleApiKey: provider === 'gemini' ? googleApiKey : config.googleApiKey,
+        anthropicApiKey: provider === 'anthropic' ? anthropicApiKey : config.anthropicApiKey,
         model,
         enableCache,
         temperature,
-        maxTokens
+        maxTokens,
       });
       
-      setIsSaving(false);
+      // Explicitly save to cookies for server-side access
+      useLLMStore.getState().saveToCookies();
+      
+      toast.success("Settings saved successfully");
+      
+      // Navigate back to the editor
       router.push("/");
-    }, 500);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast.error("Failed to save settings");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleFlushCache = async () => {
@@ -89,6 +127,22 @@ export default function SettingsPage() {
     } finally {
       setIsFlushing(false);
     }
+  };
+
+  // Add handlers for API key changes
+  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setApiKey(e.target.value);
+    // Don't save immediately to avoid too many requests
+  };
+
+  const handleGoogleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGoogleApiKey(e.target.value);
+    // Don't save immediately to avoid too many requests
+  };
+
+  const handleAnthropicApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAnthropicApiKey(e.target.value);
+    // Don't save immediately to avoid too many requests
   };
 
   return (
@@ -133,11 +187,11 @@ export default function SettingsPage() {
                   id="apiKey" 
                   type="password" 
                   value={apiKey} 
-                  onChange={(e) => setApiKey(e.target.value)}
+                  onChange={handleApiKeyChange}
                   placeholder="Enter your OpenAI API key"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Your API key is stored locally and never sent to our servers.
+                  Your API key is stored securely and used only for AI requests.
                 </p>
               </div>
             )}
@@ -149,11 +203,11 @@ export default function SettingsPage() {
                   id="googleApiKey" 
                   type="password" 
                   value={googleApiKey} 
-                  onChange={(e) => setGoogleApiKey(e.target.value)}
+                  onChange={handleGoogleApiKeyChange}
                   placeholder="Enter your Google API key"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Your API key is stored locally and never sent to our servers.
+                  Your API key is stored securely and used only for AI requests.
                 </p>
               </div>
             )}
@@ -165,11 +219,11 @@ export default function SettingsPage() {
                   id="anthropicApiKey" 
                   type="password" 
                   value={anthropicApiKey} 
-                  onChange={(e) => setAnthropicApiKey(e.target.value)}
+                  onChange={handleAnthropicApiKeyChange}
                   placeholder="Enter your Anthropic API key"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Your API key is stored locally and never sent to our servers.
+                  Your API key is stored securely and used only for AI requests.
                 </p>
               </div>
             )}

@@ -682,6 +682,7 @@ interface LLMStore {
   updateConfig: (config: Partial<LLMConfig>) => void;
   getApiKey: () => string;
   loadServerConfig: () => Promise<void>;
+  saveToCookies: () => void;
 }
 
 export const useLLMStore = create<LLMStore>()(
@@ -689,69 +690,101 @@ export const useLLMStore = create<LLMStore>()(
     (set, get) => ({
       config: {
         provider: DEFAULT_LLM_PROVIDER,
-        apiKey: DEFAULT_LLM_PROVIDER === 'openai' ? OPENAI_API_KEY : '',
-        googleApiKey: DEFAULT_LLM_PROVIDER === 'gemini' ? GOOGLE_API_KEY : '',
-        anthropicApiKey: DEFAULT_LLM_PROVIDER === 'anthropic' ? ANTHROPIC_API_KEY : '',
+        apiKey: '',
         model: DEFAULT_LLM_MODEL,
+        googleApiKey: '',
+        anthropicApiKey: '',
         enableCache: ENABLE_AI_CACHE,
-        temperature: DEFAULT_TEMPERATURE,
-        maxTokens: DEFAULT_MAX_TOKENS,
+        temperature: 0.7,
+        maxTokens: 1000,
       },
-      updateConfig: (newConfig) => set((state) => ({
-        config: { ...state.config, ...newConfig },
-      })),
-      getApiKey: () => {
-        const { provider, apiKey, googleApiKey, anthropicApiKey } = get().config;
-        if (typeof provider === 'string') {
-          const providerLower = provider.toLowerCase();
-          if (providerLower === 'gemini') {
-            // For Gemini, we need to set the environment variable that the AI SDK expects
-            const geminiKey = googleApiKey || GOOGLE_API_KEY || '';
-            if (typeof window !== 'undefined') {
-              // In the browser, we can't set environment variables, so we'll return the key
-              return geminiKey;
-            } else {
-              // In Node.js, we can set the environment variable
-              process.env.GOOGLE_GENERATIVE_AI_API_KEY = geminiKey;
-              return geminiKey;
-            }
-          } else if (providerLower === 'anthropic') {
-            return anthropicApiKey || ANTHROPIC_API_KEY || '';
+      updateConfig: (newConfig) => {
+        set((state) => {
+          const updatedConfig = { ...state.config, ...newConfig };
+          
+          // Save to cookies for server-side access
+          const cookieConfig = {
+            provider: updatedConfig.provider,
+            model: updatedConfig.model,
+            enableCache: updatedConfig.enableCache,
+            temperature: updatedConfig.temperature,
+            maxTokens: updatedConfig.maxTokens,
+          };
+          
+          // Set cookie if in browser environment
+          if (typeof document !== 'undefined') {
+            document.cookie = `llm-config=${JSON.stringify(cookieConfig)};path=/;max-age=2592000;SameSite=Lax`;
           }
+          
+          return { config: updatedConfig };
+        });
+      },
+      getApiKey: () => {
+        const state = get();
+        const { provider, apiKey, googleApiKey, anthropicApiKey } = state.config;
+        
+        switch (provider) {
+          case 'gemini':
+            return googleApiKey || '';
+          case 'anthropic':
+            return anthropicApiKey || '';
+          case 'openai':
+          default:
+            return apiKey || '';
         }
-        return apiKey || OPENAI_API_KEY || '';
       },
       loadServerConfig: async () => {
-        try {
-          const response = await fetch('/api/config');
-          if (!response.ok) throw new Error('Failed to load server config');
-          
-          const data = await response.json();
-          
-          // Only update the provider and model from server config
-          set((state) => ({
-            config: { 
-              ...state.config, 
-              provider: data.defaultProvider || state.config.provider,
-              model: data.defaultModel || state.config.model,
-            },
-          }));
-        } catch (error) {
-          console.error('Error loading server config:', error);
-        }
+        // This is a placeholder for server-side config loading
+        // It will be implemented in the server action
+        return Promise.resolve();
       },
+      saveToCookies: () => {
+        const state = get();
+        const { 
+          provider, 
+          model, 
+          enableCache, 
+          temperature, 
+          maxTokens,
+          apiKey,
+          googleApiKey,
+          anthropicApiKey
+        } = state.config;
+        
+        // Create a config object without sensitive data for regular cookie
+        const cookieConfig = {
+          provider,
+          model,
+          enableCache,
+          temperature,
+          maxTokens,
+        };
+        
+        // Set cookie if in browser environment
+        if (typeof document !== 'undefined') {
+          // Set the regular config cookie
+          document.cookie = `llm-config=${JSON.stringify(cookieConfig)};path=/;max-age=2592000;SameSite=Lax`;
+          
+          // Set API keys in separate HTTP-only cookies for server-side access
+          // These will be set by a server action to ensure they're HTTP-only
+          fetch('/api/set-api-keys', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              openaiKey: apiKey,
+              googleKey: googleApiKey,
+              anthropicKey: anthropicApiKey,
+            }),
+          }).catch(err => {
+            console.error('Failed to set API key cookies:', err);
+          });
+        }
+      }
     }),
     {
-      name: 'llm-config',
-      storage: createJSONStorage(() => localStorage),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Load server config after rehydration
-          setTimeout(() => {
-            state.loadServerConfig();
-          }, 0);
-        }
-      },
+      name: 'llm-store',
     }
   )
 ); 

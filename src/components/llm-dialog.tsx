@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Popover,
@@ -63,6 +65,11 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
     }
   }, [isOpen]);
 
+  // Save LLM config to cookies on component mount
+  useEffect(() => {
+    useLLMStore.getState().saveToCookies();
+  }, []);
+
   // Get the editor's left position when the component mounts or when the editor changes
   useEffect(() => {
     if (editor) {
@@ -82,8 +89,11 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
       // Create a prompt that includes the selected text
       const fullPrompt = `Selected Text: ${selectedText}\n\nUser Query: ${prompt}\n\nPlease provide a helpful response based on the selected text and user query.`;
       
-      // Call the LLM service
-      const result = await generateText({ prompt: fullPrompt });
+      // Call the server action
+      const result = await generateText({ 
+        prompt: fullPrompt,
+        stream: false // We don't support streaming in the dialog yet
+      });
       
       // Update the response and model info
       setResponse(result.text);
@@ -106,7 +116,7 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
       setModelInfo(null);
     } catch (error) {
       console.error('Error generating LLM response:', error);
-      setResponse("Sorry, I encountered an error while processing your request. Please check your API key in settings or try again later.");
+      setResponse("Sorry, I encountered an error while processing your request. Please try again later.");
       
       toast({
         title: "Error",

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { useChat } from 'ai/react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,6 +42,7 @@ import {
 } from "@/components/ui/dialog";
 import AIDebugPanel from "@/components/ai-debug-panel";
 import { formatDebugPrompt } from "@/lib/ai-debug";
+import { generateChatResponse, ChatMessage, ChatContextDocument } from "@/lib/llm-service";
 
 interface Message {
   id: string;
@@ -72,7 +72,12 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Save LLM config to cookies on component mount
+  useEffect(() => {
+    useLLMStore.getState().saveToCookies();
+  }, []);
+  
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState<string | null>(null);
@@ -92,21 +97,72 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
   // Get the selected document
   const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
 
-  // Initialize chat with AI SDK
-  const { messages: aiMessages, input: aiInput, handleInputChange: aiHandleInputChange, handleSubmit: aiHandleSubmit, isLoading: aiIsLoading, error, setMessages: setAiMessages } = useChat({
-    api: '/api/ai',
-    body: {
-      context: documentContent,
-      contextDocuments
-    },
-    onResponse: (response) => {
-      // You can handle the response here if needed
-      console.log('AI response received');
+  // Scroll to bottom of messages when new messages are added
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const generateId = () => `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    if (!input.trim() || isLoading) return;
+    
+    // Create a new user message
+    const userMessage: ChatMessage = {
+      id: generateId(),
+      role: 'user',
+      content: input
+    };
+    
+    // Add user message to the chat
+    setMessages(prev => [...prev, userMessage]);
+    
+    // Clear input
+    setInput("");
+    
+    // Set loading state
+    setIsLoading(true);
+    
+    try {
+      // Create a debug version of the prompt that will be sent
+      let debugSystemMessage = 'You are a helpful writing assistant.';
       
-      // We'll rely on the handleFormSubmit method to set the last prompt
-      // since we can't easily access the request body from the response
-    },
-    onError: (error) => {
+      if (documentContent) {
+        debugSystemMessage += ` Use the following context to inform your responses: ${documentContent}`;
+      }
+      
+      if (contextDocuments && contextDocuments.length > 0) {
+        debugSystemMessage += ' Use the following additional context documents to inform your responses:\n\n';
+        contextDocuments.forEach(doc => {
+          debugSystemMessage += `Document: ${doc.name}\n${doc.content}\n\n`;
+        });
+      }
+      
+      // Store the debug prompt using our utility function
+      setLastPrompt(formatDebugPrompt(
+        debugSystemMessage,
+        input,
+        config.provider || 'openai',
+        config.model || 'gpt-4o'
+      ));
+      
+      // Call the server action with all messages for context
+      const response = await generateChatResponse({
+        messages: [...messages, userMessage],
+        context: documentContent,
+        contextDocuments: contextDocuments.map(doc => ({
+          id: doc.id,
+          title: doc.name, // Map name to title for the server action
+          content: doc.content
+        })),
+        stream: false
+      });
+      
+      // Add the assistant's response to the chat
+      setMessages(prev => [...prev, response.message]);
+    } catch (error) {
       console.error('Error in AI chat:', error);
       toast({
         title: "Error",
@@ -114,71 +170,9 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
         variant: "destructive",
         duration: 5000, // Auto-dismiss after 5 seconds for errors
       });
+    } finally {
+      setIsLoading(false);
     }
-  });
-
-  // Update useEffect to watch for errors and display toast notifications
-  useEffect(() => {
-    if (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : String(error),
-        variant: "destructive",
-        duration: 5000, // Auto-dismiss after 5 seconds for errors
-      });
-    }
-  }, [error]);
-
-  // Scroll to bottom of messages when new messages are added
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, aiMessages]);
-
-  const generateId = () => `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    if (!input.trim() || !selectedDocumentId) return;
-    
-    // Create context for the AI
-    const contextData = {
-      context: documentContent,
-      contextDocuments: contextDocuments.map(doc => ({
-        title: doc.name,
-        content: doc.content
-      }))
-    };
-    
-    // Create a debug version of the prompt that will be sent
-    let debugSystemMessage = 'You are a helpful writing assistant.';
-    
-    if (documentContent) {
-      debugSystemMessage += ` Use the following context to inform your responses: ${documentContent}`;
-    }
-    
-    if (contextDocuments && contextDocuments.length > 0) {
-      debugSystemMessage += ' Use the following additional context documents to inform your responses:\n\n';
-      contextDocuments.forEach(doc => {
-        debugSystemMessage += `Document: ${doc.name}\n${doc.content}\n\n`;
-      });
-    }
-    
-    // Store the debug prompt using our utility function
-    setLastPrompt(formatDebugPrompt(
-      debugSystemMessage,
-      input,
-      config.provider || 'openai',
-      config.model || 'gpt-4o'
-    ));
-    
-    // Submit with the AI SDK
-    aiHandleSubmit(e, {
-      body: contextData
-    });
-    
-    // Clear input
-    setInput("");
   };
 
   // Filter out documents that are already in context or are the current document
@@ -193,7 +187,6 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setInput(value);
-    aiHandleInputChange(e);
     
     // Check if we should show autocomplete
     const lastAtIndex = value.lastIndexOf('@');
@@ -410,9 +403,6 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
 
   // Add a function to handle clearing the chat
   const handleClearChat = () => {
-    // Reset AI SDK messages to an empty array
-    setAiMessages([]);
-    
     // Reset local messages to an empty array
     setMessages([]);
     
@@ -435,8 +425,8 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
 
   return (
     <Card className={cn(
-      "flex flex-col h-full border-none shadow-none",
-      isExpanded && "border rounded-none"
+      "w-full h-full flex flex-col border rounded-lg overflow-hidden shadow-md transition-all duration-200",
+      isExpanded ? "fixed inset-4 z-50" : "relative"
     )}>
       <CardHeader className="px-4 py-2 border-b">
         <div className="flex items-center justify-between">
@@ -603,10 +593,10 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
         </div>
       )}
       
-      <CardContent className="p-0 flex-1">
-        <ScrollArea className="h-[calc(100vh-300px)]">
-          <div className="flex flex-col p-3 gap-3">
-            {aiMessages.length === 0 ? (
+      <CardContent className="flex-1 p-0 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-4 space-y-4">
+            {messages.length === 0 ? (
               <div className="text-center text-muted-foreground py-6">
                 <Sparkles className="h-6 w-6 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">Ask me anything about your document(s)</p>
@@ -616,11 +606,6 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
                     onClick={() => {
                       const text = "Summarize this document in a few paragraphs.";
                       setInput(text);
-                      // Create a synthetic event to update AI SDK's input state
-                      const syntheticEvent = {
-                        target: { value: text }
-                      } as React.ChangeEvent<HTMLTextAreaElement>;
-                      aiHandleInputChange(syntheticEvent);
                     }}
                   />
                   <SuggestionButton 
@@ -628,11 +613,6 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
                     onClick={() => {
                       const text = "Improve the writing style of this document to make it more engaging.";
                       setInput(text);
-                      // Create a synthetic event to update AI SDK's input state
-                      const syntheticEvent = {
-                        target: { value: text }
-                      } as React.ChangeEvent<HTMLTextAreaElement>;
-                      aiHandleInputChange(syntheticEvent);
                     }}
                   />
                   <SuggestionButton 
@@ -640,19 +620,14 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
                     onClick={() => {
                       const text = "Generate a conclusion for this document.";
                       setInput(text);
-                      // Create a synthetic event to update AI SDK's input state
-                      const syntheticEvent = {
-                        target: { value: text }
-                      } as React.ChangeEvent<HTMLTextAreaElement>;
-                      aiHandleInputChange(syntheticEvent);
                     }}
                   />
                 </div>
               </div>
             ) : (
-              aiMessages.map((message, index) => (
+              messages.map((message, index) => (
                 <div 
-                  key={index} 
+                  key={message.id || index} 
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
@@ -696,7 +671,7 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
               ))
             )}
             
-            {aiIsLoading && (
+            {isLoading && (
               <div className="flex justify-start">
                 <div className="max-w-[80%] rounded-lg p-2 bg-muted/70 flex items-center text-sm">
                   <RefreshCw className="h-3 w-3 animate-spin mr-2" />
@@ -721,7 +696,7 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
               onKeyDown={handleKeyDown}
               onFocus={handleFocus}
               className="min-h-[50px] flex-1 resize-none text-sm"
-              disabled={aiIsLoading}
+              disabled={isLoading}
             />
             <div className="absolute right-2 bottom-2 text-xs text-muted-foreground bg-background px-1 rounded opacity-50">
               <span className="font-bold">@</span> <span>to add documents</span>
@@ -733,7 +708,7 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
             variant="ghost"
             className="h-[50px] w-[50px] rounded-full bg-primary/10 hover:bg-primary/20"
             onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
-            disabled={aiIsLoading || !input.trim()}
+            disabled={isLoading || !input.trim()}
           >
             <Send className="h-4 w-4 text-primary" />
           </Button>
