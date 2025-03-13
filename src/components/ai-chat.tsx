@@ -585,7 +585,91 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
     setShowClearConfirmation(false);
   };
 
-  // Add a function to handle saving the composition
+  // Add a common function to create and save a composition
+  const createAndSaveComposition = async (
+    name: string, 
+    contextDocs: ContextDocument[], 
+    chatMessages: ChatMessage[],
+    customIntro?: string
+  ) => {
+    try {
+      console.log(`Creating composition "${name}" with ${contextDocs.length} context documents and ${chatMessages.length} messages`);
+      console.log("Context documents:", contextDocs.map(doc => ({ id: doc.id, name: doc.name })));
+      
+      // Format the chat transcript
+      let content = `# ${name}\n\n`;
+      
+      // Add custom intro if provided, otherwise use default
+      if (customIntro) {
+        content += `${customIntro}\n`;
+      } else if (contextDocs.length > 0 && chatMessages.length === 0) {
+        // If there are only context documents but no messages, add a default intro
+        content += `Composition with context documents.\n`;
+      }
+      
+      // Add context documents as markdown links
+      if (contextDocs.length > 0) {
+        content += "Context documents:\n";
+        contextDocs.forEach(doc => {
+          content += `- [[${doc.name}]]\n`;
+        });
+        content += "\n";
+      }
+      
+      // Add chat messages if they exist
+      if (chatMessages.length > 0) {
+        content += "## Chat Thread\n\n";
+        chatMessages.forEach((message) => {
+          const role = message.role === 'user' ? 'User' : 'AI';
+          content += `### ${role}\n\n${message.content}\n\n`;
+        });
+      }
+      
+      // Don't save if there are no context documents and no messages
+      if (contextDocs.length === 0 && chatMessages.length === 0) {
+        toast({
+          title: "Cannot save empty composition",
+          description: "Please add context documents or start a conversation first.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        return false;
+      }
+      
+      // Create a clean array of context document references
+      const contextDocRefs = contextDocs.map(doc => ({ 
+        id: doc.id, 
+        name: doc.name 
+      }));
+      
+      // Add the composition to the store
+      await useDocumentStore.getState().addComposition(
+        name,
+        content,
+        contextDocRefs
+      );
+      
+      toast({
+        title: "Composition saved",
+        description: `"${name}" has been saved to your compositions with ${contextDocs.length} context document(s).`,
+        duration: 3000,
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving composition:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save composition.",
+        variant: "destructive",
+        duration: 5000,
+      });
+      
+      return false;
+    }
+  };
+
+  // Add a function to handle saving the composition from the dialog
   const handleSaveComposition = async () => {
     if (!compositionName.trim()) {
       toast({
@@ -597,49 +681,31 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
       return;
     }
     
-    try {
-      // Format the chat transcript
-      let content = `# ${compositionName}\n\n`;
-      
-      // Add context documents as markdown links
-      if (contextDocuments.length > 0) {
-        content += "Context documents:\n";
-        contextDocuments.forEach(doc => {
-          content += `- [[${doc.name}]]\n`;
-        });
-        content += "\n";
-      }
-      
-      // Add chat messages
-      content += "## Chat Thread\n\n";
-      messages.forEach((message) => {
-        const role = message.role === 'user' ? 'User' : 'AI';
-        content += `### ${role}\n\n${message.content}\n\n`;
-      });
-      
-      // Add the composition to the store
-      await useDocumentStore.getState().addComposition(
-        compositionName,
-        content,
-        contextDocuments.map(doc => ({ id: doc.id, name: doc.name }))
-      );
-      
+    // Check if there's anything to save
+    if (contextDocuments.length === 0 && messages.length === 0) {
       toast({
-        title: "Composition saved",
-        description: `"${compositionName}" has been saved to your compositions.`,
+        title: "Nothing to save",
+        description: "Please add context documents or start a conversation first.",
+        variant: "destructive",
         duration: 3000,
       });
-      
+      return;
+    }
+    
+    // Ensure we're using the current context documents
+    const currentContextDocs = [...contextDocuments];
+    console.log("Saving composition with context documents:", currentContextDocs);
+    
+    const success = await createAndSaveComposition(
+      compositionName,
+      currentContextDocs,
+      messages
+    );
+    
+    if (success) {
       // Reset state
       setCompositionName("");
       setShowSaveCompositionDialog(false);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save composition.",
-        variant: "destructive",
-        duration: 5000,
-      });
     }
   };
 
@@ -670,17 +736,15 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
               {config.provider || 'openai'}:{config.model || 'gpt-4o'}
             </Badge>
             
-            {messages.length > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-8 px-2 text-muted-foreground"
-                title="Save as composition"
-                onClick={() => setShowSaveCompositionDialog(true)}
-              >
-                <Save className="h-4 w-4" />
-              </Button>
-            )}
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="h-8 px-2 text-muted-foreground"
+              title="Save as composition"
+              onClick={() => setShowSaveCompositionDialog(true)}
+            >
+              <Save className="h-4 w-4" />
+            </Button>
             
             <DropdownMenu open={isContextMenuOpen} onOpenChange={setIsContextMenuOpen}>
               <DropdownMenuTrigger asChild>
@@ -812,58 +876,6 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
           <div className="flex justify-between w-full mb-1">
             <span className="text-xs text-muted-foreground">Context documents:</span>
             <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-5 px-2 py-0 text-xs text-muted-foreground hover:text-primary"
-                onClick={() => {
-                  // Create a composition name based on the first document
-                  const firstDoc = contextDocuments[0];
-                  const defaultName = `Composition from ${firstDoc.name}${contextDocuments.length > 1 ? ` and ${contextDocuments.length - 1} more` : ''}`;
-                  setCompositionName(defaultName);
-                  
-                  // Create content with frontmatter and include chat thread if it exists
-                  let content = `# ${defaultName}\n\nComposition created from context documents:\n`;
-                  
-                  // Format document references as markdown links
-                  contextDocuments.forEach(doc => {
-                    content += `- [[${doc.name}]]\n`;
-                  });
-                  content += '\n';
-                  
-                  // Add chat thread if there are messages
-                  if (messages.length > 0) {
-                    content += "## Chat Thread\n\n";
-                    messages.forEach((message) => {
-                      const role = message.role === 'user' ? 'User' : 'AI';
-                      content += `### ${role}\n\n${message.content}\n\n`;
-                    });
-                  }
-                  
-                  // Save the composition
-                  useDocumentStore.getState().addComposition(
-                    defaultName,
-                    content,
-                    contextDocuments.map(doc => ({ id: doc.id, name: doc.name }))
-                  ).then(() => {
-                    toast({
-                      title: "Composition created",
-                      description: `"${defaultName}" has been saved to your compositions.`,
-                      duration: 3000,
-                    });
-                  }).catch(error => {
-                    toast({
-                      title: "Error",
-                      description: "Failed to create composition.",
-                      variant: "destructive",
-                      duration: 5000,
-                    });
-                  });
-                }}
-                title="Create a composition from these context documents"
-              >
-                Create Composition
-              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -1068,12 +1080,12 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
               />
             </div>
             
-            {contextDocuments.length > 0 && (
-              <div className="grid grid-cols-4 items-start gap-4">
-                <span className="text-right text-sm font-medium">
-                  Context
-                </span>
-                <div className="col-span-3">
+            <div className="grid grid-cols-4 items-start gap-4">
+              <span className="text-right text-sm font-medium">
+                Context
+              </span>
+              <div className="col-span-3">
+                {contextDocuments.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
                     {contextDocuments.map((doc) => (
                       <Badge key={doc.id} variant="secondary" className="text-xs">
@@ -1081,16 +1093,22 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
                       </Badge>
                     ))}
                   </div>
-                </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No context documents added
+                  </div>
+                )}
               </div>
-            )}
+            </div>
             
             <div className="grid grid-cols-4 items-start gap-4">
               <span className="text-right text-sm font-medium">
                 Messages
               </span>
               <div className="col-span-3 text-sm text-muted-foreground">
-                {messages.length} messages will be saved
+                {messages.length > 0 
+                  ? `${messages.length} messages will be saved` 
+                  : "No messages to save (only context documents will be saved)"}
               </div>
             </div>
           </div>
