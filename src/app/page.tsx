@@ -5,9 +5,10 @@ import DocumentNavigation from "@/components/document-navigation";
 import AnnotationsNavigator from "@/components/annotations-navigator";
 import MarkdownEditor from "@/components/markdown-editor";
 import AIComposer from "@/components/ai-composer";
+import Compositions from "@/components/compositions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { PanelLeft, PanelRight, Maximize2, Minimize2, GripVertical, Settings, FileText, Palette, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon } from "lucide-react";
+import { PanelLeft, PanelRight, Maximize2, Minimize2, GripVertical, Settings, FileText, Palette, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useRouter } from "next/navigation";
@@ -65,10 +66,36 @@ export default function Home() {
   const isTablet = useMediaQuery("(min-width: 768px) and (max-width: 1023px)");
   const isMobile = useMediaQuery("(max-width: 767px)");
 
+  // Inside the Home component, add a state for the right panel tab
+  const [rightPanelTab, setRightPanelTab] = useState("ai");
+
   // Handle client-side mounting
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Listen for the switchToAIComposer event
+  useEffect(() => {
+    if (!isMounted) return;
+    
+    const handleSwitchToAIComposer = () => {
+      // Switch to the AI tab
+      setRightPanelTab("ai");
+      
+      // Make sure the right panel is visible
+      setLayoutConfig(prev => ({
+        ...prev,
+        rightPanelVisible: true,
+        rightPanelCollapsed: false,
+      }));
+    };
+    
+    window.addEventListener('switchToAIComposer', handleSwitchToAIComposer);
+    
+    return () => {
+      window.removeEventListener('switchToAIComposer', handleSwitchToAIComposer);
+    };
+  }, [isMounted]);
 
   // Check URL for document ID on page load
   useEffect(() => {
@@ -514,31 +541,57 @@ export default function Home() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
+                        className={cn(rightPanelTab === "ai" && "bg-secondary")}
+                        onClick={() => setRightPanelTab("ai")}
                         title="AI Composer"
                       >
                         <Sparkles className="h-5 w-5" />
                       </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={cn(rightPanelTab === "compositions" && "bg-secondary")}
+                        onClick={() => setRightPanelTab("compositions")}
+                        title="Compositions"
+                      >
+                        <BookOpen className="h-5 w-5" />
+                      </Button>
                     </div>
                   ) : (
-                    // Expanded view - show full AI composer
+                    // Expanded view - show full AI composer with tabs
                     <div className="flex flex-col h-full">
-                      <div className="flex items-center justify-between p-2 border-b">
-                       <CardTitle className="text-base flex items-center">
-                          <Sparkles className="h-4 w-4 mr-2 text-primary" />
-                          AI Composer
-                        </CardTitle>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={toggleRightPanelCollapse}
-                          title="Collapse panel"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="p-4 flex-1 overflow-auto">
-                        <AIComposer />
-                      </div>
+                      <Tabs value={rightPanelTab} onValueChange={setRightPanelTab} className="h-full flex flex-col">
+                        <div className="flex items-center justify-between p-2 border-b">
+                          <TabsList className="grid grid-cols-2 w-full">
+                            <TabsTrigger value="ai" title="AI Composer">
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              AI Composer
+                            </TabsTrigger>
+                            <TabsTrigger value="compositions" title="Compositions">
+                              <BookOpen className="h-4 w-4 mr-2" />
+                              Compositions
+                            </TabsTrigger>
+                          </TabsList>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={toggleRightPanelCollapse}
+                            title="Collapse panel"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <TabsContent value="ai" className="p-0 flex-1 overflow-hidden">
+                          <div className="p-4 h-full overflow-auto">
+                            <AIComposer />
+                          </div>
+                        </TabsContent>
+                        <TabsContent value="compositions" className="p-0 flex-1 overflow-hidden">
+                          <div className="p-4 h-full overflow-auto">
+                            <Compositions />
+                          </div>
+                        </TabsContent>
+                      </Tabs>
                     </div>
                   )}
                 </div>

@@ -35,7 +35,9 @@ import { saveAs } from 'file-saver';
 import { Document } from "@/lib/store";
 import { CompositionComposer } from "./composition-composer";
 
-interface DocumentNavigationProps {}
+interface DocumentNavigationProps {
+  onCompareDocuments?: (doc1Id: string, doc2Id: string) => void;
+}
 
 interface FolderItemProps {
   folder: { id: string; name: string; parentId: string | null };
@@ -523,7 +525,7 @@ function DocumentItem({ document, level }: DocumentItemProps) {
   );
 }
 
-export default function DocumentNavigation({}: DocumentNavigationProps) {
+export default function DocumentNavigation({ onCompareDocuments }: DocumentNavigationProps) {
   const router = useRouter();
   const { 
     documents, 

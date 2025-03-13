@@ -44,6 +44,16 @@ export interface Annotation {
   tags: string[];
 }
 
+// Add this new interface for compositions
+export interface Composition {
+  id: string;
+  name: string;
+  content: string;
+  contextDocuments: Array<{id: string; name: string}>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Document {
   id: string;
   name: string;
@@ -65,6 +75,7 @@ export interface Folder {
 interface DocumentStore {
   documents: Document[];
   folders: Folder[];
+  compositions: Composition[]; // Add compositions array
   selectedDocumentId: string | null;
   selectedFolderId: string | null;
   comparisonDocumentIds: string[];
@@ -108,6 +119,12 @@ interface DocumentStore {
   // Data loading
   loadData: () => Promise<void>;
   setError: (error: string | null) => void;
+  
+  // Composition operations
+  addComposition: (name: string, content: string, contextDocuments: Array<{id: string; name: string}>) => Promise<string>;
+  updateComposition: (id: string, data: Partial<Composition>) => Promise<void>;
+  deleteComposition: (id: string) => Promise<void>;
+  loadCompositions: () => Promise<void>;
 }
 
 // Helper function to fix Date objects after rehydration
@@ -142,6 +159,7 @@ export const useDocumentStore = create<DocumentStore>()(
     (set, get) => ({
       documents: [],
       folders: [],
+      compositions: [], // Initialize compositions array
       selectedDocumentId: null,
       selectedFolderId: null,
       comparisonDocumentIds: [],
@@ -168,6 +186,9 @@ export const useDocumentStore = create<DocumentStore>()(
             folders: folders || [],
             isLoading: false 
           });
+          
+          // Load compositions after documents and folders are loaded
+          await get().loadCompositions();
         } catch (error) {
           console.error('Error loading data:', error);
           set({ 
@@ -684,25 +705,298 @@ export const useDocumentStore = create<DocumentStore>()(
         });
         return results;
       },
+      
+      // Composition operations
+      addComposition: async (name, content, contextDocuments) => {
+        set({ error: null });
+        const timestamp = new Date();
+        const newComposition: Composition = {
+          id: `comp-${timestamp.getTime()}`,
+          name,
+          content,
+          contextDocuments,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+        
+        try {
+          console.log("Adding composition:", name);
+          
+          // Create compositions folder if it doesn't exist
+          const compositionsFolder = get().folders.find(folder => folder.name === 'compositions' && folder.parentId === null);
+          let compositionsFolderId = compositionsFolder?.id;
+          
+          console.log("Existing compositions folder:", compositionsFolder);
+          
+          if (!compositionsFolderId) {
+            // Create the compositions folder
+            const folderTimestamp = new Date();
+            const newFolder: Folder = {
+              id: `folder-${folderTimestamp.getTime()}`,
+              name: 'compositions',
+              createdAt: folderTimestamp,
+              parentId: null,
+            };
+            
+            console.log("Creating new compositions folder:", newFolder);
+            
+            // Add to local state
+            set(state => ({
+              folders: [...state.folders, newFolder]
+            }));
+            
+            // Save to server
+            await saveFolderToServer(newFolder);
+            
+            compositionsFolderId = newFolder.id;
+          }
+          
+          // Create a markdown document for the composition
+          const compositionContent = `---
+title: ${name}
+date: ${timestamp.toISOString()}
+contextDocuments: ${JSON.stringify(contextDocuments)}
+---
+
+${content}`;
+          
+          console.log("Adding document to compositions folder:", compositionsFolderId);
+          
+          // Add the document to the compositions folder
+          const documentId = await get().addDocument(name, compositionContent, compositionsFolderId);
+          
+          console.log("Document added with ID:", documentId);
+          
+          // Add to compositions array
+          set(state => ({
+            compositions: [...state.compositions, newComposition]
+          }));
+          
+          // Reload compositions to ensure everything is in sync
+          setTimeout(() => {
+            get().loadCompositions();
+          }, 500);
+          
+          return newComposition.id;
+        } catch (error) {
+          console.error('Error adding composition:', error);
+          set({ error: 'Failed to add composition' });
+          throw error;
+        }
+      },
+      
+      updateComposition: async (id, data) => {
+        set({ error: null });
+        
+        try {
+          // Find the composition
+          const composition = get().compositions.find(comp => comp.id === id);
+          if (!composition) {
+            throw new Error('Composition not found');
+          }
+          
+          // Update the composition
+          const updatedComposition = {
+            ...composition,
+            ...data,
+            updatedAt: new Date()
+          };
+          
+          // Update in state
+          set(state => ({
+            compositions: state.compositions.map(comp => 
+              comp.id === id ? updatedComposition : comp
+            )
+          }));
+          
+          // Find the corresponding document
+          const document = get().documents.find(doc => doc.name === composition.name && doc.folderId === get().folders.find(f => f.name === 'compositions')?.id);
+          
+          if (document) {
+            // Update the document content with the new composition data
+            const compositionContent = `---
+title: ${updatedComposition.name}
+date: ${updatedComposition.updatedAt.toISOString()}
+contextDocuments: ${JSON.stringify(updatedComposition.contextDocuments)}
+---
+
+${updatedComposition.content}`;
+            
+            await get().updateDocument(document.id, { 
+              content: compositionContent,
+              name: updatedComposition.name
+            });
+          }
+          
+          return;
+        } catch (error) {
+          console.error('Error updating composition:', error);
+          set({ error: 'Failed to update composition' });
+          throw error;
+        }
+      },
+      
+      deleteComposition: async (id) => {
+        set({ error: null });
+        
+        try {
+          // Find the composition
+          const composition = get().compositions.find(comp => comp.id === id);
+          if (!composition) {
+            throw new Error('Composition not found');
+          }
+          
+          // Delete the composition
+          const updatedCompositions = get().compositions.filter(comp => comp.id !== id);
+          
+          // Update in state
+          set(state => ({
+            compositions: updatedCompositions
+          }));
+          
+          // Find the corresponding document
+          const document = get().documents.find(doc => doc.name === composition.name && doc.folderId === get().folders.find(f => f.name === 'compositions')?.id);
+          
+          if (document) {
+            // Delete the document
+            const updatedDocuments = get().documents.filter(doc => doc.id !== document.id);
+            
+            // Update in state
+            set(state => ({
+              documents: updatedDocuments
+            }));
+            
+            // Delete from server
+            await deleteDocumentFromServer(document.id);
+          }
+          
+          return;
+        } catch (error) {
+          console.error('Error deleting composition:', error);
+          set({ error: 'Failed to delete composition' });
+          throw error;
+        }
+      },
+      
+      loadCompositions: async () => {
+        set({ error: null });
+        
+        try {
+          console.log("Loading compositions...");
+          
+          // Find the compositions folder
+          const compositionsFolder = get().folders.find(folder => folder.name === 'compositions' && folder.parentId === null);
+          
+          console.log("Compositions folder:", compositionsFolder);
+          
+          if (!compositionsFolder) {
+            console.log("No compositions folder found, setting empty compositions array");
+            set({ compositions: [] });
+            return;
+          }
+          
+          // Get all documents in the compositions folder
+          const compositionDocuments = get().documents.filter(doc => doc.folderId === compositionsFolder.id);
+          
+          console.log(`Found ${compositionDocuments.length} documents in compositions folder`);
+          console.log("Documents in compositions folder:", compositionDocuments.map(doc => doc.name));
+          
+          // Parse each document to extract composition data
+          const compositions: Composition[] = [];
+          
+          for (const doc of compositionDocuments) {
+            try {
+              console.log(`Processing document: ${doc.name} (ID: ${doc.id})`);
+              
+              // Parse the frontmatter
+              const content = doc.content;
+              const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+              
+              if (frontmatterMatch) {
+                const [_, frontmatter, markdownContent] = frontmatterMatch;
+                
+                // Extract metadata
+                const titleMatch = frontmatter.match(/title:\s*(.*)/);
+                const dateMatch = frontmatter.match(/date:\s*(.*)/);
+                const contextDocumentsMatch = frontmatter.match(/contextDocuments:\s*(.*)/);
+                
+                if (titleMatch && dateMatch) {
+                  const title = titleMatch[1].trim();
+                  const date = new Date(dateMatch[1].trim());
+                  let contextDocuments: Array<{id: string; name: string}> = [];
+                  
+                  if (contextDocumentsMatch) {
+                    try {
+                      contextDocuments = JSON.parse(contextDocumentsMatch[1].trim());
+                    } catch (e) {
+                      console.error('Error parsing contextDocuments:', e);
+                    }
+                  }
+                  
+                  const composition = {
+                    id: `comp-${date.getTime()}`,
+                    name: title,
+                    content: markdownContent.trim(),
+                    contextDocuments,
+                    createdAt: date,
+                    updatedAt: date
+                  };
+                  
+                  console.log(`Added composition: ${composition.name} (ID: ${composition.id})`);
+                  compositions.push(composition);
+                } else {
+                  // If no title or date in frontmatter, create a composition with document name
+                  console.log(`Document ${doc.name} has frontmatter but missing title or date, using document properties`);
+                  
+                  // Ensure we have a valid Date object for createdAt and updatedAt
+                  const createdAt = doc.createdAt instanceof Date ? doc.createdAt : new Date();
+                  const updatedAt = doc.updatedAt instanceof Date ? doc.updatedAt : new Date();
+                  
+                  compositions.push({
+                    id: `comp-${createdAt.getTime()}`,
+                    name: doc.name,
+                    content: markdownContent.trim(),
+                    contextDocuments: [],
+                    createdAt: createdAt,
+                    updatedAt: updatedAt
+                  });
+                }
+              } else {
+                // If no frontmatter, create a composition with document name and content
+                console.log(`Document ${doc.name} has no frontmatter, using document properties`);
+                
+                // Ensure we have a valid Date object for createdAt and updatedAt
+                const createdAt = doc.createdAt instanceof Date ? doc.createdAt : new Date();
+                const updatedAt = doc.updatedAt instanceof Date ? doc.updatedAt : new Date();
+                
+                compositions.push({
+                  id: `comp-${createdAt.getTime()}`,
+                  name: doc.name,
+                  content: doc.content,
+                  contextDocuments: [],
+                  createdAt: createdAt,
+                  updatedAt: updatedAt
+                });
+              }
+            } catch (e) {
+              console.error(`Error parsing composition document ${doc.name}:`, e);
+            }
+          }
+          
+          console.log(`Loaded ${compositions.length} compositions`);
+          
+          // Update state with parsed compositions
+          set({ compositions });
+          
+        } catch (error) {
+          console.error('Error loading compositions:', error);
+          set({ error: 'Failed to load compositions' });
+        }
+      },
     }),
     {
       name: 'document-store',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        documents: state.documents,
-        folders: state.folders,
-        selectedDocumentId: state.selectedDocumentId,
-        selectedFolderId: state.selectedFolderId,
-        // Don't persist comparison state
-        // comparisonDocumentIds: state.comparisonDocumentIds,
-      }),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Fix dates after rehydration
-          state.documents = fixDates(state.documents);
-          state.folders = fixDates(state.folders);
-        }
-      },
     }
   )
 );
@@ -739,8 +1033,8 @@ export const useLLMStore = create<LLMStore>()(
         googleApiKey: '',
         anthropicApiKey: '',
         enableCache: ENABLE_AI_CACHE,
-        temperature: 0.7,
-        maxTokens: 1000,
+        temperature: DEFAULT_TEMPERATURE || 0.7,
+        maxTokens: DEFAULT_MAX_TOKENS || 1000,
       },
       updateConfig: (newConfig) => {
         set((state) => {
@@ -831,4 +1125,4 @@ export const useLLMStore = create<LLMStore>()(
       name: 'llm-store',
     }
   )
-); 
+);
