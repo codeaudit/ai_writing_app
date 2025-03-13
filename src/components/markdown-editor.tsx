@@ -16,6 +16,7 @@ import { LLMDialog } from "./llm-dialog";
 import React from "react";
 import { MarkdownRenderer } from "./markdown-renderer";
 import { AnnotationDialog } from "./annotation-dialog";
+import { TokenCounterDialog } from "./token-counter-dialog";
 
 // Dynamically import components that might cause hydration issues
 const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.default), { ssr: false });
@@ -84,6 +85,9 @@ const MarkdownEditor = forwardRef<
     original: "",
     modified: "",
   });
+
+  // Add state for token counter dialog
+  const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
 
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
@@ -189,6 +193,11 @@ const MarkdownEditor = forwardRef<
           command: "editor.action.customLLMDialog",
           when: "editorTextFocus"
         },
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL,
+          command: "editor.action.customTokenCounter",
+          when: "editorTextFocus"
+        },
         // Explicitly register undo shortcut to ensure it works as expected
         {
           keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ,
@@ -291,6 +300,31 @@ const MarkdownEditor = forwardRef<
               setShowLLMDialog(true);
             }
           }
+        }
+      }
+    });
+
+    // Add token counter action
+    editor.addAction({
+      id: "editor.action.customTokenCounter",
+      label: "Count Tokens",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL],
+      contextMenuGroupId: "navigation",
+      run: (ed) => {
+        const selection = ed.getSelection();
+        if (selection && !selection.isEmpty()) {
+          const selectedText = ed.getModel()?.getValueInRange(selection) || "";
+          if (selectedText) {
+            setSelectedText(selectedText);
+            setShowTokenCounterDialog(true);
+          }
+        } else {
+          // If no text is selected, show a message
+          toast({
+            title: "No text selected",
+            description: "Please select some text to count tokens.",
+            variant: "default"
+          });
         }
       }
     });
@@ -982,6 +1016,13 @@ const MarkdownEditor = forwardRef<
           selectionRange={selectedTextRange}
         />
       )}
+      
+      {/* Token Counter Dialog */}
+      <TokenCounterDialog
+        isOpen={showTokenCounterDialog}
+        onClose={() => setShowTokenCounterDialog(false)}
+        selectedText={selectedText}
+      />
       
     </div>
   );
