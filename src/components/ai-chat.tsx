@@ -83,6 +83,7 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
   const [isCopied, setIsCopied] = useState<string | null>(null);
   const [contextDocuments, setContextDocuments] = useState<ContextDocument[]>([]);
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+  const [composerContextFiles, setComposerContextFiles] = useState<Array<{id: string; name: string}>>([]);
   
   // Autocomplete state
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -96,6 +97,83 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
 
   // Get the selected document
   const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
+
+  // Load context files from localStorage when component mounts
+  useEffect(() => {
+    loadComposerContextFiles();
+  }, []);
+  
+  // Function to load context files from localStorage
+  const loadComposerContextFiles = () => {
+    try {
+      const contextData = localStorage.getItem('aiComposerContext');
+      if (contextData) {
+        const parsedContext = JSON.parse(contextData) as Array<{id: string; name: string}>;
+        setComposerContextFiles(parsedContext);
+        
+        // Convert composer context files to context documents
+        const newContextDocs = parsedContext
+          .map(ref => {
+            const doc = documents.find(d => d.id === ref.id);
+            if (doc) {
+              return {
+                id: doc.id,
+                name: doc.name,
+                content: doc.content
+              };
+            }
+            return null;
+          })
+          .filter((doc): doc is ContextDocument => doc !== null);
+        
+        // Add any new context documents that aren't already in the list
+        setContextDocuments(prevDocs => {
+          const existingIds = new Set(prevDocs.map(d => d.id));
+          const docsToAdd = newContextDocs.filter(d => !existingIds.has(d.id));
+          return [...prevDocs, ...docsToAdd];
+        });
+      }
+    } catch (error) {
+      console.error('Error loading context files:', error);
+    }
+  };
+  
+  // Listen for context updates from the Composition Composer
+  useEffect(() => {
+    const handleContextUpdate = (event: CustomEvent<{ context: Array<{id: string; name: string}> }>) => {
+      setComposerContextFiles(event.detail.context);
+      
+      // Convert composer context files to context documents
+      const newContextDocs = event.detail.context
+        .map(ref => {
+          const doc = documents.find(d => d.id === ref.id);
+          if (doc) {
+            return {
+              id: doc.id,
+              name: doc.name,
+              content: doc.content
+            };
+          }
+          return null;
+        })
+        .filter((doc): doc is ContextDocument => doc !== null);
+      
+      // Add any new context documents that aren't already in the list
+      setContextDocuments(prevDocs => {
+        const existingIds = new Set(prevDocs.map(d => d.id));
+        const docsToAdd = newContextDocs.filter(d => !existingIds.has(d.id));
+        return [...prevDocs, ...docsToAdd];
+      });
+    };
+    
+    // Add event listener
+    window.addEventListener('aiContextUpdated', handleContextUpdate as EventListener);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('aiContextUpdated', handleContextUpdate as EventListener);
+    };
+  }, [documents]);
 
   // Scroll to bottom of messages when new messages are added
   useEffect(() => {
@@ -369,14 +447,34 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
   };
 
   const handleRemoveContextDocument = (documentId: string) => {
-    const docToRemove = contextDocuments.find(doc => doc.id === documentId);
+    // Remove from context documents
     setContextDocuments(prev => prev.filter(doc => doc.id !== documentId));
     
-    toast({
-      title: "Document removed",
-      description: docToRemove ? `"${docToRemove.name}" removed from context.` : "Document removed from context.",
-      duration: 3000, // Auto-dismiss after 3 seconds
+    // Also remove from composer context files in localStorage
+    const updatedComposerContext = composerContextFiles.filter(ref => ref.id !== documentId);
+    setComposerContextFiles(updatedComposerContext);
+    localStorage.setItem('aiComposerContext', JSON.stringify(updatedComposerContext));
+    
+    // Dispatch event to notify other components
+    const event = new CustomEvent('aiContextUpdated', { 
+      detail: { context: updatedComposerContext }
     });
+    window.dispatchEvent(event);
+  };
+  
+  const handleClearAllContextDocuments = () => {
+    // Clear context documents
+    setContextDocuments([]);
+    
+    // Clear composer context files in localStorage
+    setComposerContextFiles([]);
+    localStorage.removeItem('aiComposerContext');
+    
+    // Dispatch event to notify other components
+    const event = new CustomEvent('aiContextUpdated', { 
+      detail: { context: [] }
+    });
+    window.dispatchEvent(event);
   };
 
   // Add a focus event handler for the textarea
@@ -577,6 +675,17 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
       {/* Context documents list - simplified */}
       {contextDocuments.length > 0 && (
         <div className="flex flex-wrap gap-1 mx-4 mt-1 p-1 bg-muted/30 rounded-md">
+          <div className="flex justify-between w-full mb-1">
+            <span className="text-xs text-muted-foreground">Context documents:</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 px-2 py-0 text-xs text-muted-foreground hover:text-destructive"
+              onClick={handleClearAllContextDocuments}
+            >
+              Clear All
+            </Button>
+          </div>
           {contextDocuments.map(doc => (
             <Badge key={doc.id} variant="secondary" className="flex items-center gap-1 pl-2 text-xs">
               {doc.name}

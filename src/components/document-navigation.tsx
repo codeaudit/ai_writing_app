@@ -32,8 +32,8 @@ import {
 import { ComparisonModeContext } from "@/contexts/ComparisonModeContext";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { MultiFileTokenCounterDialog } from "./multi-file-token-counter-dialog";
 import { Document } from "@/lib/store";
+import { CompositionComposer } from "./composition-composer";
 
 interface DocumentNavigationProps {}
 
@@ -209,7 +209,7 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
                 setShowTokenCounterDialog(true);
               }}
             >
-              Count Tokens
+              Compose
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -300,7 +300,7 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
       )}
 
       {showTokenCounterDialog && (
-        <MultiFileTokenCounterDialog
+        <CompositionComposer
           isOpen={showTokenCounterDialog}
           onClose={() => setShowTokenCounterDialog(false)}
           documents={selectedDocuments}
@@ -442,7 +442,7 @@ function DocumentItem({ document, level }: DocumentItemProps) {
                 setShowTokenCounterDialog(true);
               }}
             >
-              Count Tokens
+              Compose
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuSub>
@@ -513,7 +513,7 @@ function DocumentItem({ document, level }: DocumentItemProps) {
       )}
 
       {showTokenCounterDialog && (
-        <MultiFileTokenCounterDialog
+        <CompositionComposer
           isOpen={showTokenCounterDialog}
           onClose={() => setShowTokenCounterDialog(false)}
           documents={selectedDocuments}
@@ -880,7 +880,7 @@ export default function DocumentNavigation({}: DocumentNavigationProps) {
             onClick={() => setShowTokenCounterDialog(true)}
             disabled={comparisonDocumentIds.length === 0}
           >
-            Count Tokens
+            Compose
           </Button>
         </div>
       </div>
@@ -922,7 +922,7 @@ export default function DocumentNavigation({}: DocumentNavigationProps) {
       {comparisonMode && (
         <div className="mb-4 p-3 bg-muted rounded-md">
           <div className="text-sm font-medium mb-2">
-            Selection Mode: Select documents to count tokens
+            Selection Mode: Select documents to compose
             <span className="ml-2 font-bold">
               ({comparisonDocumentIds.length} selected)
             </span>
@@ -933,11 +933,11 @@ export default function DocumentNavigation({}: DocumentNavigationProps) {
               className="w-full"
               onClick={() => setShowTokenCounterDialog(true)}
             >
-              Count Tokens for Selected Documents
+              Compose Selected Documents
             </Button>
           ) : (
             <div className="text-sm text-muted-foreground">
-              Select documents to count tokens
+              Select documents to compose
             </div>
           )}
         </div>
@@ -1013,7 +1013,7 @@ export default function DocumentNavigation({}: DocumentNavigationProps) {
       </Dialog>
 
       {showTokenCounterDialog && (
-        <MultiFileTokenCounterDialog
+        <CompositionComposer
           isOpen={showTokenCounterDialog}
           onClose={() => setShowTokenCounterDialog(false)}
           documents={selectedDocuments}

@@ -8,8 +8,8 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, RefreshCw, Check, X } from "lucide-react";
-import { useLLMStore } from "@/lib/store";
+import { Send, RefreshCw, Check, X, FileText, Trash2 } from "lucide-react";
+import { useLLMStore, useDocumentStore } from "@/lib/store";
 import { generateText } from "@/lib/llm-service";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { editor as monacoEditor } from "monaco-editor";
+import { Badge } from "@/components/ui/badge";
 
 interface LLMDialogProps {
   isOpen: boolean;
@@ -33,6 +34,11 @@ interface LLMDialogProps {
   selection?: { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number } | null;
 }
 
+interface ContextFile {
+  id: string;
+  name: string;
+}
+
 export function LLMDialog({ isOpen, onClose, selectedText, position, editor, selection }: LLMDialogProps) {
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
@@ -40,7 +46,9 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
   const [modelInfo, setModelInfo] = useState<{ model: string; provider: string } | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [editorLeftPosition, setEditorLeftPosition] = useState<number>(0);
+  const [contextFiles, setContextFiles] = useState<ContextFile[]>([]);
   const { config } = useLLMStore();
+  const { documents } = useDocumentStore();
   
   // Store the range of the inserted text for later reference
   const [insertedTextRange, setInsertedTextRange] = useState<{
@@ -55,6 +63,41 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
 
   // Store decorations IDs for removal later
   const [decorations, setDecorations] = useState<string[]>([]);
+
+  // Load context files from localStorage when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      loadContextFiles();
+    }
+  }, [isOpen]);
+  
+  // Function to load context files from localStorage
+  const loadContextFiles = () => {
+    try {
+      const contextData = localStorage.getItem('aiComposerContext');
+      if (contextData) {
+        const parsedContext = JSON.parse(contextData) as ContextFile[];
+        setContextFiles(parsedContext);
+      }
+    } catch (error) {
+      console.error('Error loading context files:', error);
+    }
+  };
+  
+  // Listen for context updates from the Composition Composer
+  useEffect(() => {
+    const handleContextUpdate = (event: CustomEvent<{ context: ContextFile[] }>) => {
+      setContextFiles(event.detail.context);
+    };
+    
+    // Add event listener
+    window.addEventListener('aiContextUpdated', handleContextUpdate as EventListener);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('aiContextUpdated', handleContextUpdate as EventListener);
+    };
+  }, []);
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -86,8 +129,25 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
     setResponse("");
     
     try {
-      // Create a prompt that includes the selected text
-      const fullPrompt = `Selected Text: ${selectedText}\n\nUser Query: ${prompt}\n\nPlease provide a helpful response based on the selected text and user query.`;
+      // Create a prompt that includes the selected text and context files
+      let fullPrompt = `Selected Text: ${selectedText}\n\n`;
+      
+      // Add context files if available
+      if (contextFiles.length > 0) {
+        fullPrompt += "Context Files:\n";
+        
+        // Find the actual document content for each context file
+        for (const contextFile of contextFiles) {
+          const document = documents.find(doc => doc.id === contextFile.id);
+          if (document) {
+            fullPrompt += `--- ${document.name} ---\n${document.content}\n\n`;
+          }
+        }
+        
+        fullPrompt += "\n";
+      }
+      
+      fullPrompt += `User Query: ${prompt}\n\nPlease provide a helpful response based on the selected text, context files, and user query.`;
       
       // Call the server action
       const result = await generateText({ 
@@ -126,6 +186,17 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const removeContextFile = (id: string) => {
+    const updatedFiles = contextFiles.filter(file => file.id !== id);
+    setContextFiles(updatedFiles);
+    localStorage.setItem('aiComposerContext', JSON.stringify(updatedFiles));
+  };
+
+  const clearAllContextFiles = () => {
+    setContextFiles([]);
+    localStorage.removeItem('aiComposerContext');
   };
 
   const applyChangesToEditor = (responseText: string) => {
@@ -257,7 +328,7 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
     
     toast({
       title: "Changes rejected",
-      description: "The original text has been preserved.",
+      description: "The generated text has been removed.",
     });
   };
 
@@ -266,66 +337,84 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
       e.preventDefault();
       handleSubmit();
     }
-    if (e.key === 'Escape') {
-      onClose();
-    }
   };
 
   return (
     <>
-      <Popover open={isOpen} onOpenChange={onClose}>
-        <PopoverAnchor 
-          style={{
-            position: 'absolute',
-            left: position?.x ?? 0,
-            top: position?.y ?? 0,
-          }} 
-        />
+      <Popover open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <PopoverAnchor asChild>
+          <div 
+            style={{ 
+              position: 'absolute', 
+              left: position?.x || editorLeftPosition, 
+              top: position?.y || 0,
+              width: '1px',
+              height: '1px'
+            }} 
+          />
+        </PopoverAnchor>
         <PopoverContent 
-          className="w-80" 
-          side="top" 
+          className="w-80 p-4" 
+          side="bottom" 
           align="start"
-          sideOffset={20}
+          sideOffset={10}
         >
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              <Input
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask about the selected text..."
-                className="flex-1"
-                autoFocus
-              />
-              <Button 
-                size="sm"
-                onClick={handleSubmit} 
-                disabled={!prompt || isLoading}
-              >
-                {isLoading ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+          <div className="space-y-4">
+            <div className="text-sm font-medium">AI Assistant</div>
             
-            {isLoading && !response && (
-              <div className="bg-muted p-2 rounded-md text-sm flex items-center">
-                <RefreshCw className="h-3 w-3 animate-spin mr-2" />
-                Thinking...
+            {contextFiles.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium text-muted-foreground">Context Files</div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 px-2 text-xs" 
+                    onClick={clearAllContextFiles}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {contextFiles.map(file => (
+                    <Badge key={file.id} variant="secondary" className="flex items-center gap-1 text-xs py-1">
+                      <FileText className="h-3 w-3" />
+                      <span className="max-w-[100px] truncate">{file.name}</span>
+                      <button 
+                        className="ml-1 rounded-full hover:bg-muted p-0.5" 
+                        onClick={() => removeContextFile(file.id)}
+                      >
+                        <X className="h-2 w-2" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
             )}
             
+            <div className="flex items-center space-x-2">
+              <Input
+                placeholder="Ask a question..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-1"
+              />
+              <Button 
+                size="icon" 
+                onClick={handleSubmit} 
+                disabled={isLoading || !prompt.trim()}
+              >
+                {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
+            
             {response && (
-              <div className="bg-muted p-2 rounded-md text-sm max-h-60 overflow-y-auto">
-                <div className="whitespace-pre-wrap">{response}</div>
-                
+              <div className="p-3 bg-muted rounded-md text-sm">
+                {response}
                 {modelInfo && (
-                  <div className="mt-2 pt-2 border-t border-border text-xs text-muted-foreground">
-                    <span>
-                      {modelInfo.provider === 'gemini' ? 'Gemini' : 'OpenAI'} • {modelInfo.model}
-                    </span>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Generated with {modelInfo.provider} {modelInfo.model}
                   </div>
                 )}
               </div>
@@ -333,39 +422,27 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
           </div>
         </PopoverContent>
       </Popover>
-
-      {showConfirmation && (
-        <div 
-          className="fixed bottom-4 z-50 bg-background border rounded-md shadow-md p-4 max-w-sm"
-          style={{ left: editorLeftPosition + 'px' }}
-        >
-          <div className="mb-3">
-            <h4 className="text-sm font-medium">Apply Changes?</h4>
-            <p className="text-xs text-muted-foreground mt-1">
+      
+      <AlertDialog open={showConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apply Changes?</AlertDialogTitle>
+            <AlertDialogDescription>
               Do you want to apply the generated text and remove the original selection?
-            </p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRejectChanges}
-              className="h-8"
-            >
-              <X className="mr-1 h-3 w-3" />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleRejectChanges}>
+              <X className="h-4 w-4 mr-2" />
               Reject
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={handleAcceptChanges}
-              className="h-8"
-            >
-              <Check className="mr-1 h-3 w-3" />
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleAcceptChanges}>
+              <Check className="h-4 w-4 mr-2" />
               Accept
-            </Button>
-          </div>
-        </div>
-      )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 } 

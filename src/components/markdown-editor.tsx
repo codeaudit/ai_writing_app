@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHand
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
-import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo, BookmarkIcon, Search, Sparkles } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo, BookmarkIcon, Search, Sparkles, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDocumentStore, Annotation } from "@/lib/store";
 import { OnMount, useMonaco, type Monaco, type EditorProps } from "@monaco-editor/react";
@@ -17,6 +17,7 @@ import React from "react";
 import { MarkdownRenderer } from "./markdown-renderer";
 import { AnnotationDialog } from "./annotation-dialog";
 import { TokenCounterDialog } from "./token-counter-dialog";
+import { CompositionComposer } from "./composition-composer";
 
 // Dynamically import components that might cause hydration issues
 const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.default), { ssr: false });
@@ -88,6 +89,7 @@ const MarkdownEditor = forwardRef<
 
   // Add state for token counter dialog
   const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
+  const [showCompositionComposer, setShowCompositionComposer] = useState(false);
 
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
@@ -307,7 +309,7 @@ const MarkdownEditor = forwardRef<
     // Add token counter action
     editor.addAction({
       id: "editor.action.customTokenCounter",
-      label: "Count Tokens",
+      label: "Compose",
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL],
       contextMenuGroupId: "navigation",
       run: (ed) => {
@@ -322,7 +324,7 @@ const MarkdownEditor = forwardRef<
           // If no text is selected, show a message
           toast({
             title: "No text selected",
-            description: "Please select some text to count tokens.",
+            description: "Please select some text to compose.",
             variant: "default"
           });
         }
@@ -897,6 +899,14 @@ const MarkdownEditor = forwardRef<
             >
               <BookmarkIcon className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowCompositionComposer(true)}
+              title="Compose"
+            >
+              <Hash className="h-4 w-4" />
+            </Button>
           </div>
         </div>
         
@@ -1024,6 +1034,14 @@ const MarkdownEditor = forwardRef<
         selectedText={selectedText}
       />
       
+      {/* Multi-File Token Counter Dialog */}
+      {showCompositionComposer && selectedDocument && (
+        <CompositionComposer
+          isOpen={showCompositionComposer}
+          onClose={() => setShowCompositionComposer(false)}
+          documents={[selectedDocument]}
+        />
+      )}
     </div>
   );
 });

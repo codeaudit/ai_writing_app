@@ -8,8 +8,8 @@ import ConfigInitializer from "@/components/config-initializer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "A Pattern Language Editor",
-  description: "A Pattern Language Design Editor",
+  title: "AI Whisperer Toolbox",
+  description: "AI Whispere Toolbox",
 };
 
 export default function RootLayout({
@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
