@@ -4,7 +4,7 @@ import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
 import { GOOGLE_GENERATIVE_AI_API_KEY } from './config';
-import { cacheMiddleware } from './ai-middleware';
+import { createCacheMiddleware } from './ai-middleware';
 
 interface LLMRequestOptions {
   prompt: string;
@@ -24,7 +24,7 @@ interface LLMResponse {
 // Main LLM service function
 export const generateText = async (options: LLMRequestOptions): Promise<LLMResponse> => {
   const { config, getApiKey } = useLLMStore.getState();
-  const { provider } = config;
+  const { provider, enableCache, temperature: configTemperature, maxTokens: configMaxTokens } = config;
   const apiKey = getApiKey();
   
   if (!apiKey) {
@@ -35,8 +35,8 @@ export const generateText = async (options: LLMRequestOptions): Promise<LLMRespo
   const modelName = options.model || config.model;
   const { 
     prompt, 
-    temperature = 0.7, 
-    maxTokens = 1000, 
+    temperature = configTemperature, 
+    maxTokens = configMaxTokens, 
     contextDocuments = [],
     stream = false
   } = options;
@@ -72,11 +72,13 @@ export const generateText = async (options: LLMRequestOptions): Promise<LLMRespo
         break;
     }
     
-    // Apply middleware using the wrapLanguageModel function
-    const model = wrapLanguageModel({
-      model: baseModel,
-      middleware: cacheMiddleware
-    });
+    // Apply middleware conditionally based on enableCache setting
+    const model = enableCache 
+      ? wrapLanguageModel({
+          model: baseModel,
+          middleware: createCacheMiddleware(true)
+        })
+      : baseModel;
     
     // Generate text with or without streaming
     if (stream) {

@@ -451,6 +451,15 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
             "flex items-center gap-1",
             isExpanded ? "" : "ml-auto" // Push to right when not expanded
           )}>
+            {/* Display the current model */}
+            <Badge 
+              variant="outline" 
+              className="mr-2 text-xs bg-primary/5"
+              title="Current AI model"
+            >
+              {config.provider || 'openai'}:{config.model || 'gpt-4o'}
+            </Badge>
+            
             <DropdownMenu open={isContextMenuOpen} onOpenChange={setIsContextMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button 
@@ -600,7 +609,7 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
             {aiMessages.length === 0 ? (
               <div className="text-center text-muted-foreground py-6">
                 <Sparkles className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Ask me anything about your document</p>
+                <p className="text-sm">Ask me anything about your document(s)</p>
                 <div className="mt-3 grid grid-cols-1 gap-2 mx-auto max-w-md">
                   <SuggestionButton 
                     text="Summarize this document" 

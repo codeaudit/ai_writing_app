@@ -6,7 +6,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
 import { wrapLanguageModel } from 'ai';
 import { useLLMStore } from '@/lib/store';
-import { cacheMiddleware } from '@/lib/ai-middleware';
+import { createCacheMiddleware } from '@/lib/ai-middleware';
 import { formatDebugPrompt, logAIDebug } from '@/lib/ai-debug';
 
 // Allow streaming responses up to 30 seconds
@@ -47,6 +47,9 @@ export async function POST(req: NextRequest) {
     const llmConfig = useLLMStore.getState().config;
     const selectedProvider = llmConfig.provider || 'openai';
     const selectedModel = llmConfig.model || 'gpt-4o';
+    const enableCache = llmConfig.enableCache;
+    const temperature = llmConfig.temperature;
+    const maxTokens = llmConfig.maxTokens;
     const apiKey = useLLMStore.getState().getApiKey();
 
     if (!apiKey) {
@@ -63,10 +66,15 @@ export async function POST(req: NextRequest) {
       systemMessage += ` Use the following context to inform your responses: ${context}`;
     }
     
-    if (contextDocuments && contextDocuments.length > 0) {
+    // Safely handle contextDocuments
+    const safeContextDocuments = Array.isArray(contextDocuments) ? contextDocuments : [];
+    
+    if (safeContextDocuments.length > 0) {
       systemMessage += ' Use the following additional context documents to inform your responses:\n\n';
-      contextDocuments.forEach((doc: { title: string; content: string }) => {
-        systemMessage += `Document: ${doc.title}\n${doc.content}\n\n`;
+      safeContextDocuments.forEach((doc: { title: string; content: string }) => {
+        if (doc && doc.title && doc.content) {
+          systemMessage += `Document: ${doc.title}\n${doc.content}\n\n`;
+        }
       });
     }
 
@@ -74,16 +82,20 @@ export async function POST(req: NextRequest) {
     const lastMessage = messages[messages.length - 1];
     const userPrompt = lastMessage.content;
     
-    // Create a cache key based on the request
-    const cacheKey = `ai-response:${JSON.stringify({ 
-      provider: selectedProvider, 
-      model: selectedModel, 
-      prompt: userPrompt,
-      system: systemMessage 
-    })}`;
-    
-    // Check if we have a cached response
-    const cached = await kv.get(cacheKey);
+    // Only check cache if caching is enabled
+    let cached = null;
+    if (enableCache) {
+      // Create a cache key based on the request
+      const cacheKey = `ai-response:${JSON.stringify({ 
+        provider: selectedProvider, 
+        model: selectedModel, 
+        prompt: userPrompt,
+        system: systemMessage 
+      })}`;
+      
+      // Check if we have a cached response
+      cached = await kv.get(cacheKey);
+    }
     
     if (cached) {
       return NextResponse.json({
@@ -99,40 +111,98 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Clear all API keys from environment to prevent using the wrong provider
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    
     // Set up provider-specific model
     let baseModel;
     
-    switch (selectedProvider) {
-      case 'anthropic':
-        baseModel = anthropic(selectedModel as any);
-        break;
-      case 'gemini':
-        // Explicitly set the API key for Google Gemini
-        process.env.GOOGLE_GENERATIVE_AI_API_KEY = apiKey;
-        baseModel = google(selectedModel as any);
-        break;
-      case 'openai':
-      default:
-        baseModel = openai(selectedModel as any);
-        break;
+    console.log(`Using provider: ${selectedProvider}, model: ${selectedModel}`);
+    
+    try {
+      switch (selectedProvider) {
+        case 'anthropic':
+          // Set the Anthropic API key in the environment
+          process.env.ANTHROPIC_API_KEY = apiKey;
+          
+          // Log the model name for debugging (without showing the full API key)
+          console.log(`Anthropic model name: ${selectedModel}`);
+          console.log(`API key format check: ${apiKey ? `${apiKey.substring(0, 10)}...` : 'No API key'}`);
+          
+          // Try to initialize with a more standard model name if needed
+          try {
+            // First try with the exact model name
+            baseModel = anthropic(selectedModel as any);
+            console.log('Successfully initialized Anthropic model with exact model name');
+          } catch (anthropicError) {
+            console.error('Error initializing Anthropic with exact model name:', anthropicError);
+            
+            // If that fails, try with a simplified model name (without the version suffix)
+            const simplifiedModel = selectedModel.split('@')[0];
+            if (simplifiedModel !== selectedModel) {
+              console.log(`Trying with simplified model name: ${simplifiedModel}`);
+              try {
+                baseModel = anthropic(simplifiedModel as any);
+                console.log('Successfully initialized Anthropic model with simplified model name');
+              } catch (simplifiedError) {
+                console.error('Error initializing Anthropic with simplified model name:', simplifiedError);
+                throw new Error(`Failed to initialize Anthropic model: ${simplifiedError instanceof Error ? simplifiedError.message : String(simplifiedError)}`);
+              }
+            } else {
+              throw anthropicError;
+            }
+          }
+          break;
+        case 'gemini':
+          // Explicitly set the API key for Google Gemini
+          process.env.GOOGLE_GENERATIVE_AI_API_KEY = apiKey;
+          baseModel = google(selectedModel as any);
+          console.log('Initialized Google model with API key');
+          break;
+        case 'openai':
+        default:
+          // Set the OpenAI API key in the environment
+          process.env.OPENAI_API_KEY = apiKey;
+          baseModel = openai(selectedModel as any);
+          console.log('Initialized OpenAI model with API key');
+          break;
+      }
+    } catch (modelError) {
+      console.error(`Error initializing model for provider ${selectedProvider}:`, modelError);
+      throw new Error(`Failed to initialize ${selectedProvider} model: ${modelError instanceof Error ? modelError.message : String(modelError)}`);
     }
     
-    // Apply middleware
-    const model = wrapLanguageModel({
-      model: baseModel,
-      middleware: cacheMiddleware
-    });
+    // Apply middleware conditionally based on enableCache setting
+    const model = enableCache 
+      ? wrapLanguageModel({
+          model: baseModel,
+          middleware: createCacheMiddleware(true)
+        })
+      : baseModel;
     
     // Stream the response
     const result = await streamText({
       model,
       system: systemMessage,
       prompt: userPrompt,
-      temperature: 0.7,
-      maxTokens: 1000,
+      temperature: temperature,
+      maxTokens: maxTokens,
       async onFinish({ text }) {
-        // Cache the response for 1 hour
-        await kv.set(cacheKey, text, { ex: 60 * 60 });
+        // Only cache if caching is enabled
+        if (enableCache) {
+          // Create a cache key based on the request
+          const cacheKey = `ai-response:${JSON.stringify({ 
+            provider: selectedProvider, 
+            model: selectedModel, 
+            prompt: userPrompt,
+            system: systemMessage 
+          })}`;
+          
+          // Cache the response for 1 hour
+          await kv.set(cacheKey, text, { ex: 60 * 60 });
+        }
         
         // Update session in KV database
         const sessionKey = `ai-session:${sessionId}`;
@@ -145,6 +215,11 @@ export async function POST(req: NextRequest) {
           createdAt: new Date().toISOString()
         };
         
+        // Ensure messages array exists
+        if (!session.messages) {
+          session.messages = [];
+        }
+        
         // Add the new messages to the session
         session.messages.push(
           { role: 'user', content: userPrompt },
@@ -152,8 +227,8 @@ export async function POST(req: NextRequest) {
         );
         
         // Update context documents if provided
-        if (contextDocuments) {
-          session.contextDocuments = contextDocuments;
+        if (safeContextDocuments.length > 0) {
+          session.contextDocuments = safeContextDocuments;
         }
         
         // Save the updated session
@@ -167,7 +242,7 @@ export async function POST(req: NextRequest) {
           userPrompt,
           responseLength: text.length,
           responsePreview: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
-          contextDocumentsCount: contextDocuments?.length || 0,
+          contextDocumentsCount: safeContextDocuments.length,
         });
       }
     });
@@ -182,9 +257,35 @@ export async function POST(req: NextRequest) {
     
   } catch (error) {
     console.error('Error in AI route:', error);
+    
+    // Log more detailed error information
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      
+      // Check for specific error types
+      if (error.message.includes('authentication')) {
+        return NextResponse.json(
+          { error: 'Authentication error. Please check your API key in the settings.' },
+          { status: 401 }
+        );
+      } else if (error.message.includes('rate limit')) {
+        return NextResponse.json(
+          { error: 'Rate limit exceeded. Please try again later.' },
+          { status: 429 }
+        );
+      } else if (error.message.includes('model')) {
+        return NextResponse.json(
+          { error: 'Model error. The selected model may not be available or supported.' },
+          { status: 400 }
+        );
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'An error occurred while processing your request' },
+      { error: `An error occurred while processing your request: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
     );
   }
-} 
+}

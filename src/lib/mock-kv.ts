@@ -3,21 +3,73 @@
  * This provides in-memory storage that mimics the Vercel KV API
  */
 
+import { useLLMStore } from './store';
+
 // In-memory storage
 const store = new Map<string, any>();
 
 // Mock expiration timers
 const expirations = new Map<string, NodeJS.Timeout>();
 
+// Helper function to check if a key is cache-related
+const isCacheKey = (key: string): boolean => {
+  return key.startsWith('ai-cache:') || key.startsWith('ai-stream-cache:') || key.startsWith('ai-response:');
+};
+
+// Helper function to check if caching is enabled
+const isCachingEnabled = (): boolean => {
+  try {
+    return useLLMStore.getState().config.enableCache;
+  } catch (error) {
+    // If store is not available (e.g., during initialization), default to false
+    console.warn('[Mock KV] Could not access LLM store, defaulting cache to disabled');
+    return false;
+  }
+};
+
+// Helper function to determine if an operation should be logged
+const shouldLog = (key: string): boolean => {
+  // Always log non-cache operations
+  if (!isCacheKey(key)) return true;
+  
+  // Only log cache operations if caching is enabled
+  return isCachingEnabled();
+};
+
+// Helper function to determine if a cache operation should be performed
+const shouldPerformCacheOperation = (key: string): boolean => {
+  // Always perform non-cache operations
+  if (!isCacheKey(key)) return true;
+  
+  // Only perform cache operations if caching is enabled
+  return isCachingEnabled();
+};
+
 export const mockKV = {
   // Basic operations
   get: async (key: string) => {
-    console.log(`[Mock KV] GET: ${key}`);
+    if (shouldLog(key)) {
+      console.log(`[Mock KV] GET: ${key}`);
+    }
+    
+    // Skip cache lookups if caching is disabled
+    if (!shouldPerformCacheOperation(key)) {
+      return null;
+    }
+    
     return store.get(key) || null;
   },
   
   set: async (key: string, value: any, options?: { ex?: number }) => {
-    console.log(`[Mock KV] SET: ${key}`);
+    if (shouldLog(key)) {
+      console.log(`[Mock KV] SET: ${key}`);
+    }
+    
+    // Skip cache storage if caching is disabled
+    if (!shouldPerformCacheOperation(key)) {
+      return 'OK';
+    }
+    
     store.set(key, value);
     
     // Handle expiration if set
@@ -31,7 +83,9 @@ export const mockKV = {
       const timeout = setTimeout(() => {
         store.delete(key);
         expirations.delete(key);
-        console.log(`[Mock KV] EXPIRED: ${key}`);
+        if (shouldLog(key)) {
+          console.log(`[Mock KV] EXPIRED: ${key}`);
+        }
       }, options.ex * 1000);
       
       expirations.set(key, timeout);
@@ -41,7 +95,10 @@ export const mockKV = {
   },
   
   delete: async (key: string) => {
-    console.log(`[Mock KV] DELETE: ${key}`);
+    if (shouldLog(key)) {
+      console.log(`[Mock KV] DELETE: ${key}`);
+    }
+    
     const existed = store.has(key);
     store.delete(key);
     
@@ -56,10 +113,20 @@ export const mockKV = {
   
   // Additional methods to match Vercel KV API
   exists: async (key: string) => {
+    // Skip cache checks if caching is disabled
+    if (isCacheKey(key) && !isCachingEnabled()) {
+      return 0;
+    }
+    
     return store.has(key) ? 1 : 0;
   },
   
   expire: async (key: string, seconds: number) => {
+    // Skip cache operations if caching is disabled
+    if (isCacheKey(key) && !isCachingEnabled()) {
+      return 0;
+    }
+    
     if (!store.has(key)) return 0;
     
     // Clear any existing expiration
@@ -71,7 +138,9 @@ export const mockKV = {
     const timeout = setTimeout(() => {
       store.delete(key);
       expirations.delete(key);
-      console.log(`[Mock KV] EXPIRED: ${key}`);
+      if (shouldLog(key)) {
+        console.log(`[Mock KV] EXPIRED: ${key}`);
+      }
     }, seconds * 1000);
     
     expirations.set(key, timeout);
@@ -80,7 +149,14 @@ export const mockKV = {
   
   // Get all keys matching a pattern
   keys: async (pattern: string) => {
-    console.log(`[Mock KV] KEYS: ${pattern}`);
+    if (shouldLog(pattern)) {
+      console.log(`[Mock KV] KEYS: ${pattern}`);
+    }
+    
+    // Skip cache pattern matching if caching is disabled and pattern is cache-related
+    if (isCacheKey(pattern) && !isCachingEnabled()) {
+      return [];
+    }
     
     // Convert glob pattern to regex
     const regexPattern = new RegExp(
@@ -94,11 +170,44 @@ export const mockKV = {
     );
     
     // Filter keys based on the pattern
-    const matchingKeys = Array.from(store.keys()).filter(key => 
+    let matchingKeys = Array.from(store.keys()).filter(key => 
       regexPattern.test(key)
     );
     
+    // If caching is disabled, filter out cache-related keys
+    if (!isCachingEnabled()) {
+      matchingKeys = matchingKeys.filter(key => !isCacheKey(key));
+    }
+    
     return matchingKeys;
+  },
+  
+  // Flush all cache-related keys
+  flushCache: async () => {
+    console.log('[Mock KV] FLUSH CACHE: Removing all cache entries');
+    
+    // Get all keys
+    const allKeys = Array.from(store.keys());
+    
+    // Filter for cache-related keys
+    const cacheKeys = allKeys.filter(key => isCacheKey(key));
+    
+    // Delete each cache key
+    let deletedCount = 0;
+    for (const key of cacheKeys) {
+      store.delete(key);
+      
+      // Clear any expiration
+      if (expirations.has(key)) {
+        clearTimeout(expirations.get(key)!);
+        expirations.delete(key);
+      }
+      
+      deletedCount++;
+    }
+    
+    console.log(`[Mock KV] FLUSH CACHE: Removed ${deletedCount} cache entries`);
+    return deletedCount;
   },
   
   // Add other methods as needed to match the Vercel KV API

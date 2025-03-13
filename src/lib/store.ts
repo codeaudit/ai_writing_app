@@ -18,7 +18,10 @@ import {
   DEFAULT_LLM_MODEL, 
   OPENAI_API_KEY, 
   GOOGLE_API_KEY,
-  ANTHROPIC_API_KEY
+  ANTHROPIC_API_KEY,
+  ENABLE_AI_CACHE,
+  DEFAULT_TEMPERATURE,
+  DEFAULT_MAX_TOKENS
 } from './config';
 
 export interface DocumentVersion {
@@ -669,6 +672,9 @@ interface LLMConfig {
   model: string;
   googleApiKey?: string;
   anthropicApiKey?: string;
+  enableCache: boolean;
+  temperature: number;
+  maxTokens: number;
 }
 
 interface LLMStore {
@@ -687,6 +693,9 @@ export const useLLMStore = create<LLMStore>()(
         googleApiKey: DEFAULT_LLM_PROVIDER === 'gemini' ? GOOGLE_API_KEY : '',
         anthropicApiKey: DEFAULT_LLM_PROVIDER === 'anthropic' ? ANTHROPIC_API_KEY : '',
         model: DEFAULT_LLM_MODEL,
+        enableCache: ENABLE_AI_CACHE,
+        temperature: DEFAULT_TEMPERATURE,
+        maxTokens: DEFAULT_MAX_TOKENS,
       },
       updateConfig: (newConfig) => set((state) => ({
         config: { ...state.config, ...newConfig },

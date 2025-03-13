@@ -6,10 +6,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLLMStore } from "@/lib/store";
 import { LLM_PROVIDERS, LLM_MODELS } from "@/lib/config";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { flushAICache } from "@/lib/cache-utils";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -18,15 +22,24 @@ export default function SettingsPage() {
   const [provider, setProvider] = useState(config.provider);
   const [apiKey, setApiKey] = useState(config.apiKey);
   const [googleApiKey, setGoogleApiKey] = useState(config.googleApiKey || '');
+  const [anthropicApiKey, setAnthropicApiKey] = useState(config.anthropicApiKey || '');
   const [model, setModel] = useState(config.model);
+  const [enableCache, setEnableCache] = useState(config.enableCache);
+  const [temperature, setTemperature] = useState(config.temperature);
+  const [maxTokens, setMaxTokens] = useState(config.maxTokens);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFlushing, setIsFlushing] = useState(false);
   
   // Update local state when config changes
   useEffect(() => {
     setProvider(config.provider);
     setApiKey(config.apiKey);
     setGoogleApiKey(config.googleApiKey || '');
+    setAnthropicApiKey(config.anthropicApiKey || '');
     setModel(config.model);
+    setEnableCache(config.enableCache);
+    setTemperature(config.temperature);
+    setMaxTokens(config.maxTokens);
   }, [config]);
   
   // Update model when provider changes
@@ -49,12 +62,33 @@ export default function SettingsPage() {
         provider,
         apiKey,
         googleApiKey,
-        model
+        anthropicApiKey,
+        model,
+        enableCache,
+        temperature,
+        maxTokens
       });
       
       setIsSaving(false);
       router.push("/");
     }, 500);
+  };
+
+  const handleFlushCache = async () => {
+    setIsFlushing(true);
+    try {
+      const deletedCount = await flushAICache();
+      toast.success(`Cache flushed successfully. Removed ${deletedCount} entries.`, {
+        duration: 3000,
+      });
+    } catch (error) {
+      toast.error('Failed to flush cache. Please try again.', {
+        duration: 3000,
+      });
+      console.error('Error flushing cache:', error);
+    } finally {
+      setIsFlushing(false);
+    }
   };
 
   return (
@@ -124,6 +158,22 @@ export default function SettingsPage() {
               </div>
             )}
             
+            {provider === 'anthropic' && (
+              <div className="space-y-2">
+                <Label htmlFor="anthropicApiKey">Anthropic API Key</Label>
+                <Input 
+                  id="anthropicApiKey" 
+                  type="password" 
+                  value={anthropicApiKey} 
+                  onChange={(e) => setAnthropicApiKey(e.target.value)}
+                  placeholder="Enter your Anthropic API key"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your API key is stored locally and never sent to our servers.
+                </p>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="model">Model</Label>
               <Select value={model} onValueChange={setModel}>
@@ -136,6 +186,81 @@ export default function SettingsPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div className="pt-4 border-t">
+              <h3 className="text-lg font-medium mb-4">Generation Parameters</h3>
+              
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="temperature">Temperature: {temperature !== undefined ? temperature.toFixed(1) : '0.7'}</Label>
+                  </div>
+                  <Slider
+                    id="temperature"
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    value={[temperature ?? 0.7]}
+                    onValueChange={(values: number[]) => setTemperature(values[0])}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Lower values (0.0) make responses more deterministic and focused.
+                    Higher values (1.0) make responses more creative and varied.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="maxTokens">Maximum Tokens</Label>
+                  <Input
+                    id="maxTokens"
+                    type="number"
+                    min={100}
+                    max={8000}
+                    value={maxTokens ?? 1000}
+                    onChange={(e) => setMaxTokens(parseInt(e.target.value, 10))}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    The maximum number of tokens to generate. Higher values allow for longer responses.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="enable-cache" className="text-base">Cache AI Responses</Label>
+                    <Switch 
+                      id="enable-cache" 
+                      checked={enableCache ?? false} 
+                      onCheckedChange={setEnableCache} 
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    When enabled, AI responses will be cached to improve performance and reduce API costs.
+                    Disable this if you need fresh responses for every request.
+                  </p>
+                  <div className="pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleFlushCache}
+                      disabled={isFlushing}
+                      className="flex items-center"
+                    >
+                      {isFlushing ? (
+                        "Flushing cache..."
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Flush Cache
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This will remove all cached AI responses.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
           

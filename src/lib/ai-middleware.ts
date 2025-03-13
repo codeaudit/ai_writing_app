@@ -5,10 +5,16 @@ import {
   type LanguageModelV1StreamPart,
   simulateReadableStream,
 } from 'ai';
+import { ENABLE_AI_CACHE } from './config';
 
-// Cache middleware for AI SDK
-export const cacheMiddleware: LanguageModelV1Middleware = {
+// Factory function to create middleware with or without caching
+export const createCacheMiddleware = (enableCache: boolean): LanguageModelV1Middleware => ({
   wrapGenerate: async ({ doGenerate, params }) => {
+    // Skip cache if disabled
+    if (!enableCache) {
+      return await doGenerate();
+    }
+
     // Create a cache key based on the request parameters
     const cacheKey = `ai-cache:${JSON.stringify(params)}`;
 
@@ -40,6 +46,11 @@ export const cacheMiddleware: LanguageModelV1Middleware = {
   },
 
   wrapStream: async ({ doStream, params }) => {
+    // Skip cache if disabled
+    if (!enableCache) {
+      return await doStream();
+    }
+
     // Create a cache key based on the request parameters
     const cacheKey = `ai-stream-cache:${JSON.stringify(params)}`;
 
@@ -91,4 +102,8 @@ export const cacheMiddleware: LanguageModelV1Middleware = {
       ...rest,
     };
   },
-}; 
+});
+
+// Export a default instance for backward compatibility
+// This will be disabled by default based on the ENABLE_AI_CACHE config
+export const cacheMiddleware = createCacheMiddleware(ENABLE_AI_CACHE); 
