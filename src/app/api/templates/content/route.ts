@@ -8,17 +8,27 @@ const VAULT_DIR = path.join(process.cwd(), 'vault');
 // Templates directory
 const TEMPLATES_DIR = path.join(VAULT_DIR, 'templates');
 
+// Composition templates directory
+const COMPOSITION_TEMPLATES_DIR = path.join(VAULT_DIR, 'composition_templates');
+
 // GET /api/templates/content - Get the raw content of a template
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const templateName = url.searchParams.get('name');
+    const directory = url.searchParams.get('directory');
     
     if (!templateName) {
       return NextResponse.json({ error: 'Template name is required' }, { status: 400 });
     }
     
-    const templatePath = path.join(TEMPLATES_DIR, `${templateName}.md`);
+    let templatesDir = TEMPLATES_DIR; // Default to regular templates
+    
+    if (directory === 'composition_templates') {
+      templatesDir = COMPOSITION_TEMPLATES_DIR;
+    }
+    
+    const templatePath = path.join(templatesDir, `${templateName}.md`);
     
     if (!fs.existsSync(templatePath)) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });

@@ -1,8 +1,7 @@
 ---
 id: doc-1741945192434-qev3k9b
-name: default
 createdAt: '2025-03-14T09:39:52.434Z'
-updatedAt: '2025-03-14T10:08:06.603Z'
+updatedAt: '2025-03-14T19:13:25.840Z'
 versions:
   - id: ver-1741945495532
     createdAt: '2025-03-14T09:44:55.532Z'
@@ -12,10 +11,6 @@ annotations: []
 
 {% set schema = {
   "fields": {
-    "description": {
-      "type": "string",
-      "description": "Brief description of the document"
-    },
     "tags": {
       "type": "array",
       "items": {

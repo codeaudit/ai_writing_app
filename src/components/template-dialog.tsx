@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fetchTemplates, processTemplate } from "@/lib/api-service";
-import { useDocumentStore } from "@/lib/store";
+import { useDocumentStore, Composition } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, FileText } from "lucide-react";
 import { 
   extractSchemaFromTemplate, 
   sdlToInternalSchema,
@@ -41,10 +41,19 @@ interface TemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   folderId?: string | null;
+  composition?: Composition;
+  templateDirectory?: 'templates' | 'composition_templates';
 }
 
-export function TemplateDialog({ open, onOpenChange, folderId = null }: TemplateDialogProps) {
+export function TemplateDialog({ 
+  open, 
+  onOpenChange, 
+  folderId = null, 
+  composition, 
+  templateDirectory = 'templates' 
+}: TemplateDialogProps) {
   const [templates, setTemplates] = useState<{ name: string; path: string }[]>([]);
+  const [compositionTemplates, setCompositionTemplates] = useState<{ name: string; path: string }[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [documentName, setDocumentName] = useState<string>("");
   const [documentNameError, setDocumentNameError] = useState<string>("");
@@ -53,6 +62,7 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
   const [templateValid, setTemplateValid] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isLoadingCompositions, setIsLoadingCompositions] = useState<boolean>(false);
   
   // State for template content and schema
   const [templateContent, setTemplateContent] = useState<string>("");
@@ -66,16 +76,23 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
   const [formHasErrors, setFormHasErrors] = useState<boolean>(false);
   const [schemaFieldsValid, setSchemaFieldsValid] = useState<Record<string, boolean>>({});
   
-  const { addDocument } = useDocumentStore();
+  const { addDocument, documents } = useDocumentStore();
   const router = useRouter();
 
   useEffect(() => {
     if (open) {
-      loadTemplates();
+      // Load templates based on the specified directory
+      if (templateDirectory === 'composition_templates') {
+        loadCompositionTemplates(true); // Load as primary templates
+      } else {
+        loadTemplates();
+        loadCompositionTemplates(false); // Load as secondary templates
+      }
+      
       // Reset form when dialog opens
-      setDocumentName("");
+      setDocumentName(composition?.name || "");
       setDocumentNameError("");
-      setDocumentNameValid(false);
+      setDocumentNameValid(composition?.name ? true : false);
       setTemplateError("");
       setTemplateValid(false);
       setSchemaValues({});
@@ -85,7 +102,7 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
       setFormHasErrors(false);
       setIsSubmitting(false);
     }
-  }, [open]);
+  }, [open, composition, templateDirectory]);
 
   const loadTemplates = async () => {
     setIsLoading(true);
@@ -112,11 +129,53 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
     }
   };
 
-  const fetchTemplateContent = async (templateName: string) => {
+  const loadCompositionTemplates = async (isPrimary = false) => {
+    setIsLoadingCompositions(true);
+    try {
+      // Fetch composition templates from the composition_templates directory
+      const response = await fetch('/api/templates/list?directory=composition_templates');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch composition templates: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const templateList = data.templates || [];
+      setCompositionTemplates(templateList);
+      
+      // If this is the primary template set, also set the selected template
+      if (isPrimary && templateList.length > 0) {
+        setTemplates(templateList); // Set as the main templates list
+        setSelectedTemplate(templateList[0].name);
+        setTemplateValid(true);
+        // Fetch the template content to check for schema
+        await fetchTemplateContent(templateList[0].name, 'composition_templates');
+      }
+    } catch (error) {
+      console.error("Error loading composition templates:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load composition templates",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingCompositions(false);
+    }
+  };
+
+  const fetchTemplateContent = async (templateName: string, directory?: string) => {
     setIsFetchingTemplate(true);
     try {
+      // Determine which directory to use
+      const templateDir = directory || (templateDirectory === 'composition_templates' ? 'composition_templates' : undefined);
+      
+      // Build the URL with the directory parameter if specified
+      let url = `/api/templates/content?name=${encodeURIComponent(templateName)}`;
+      if (templateDir) {
+        url += `&directory=${templateDir}`;
+      }
+      
       // Fetch the template content
-      const response = await fetch(`/api/templates/content?name=${encodeURIComponent(templateName)}`);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to fetch template content: ${response.statusText}`);
       }
@@ -298,6 +357,46 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
         time: new Date().toLocaleTimeString(),
       };
       
+      // Add composition data if available
+      if (composition) {
+        // Add context documents
+        variables.contextDocuments = composition.contextDocuments;
+        
+        // Extract chat messages from the composition content
+        const chatThreadMatch = composition.content.match(/## Chat Thread\s*\n\n([\s\S]*)/);
+        const chatMessages: Array<{role: 'user' | 'assistant', content: string}> = [];
+        
+        if (chatThreadMatch) {
+          const chatThread = chatThreadMatch[1];
+          const messageRegex = /### (User|AI)\s*\n\n([\s\S]*?)(?=\n\n### |$)/g;
+          let match;
+          
+          while ((match = messageRegex.exec(chatThread)) !== null) {
+            const role = match[1].trim() === 'User' ? 'user' : 'assistant';
+            const content = match[2].trim();
+            
+            if (content) {
+              chatMessages.push({ role, content });
+            }
+          }
+        }
+        
+        variables.chatMessages = chatMessages;
+        
+        // Get full document content for context documents if needed
+        const fullDocuments = documents;
+        const contextDocsWithContent = composition.contextDocuments.map(docRef => {
+          const fullDoc = fullDocuments.find(d => d.id === docRef.id);
+          return {
+            id: docRef.id,
+            name: docRef.name,
+            content: fullDoc?.content || ''
+          };
+        });
+        
+        variables.contextDocumentsWithContent = contextDocsWithContent;
+      }
+      
       if (hasSchema) {
         // Use schema values
         Object.entries(schemaValues).forEach(([key, value]) => {
@@ -305,7 +404,31 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
         });
       }
       
-      const content = await processTemplate(selectedTemplate, variables);
+      // Use the appropriate API endpoint based on the template directory
+      let content;
+      if (templateDirectory === 'composition_templates') {
+        // Process the template with the process API
+        const processResponse = await fetch('/api/templates/process', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            template: templateContent,
+            variables,
+          }),
+        });
+        
+        if (!processResponse.ok) {
+          throw new Error(`Failed to process template: ${processResponse.statusText}`);
+        }
+        
+        const processData = await processResponse.json();
+        content = processData.content;
+      } else {
+        // Use the regular processTemplate function
+        content = await processTemplate(selectedTemplate, variables);
+      }
       
       // Create the document
       const newDocId = await addDocument(documentName, content, folderId);
@@ -332,12 +455,136 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
     }
   };
 
+  const handleCreateCompositionDocument = async () => {
+    // Validate document name
+    if (!validateDocumentName()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Select a random composition template
+      if (compositionTemplates.length === 0) {
+        throw new Error("No composition templates available");
+      }
+      
+      const randomIndex = Math.floor(Math.random() * compositionTemplates.length);
+      const selectedCompositionTemplate = compositionTemplates[randomIndex];
+      
+      // Fetch the composition template content
+      const response = await fetch(`/api/templates/content?name=${encodeURIComponent(selectedCompositionTemplate.name)}&directory=composition_templates`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch composition template: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const templateContent = data.content;
+      
+      // Process the template with basic variables
+      const variables: Record<string, any> = {
+        title: documentName,
+        date: new Date().toISOString(),
+        time: new Date().toLocaleTimeString(),
+      };
+      
+      // Add composition data if available
+      if (composition) {
+        // Add context documents
+        variables.contextDocuments = composition.contextDocuments;
+        
+        // Extract chat messages from the composition content
+        const chatThreadMatch = composition.content.match(/## Chat Thread\s*\n\n([\s\S]*)/);
+        const chatMessages: Array<{role: 'user' | 'assistant', content: string}> = [];
+        
+        if (chatThreadMatch) {
+          const chatThread = chatThreadMatch[1];
+          const messageRegex = /### (User|AI)\s*\n\n([\s\S]*?)(?=\n\n### |$)/g;
+          let match;
+          
+          while ((match = messageRegex.exec(chatThread)) !== null) {
+            const role = match[1].trim() === 'User' ? 'user' : 'assistant';
+            const content = match[2].trim();
+            
+            if (content) {
+              chatMessages.push({ role, content });
+            }
+          }
+        }
+        
+        variables.chatMessages = chatMessages;
+        
+        // Get full document content for context documents if needed
+        const fullDocuments = documents;
+        const contextDocsWithContent = composition.contextDocuments.map(docRef => {
+          const fullDoc = fullDocuments.find(d => d.id === docRef.id);
+          return {
+            id: docRef.id,
+            name: docRef.name,
+            content: fullDoc?.content || ''
+          };
+        });
+        
+        variables.contextDocumentsWithContent = contextDocsWithContent;
+      }
+      
+      // Add schema values if available
+      if (hasSchema) {
+        Object.entries(schemaValues).forEach(([key, value]) => {
+          variables[key] = value;
+        });
+      }
+      
+      // Process the template
+      const processResponse = await fetch('/api/templates/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          template: templateContent,
+          variables,
+        }),
+      });
+      
+      if (!processResponse.ok) {
+        throw new Error(`Failed to process composition template: ${processResponse.statusText}`);
+      }
+      
+      const processData = await processResponse.json();
+      const content = processData.content;
+      
+      // Create the document
+      const newDocId = await addDocument(documentName, content, folderId);
+      
+      // Close the dialog
+      onOpenChange(false);
+      
+      // Navigate to the new document
+      router.push(`/documents/${newDocId}`);
+      
+      toast({
+        title: "Success",
+        description: `Composition "${documentName}" created from template "${selectedCompositionTemplate.name}"`,
+      });
+    } catch (error) {
+      console.error("Error creating composition document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create composition document",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Handle template selection change
   const handleTemplateChange = async (templateName: string) => {
     setSelectedTemplate(templateName);
     setTemplateError("");
     setTemplateValid(true);
-    await fetchTemplateContent(templateName);
+    await fetchTemplateContent(templateName, templateDirectory === 'composition_templates' ? 'composition_templates' : undefined);
   };
 
   // Handle document name change
@@ -519,23 +766,34 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
           </div>
         </div>
         
-        <DialogFooter>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleCreateDocument} 
-            disabled={isSubmitting || isLoading}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              "Create Document"
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleCreateCompositionDocument} 
+              disabled={isSubmitting || isLoading || isLoadingCompositions || compositionTemplates.length === 0}
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Create with Composition
+            </Button>
+            <Button 
+              onClick={handleCreateDocument} 
+              disabled={isSubmitting || isLoading}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Document"
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

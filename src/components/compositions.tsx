@@ -5,7 +5,7 @@ import { useDocumentStore, Composition } from '@/lib/store';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trash2, FileText, Edit, ExternalLink, RefreshCw, SendToBack, Send } from 'lucide-react';
+import { Trash2, FileText, Edit, ExternalLink, RefreshCw, SendToBack, Send, FileOutput } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/use-toast';
@@ -29,6 +29,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { formatDistanceToNow } from 'date-fns';
+import { TemplateDialog } from '@/components/template-dialog';
 
 export default function Compositions() {
   const { compositions, loadCompositions, deleteComposition, documents, selectDocument } = useDocumentStore();
@@ -36,6 +37,7 @@ export default function Compositions() {
   const [selectedComposition, setSelectedComposition] = useState<Composition | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
 
   // Load compositions on component mount
   useEffect(() => {
@@ -221,6 +223,15 @@ export default function Compositions() {
     }
   };
 
+  // Function to handle sending composition to template
+  const handleSendToTemplate = (composition: Composition) => {
+    if (composition) {
+      setSelectedComposition(composition);
+      setShowViewDialog(false);
+      setShowTemplateDialog(true);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-2">
@@ -377,6 +388,19 @@ export default function Compositions() {
               className="h-8"
               onClick={() => {
                 if (selectedComposition) {
+                  handleSendToTemplate(selectedComposition);
+                }
+              }}
+            >
+              <FileOutput className="h-3.5 w-3.5 mr-1.5" />
+              Create from Template
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => {
+                if (selectedComposition) {
                   handlePushToAI(selectedComposition);
                   setShowViewDialog(false);
                 }
@@ -391,6 +415,16 @@ export default function Compositions() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Template Dialog */}
+      {selectedComposition && (
+        <TemplateDialog 
+          open={showTemplateDialog} 
+          onOpenChange={setShowTemplateDialog}
+          composition={selectedComposition}
+          templateDirectory="composition_templates"
+        />
+      )}
     </div>
   );
 } 

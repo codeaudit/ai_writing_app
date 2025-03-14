@@ -30,6 +30,12 @@
     "parentId": null
   },
   {
+    "id": "folder-1741977887978",
+    "name": "composition_templates",
+    "createdAt": "2025-03-14T18:44:47.978Z",
+    "parentId": null
+  },
+  {
     "id": "folder-1741903881037",
     "name": "compositions",
     "createdAt": "2025-03-13T22:11:21.037Z",

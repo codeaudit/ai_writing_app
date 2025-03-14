@@ -340,6 +340,7 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
           open={showTemplateDialog}
           onOpenChange={setShowTemplateDialog}
           folderId={folder.id}
+          templateDirectory="templates"
         />
       )}
     </div>
@@ -1074,6 +1075,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           open={showTemplateDialog}
           onOpenChange={setShowTemplateDialog}
           folderId={null}
+          templateDirectory="templates"
         />
       )}
     </div>
