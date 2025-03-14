@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useContext, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download, FileText } from "lucide-react";
+import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download, FileText, FilePlus, MoreHorizontal } from "lucide-react";
 import { useDocumentStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -87,9 +87,30 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
 
   const handleCreateDocument = () => {
     if (newItemName.trim()) {
-      addDocument(newItemName.trim(), "", folder.id);
+      // Determine the appropriate folder ID for the new document
+      let targetFolderId: string | null = null;
+      
+      // If a folder is selected, use that folder's ID
+      if (selectedFolderId) {
+        targetFolderId = selectedFolderId;
+      } 
+      // If a document is selected, use its parent folder ID
+      else if (selectedDocumentId) {
+        const selectedDoc = documents.find(doc => doc.id === selectedDocumentId);
+        if (selectedDoc) {
+          targetFolderId = selectedDoc.folderId;
+        }
+      }
+      
+      // Create document at the appropriate level
+      const newDocId = addDocument(newItemName.trim(), "", targetFolderId);
       setNewItemName("");
       setIsCreatingDocument(false);
+      
+      // Update URL to reflect the newly created document
+      if (newDocId) {
+        router.push(`/documents/${newDocId}`);
+      }
     }
   };
 
@@ -548,6 +569,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
     documents, 
     selectedDocumentId, 
     comparisonDocumentIds,
+    selectedFolderId,
     addDocument, 
     selectDocument,
     deleteDocument,
@@ -575,9 +597,25 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   );
 
   const createNewDocument = () => {
+    // Determine the appropriate folder ID for the new document
+    let targetFolderId: string | null = null;
+    
+    // If a folder is selected, use that folder's ID
+    if (selectedFolderId) {
+      targetFolderId = selectedFolderId;
+    } 
+    // If a document is selected, use its parent folder ID
+    else if (selectedDocumentId) {
+      const selectedDoc = documents.find(doc => doc.id === selectedDocumentId);
+      if (selectedDoc) {
+        targetFolderId = selectedDoc.folderId;
+      }
+    }
+    
     const newDocId = addDocument(
       `New Document ${documents.length + 1}`, 
-      `# New Document ${documents.length + 1}\n\nStart writing here...`
+      `# New Document ${documents.length + 1}\n\nStart writing here...`,
+      targetFolderId
     );
     
     // Update URL to reflect the newly created document
@@ -615,20 +653,6 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           title: "Document deleted",
           description: `"${doc.name}" has been deleted.`,
         });
-      }
-    }
-  };
-
-  const handleCreateDocument = () => {
-    if (newItemName.trim()) {
-      // Create document at root level
-      const newDocId = addDocument(newItemName.trim(), "", null);
-      setNewItemName("");
-      setIsCreatingDocument(false);
-      
-      // Update URL to reflect the newly created document
-      if (newDocId) {
-        router.push(`/documents/${newDocId}`);
       }
     }
   };
@@ -916,7 +940,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
             placeholder={isCreatingDocument ? "Document name..." : "Folder name..."}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                isCreatingDocument ? handleCreateDocument() : handleCreateFolder();
+                isCreatingDocument ? createNewDocument() : handleCreateFolder();
               }
               if (e.key === 'Escape') {
                 setIsCreatingDocument(false);
@@ -929,7 +953,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           />
           <Button
             size="sm"
-            onClick={isCreatingDocument ? handleCreateDocument : handleCreateFolder}
+            onClick={isCreatingDocument ? createNewDocument : handleCreateFolder}
             className="h-6 text-xs px-2"
           >
             Create

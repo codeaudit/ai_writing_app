@@ -19,6 +19,7 @@ import { AnnotationDialog } from "./annotation-dialog";
 import { TokenCounterDialog } from "./token-counter-dialog";
 import { CompositionComposer } from "./composition-composer";
 import matter from "gray-matter";
+import { TerminalView } from "./terminal-view";
 
 // Dynamically import components that might cause hydration issues
 const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.default), { ssr: false });
@@ -91,6 +92,14 @@ const MarkdownEditor = forwardRef<
   // Add state for token counter dialog
   const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
   const [showCompositionComposer, setShowCompositionComposer] = useState(false);
+
+  // Add state for showing/hiding the terminal
+  const [showTerminal, setShowTerminal] = useState(false);
+
+  // Add a toggle terminal function
+  const toggleTerminal = useCallback(() => {
+    setShowTerminal(prev => !prev);
+  }, []);
 
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
@@ -573,6 +582,12 @@ const MarkdownEditor = forwardRef<
           }
         }
       }
+      
+      // Add shortcut for terminal (Alt+T)
+      if (e.altKey && e.key === 't') {
+        e.preventDefault();
+        toggleTerminal();
+      }
     };
 
     // Add the event listener to the document
@@ -582,7 +597,7 @@ const MarkdownEditor = forwardRef<
     return () => {
       document.removeEventListener('keydown', handleGlobalKeyDown);
     };
-  }, []);
+  }, [toggleTerminal]);
 
   // Add a button to the toolbar to open the LLM dialog
   const openLLMDialog = () => {
@@ -934,6 +949,17 @@ const MarkdownEditor = forwardRef<
               <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
             </svg>
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTerminal}
+            title="Toggle Terminal (Alt+T)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <polyline points="4 17 10 11 4 5"></polyline>
+              <line x1="12" y1="19" x2="20" y2="19"></line>
+            </svg>
+          </Button>
           <div className="flex items-center space-x-1">
             <Button
               variant="ghost"
@@ -1102,6 +1128,15 @@ const MarkdownEditor = forwardRef<
           isOpen={showCompositionComposer}
           onClose={() => setShowCompositionComposer(false)}
           documents={[selectedDocument]}
+        />
+      )}
+
+      {/* Terminal View */}
+      {showTerminal && (
+        <TerminalView 
+          onClose={() => setShowTerminal(false)} 
+          initialDirectory="/"
+          height="200px"
         />
       )}
     </div>

@@ -1,31 +1,41 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RecordField } from '@/lib/schema-parser';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField } from './form-field';
 import { RenderField } from './index';
-import { Plus, Trash } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Plus, Trash, Check } from 'lucide-react';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 
 interface RecordInputProps {
   field: RecordField;
   value: Record<string, any>;
   onChange: (value: Record<string, any>) => void;
   error?: string;
+  isValid?: boolean;
   path: string;
 }
 
-export function RecordInput({ field, value, onChange, error, path }: RecordInputProps) {
+export function RecordInput({ field, value, onChange, error, isValid, path }: RecordInputProps) {
   const [newKey, setNewKey] = useState('');
-  const recordValue = value || {};
+  const [localValue, setLocalValue] = useState<Record<string, any>>(value || {});
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Initialize local value when the prop value changes
+  useEffect(() => {
+    if (value && JSON.stringify(value) !== JSON.stringify(localValue)) {
+      setLocalValue(value);
+      setIsDirty(false);
+    }
+  }, [value]);
 
   const handleAddEntry = () => {
     if (!newKey.trim()) return;
     
     // Don't allow duplicate keys
-    if (recordValue[newKey]) {
+    if (localValue[newKey]) {
       return;
     }
     
@@ -61,25 +71,43 @@ export function RecordInput({ field, value, onChange, error, path }: RecordInput
         defaultValue = '';
     }
     
-    onChange({
-      ...recordValue,
+    const updatedValue = {
+      ...localValue,
       [newKey]: defaultValue,
-    });
+    };
     
+    setLocalValue(updatedValue);
+    setIsDirty(true);
     setNewKey('');
   };
 
   const handleRemoveEntry = (key: string) => {
-    const newRecord = { ...recordValue };
+    const newRecord = { ...localValue };
     delete newRecord[key];
-    onChange(newRecord);
+    setLocalValue(newRecord);
+    setIsDirty(true);
   };
 
   const handleEntryValueChange = (key: string, entryValue: any) => {
-    onChange({
-      ...recordValue,
+    const updatedValue = {
+      ...localValue,
       [key]: entryValue,
-    });
+    };
+    setLocalValue(updatedValue);
+    setIsDirty(true);
+  };
+
+  const handleApply = () => {
+    onChange(localValue);
+    setIsDirty(false);
+  };
+
+  // Parse error messages for individual keys
+  const getKeyError = (key: string): string | undefined => {
+    if (!error) return undefined;
+    
+    const match = error.match(new RegExp(`${key}: (.*)`));
+    return match ? match[1] : undefined;
   };
 
   return (
@@ -88,16 +116,17 @@ export function RecordInput({ field, value, onChange, error, path }: RecordInput
       description={field.description}
       error={error}
       isRequired={!field.isOptional}
+      isValid={isValid}
     >
       <Card>
         <CardContent className="pt-6 space-y-4">
-          {Object.keys(recordValue).length === 0 ? (
+          {Object.keys(localValue).length === 0 ? (
             <div className="text-center text-gray-500 py-4">
               No entries. Add a new key-value pair below.
             </div>
           ) : (
             <div className="space-y-6">
-              {Object.entries(recordValue).map(([key, entryValue]) => (
+              {Object.entries(localValue).map(([key, entryValue]) => (
                 <div key={key} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{key}</div>
@@ -116,6 +145,7 @@ export function RecordInput({ field, value, onChange, error, path }: RecordInput
                     }}
                     value={entryValue}
                     onChange={(newValue) => handleEntryValueChange(key, newValue)}
+                    error={getKeyError(key)}
                     path={`${path}.${key}`}
                   />
                 </div>
@@ -141,6 +171,18 @@ export function RecordInput({ field, value, onChange, error, path }: RecordInput
             </Button>
           </div>
         </CardContent>
+        <CardFooter className="flex justify-end border-t pt-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleApply}
+            disabled={!isDirty}
+            className="flex items-center gap-1"
+          >
+            <Check className="h-3.5 w-3.5" />
+            Apply Changes
+          </Button>
+        </CardFooter>
       </Card>
     </FormField>
   );

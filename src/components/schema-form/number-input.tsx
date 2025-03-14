@@ -10,10 +10,11 @@ interface NumberInputProps {
   value: number;
   onChange: (value: number) => void;
   error?: string;
+  isValid?: boolean;
   path: string;
 }
 
-export function NumberInput({ field, value, onChange, error, path }: NumberInputProps) {
+export function NumberInput({ field, value, onChange, error, isValid, path }: NumberInputProps) {
   // State to track the input as a string
   const [inputValue, setInputValue] = useState<string>(
     value !== undefined && value !== null ? String(value) : ''
@@ -99,22 +100,31 @@ export function NumberInput({ field, value, onChange, error, path }: NumberInput
   // Combine external error with validation error
   const displayError = error || validationError;
 
+  const getInputClassName = () => {
+    if (displayError) return 'border-red-500';
+    if (isValid) return 'border-green-500';
+    return '';
+  };
+
   return (
     <FormField
       label={field.name}
       description={field.description}
       error={displayError}
       isRequired={!field.isOptional}
+      isValid={isValid}
     >
       <Input
         id={path}
-        type="text"
-        inputMode="decimal"
+        type="number"
         value={inputValue}
         onChange={handleChange}
         onBlur={handleBlur}
         placeholder={field.description || `Enter ${field.name}`}
-        className={displayError ? 'border-red-500' : ''}
+        className={getInputClassName()}
+        min={field.min}
+        max={field.max}
+        step={field.isInteger ? 1 : 'any'}
       />
     </FormField>
   );

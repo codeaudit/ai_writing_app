@@ -385,20 +385,6 @@ export default function Compositions() {
               <Send className="h-3.5 w-3.5 mr-1.5" />
               Push to AI
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8"
-              onClick={() => {
-                if (selectedComposition) {
-                  handleOpenDocument(selectedComposition);
-                  setShowViewDialog(false);
-                }
-              }}
-            >
-              <FileText className="h-3.5 w-3.5 mr-1.5" />
-              Open in Editor
-            </Button>
             <DialogClose asChild>
               <Button size="sm" className="h-8">Close</Button>
             </DialogClose>

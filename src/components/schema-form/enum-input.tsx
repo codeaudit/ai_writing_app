@@ -16,10 +16,11 @@ interface EnumInputProps {
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  isValid?: boolean;
   path: string;
 }
 
-export function EnumInput({ field, value, onChange, error, path }: EnumInputProps) {
+export function EnumInput({ field, value, onChange, error, isValid, path }: EnumInputProps) {
   const [initialized, setInitialized] = useState(false);
 
   // Log for debugging
@@ -52,23 +53,27 @@ export function EnumInput({ field, value, onChange, error, path }: EnumInputProp
   // Ensure we have a valid value for the Select component
   const selectValue = value || '';
 
+  const handleChange = (newValue: string) => {
+    onChange(newValue);
+  };
+
   return (
     <FormField
       label={field.name}
       description={field.description}
       error={error}
       isRequired={!field.isOptional}
+      isValid={isValid}
     >
       {options.length > 0 ? (
         <Select
           value={selectValue}
-          onValueChange={(newValue) => {
-            console.log(`Selected value for ${field.name}:`, newValue);
-            onChange(newValue);
-          }}
-          defaultValue={options[0]}
+          onValueChange={handleChange}
         >
-          <SelectTrigger id={path} className={error ? 'border-red-500' : ''}>
+          <SelectTrigger 
+            id={path}
+            className={error ? "border-red-500" : isValid ? "border-green-500" : ""}
+          >
             <SelectValue placeholder={`Select ${field.name}`} />
           </SelectTrigger>
           <SelectContent>

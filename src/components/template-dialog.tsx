@@ -23,9 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { 
   extractSchemaFromTemplate, 
   sdlToInternalSchema,
@@ -36,6 +35,7 @@ import {
   SDLSchema
 } from "@/lib/schema-parser";
 import { SchemaForm } from "@/components/schema-form";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface TemplateDialogProps {
   open: boolean;
@@ -47,8 +47,12 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
   const [templates, setTemplates] = useState<{ name: string; path: string }[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [documentName, setDocumentName] = useState<string>("");
+  const [documentNameError, setDocumentNameError] = useState<string>("");
+  const [documentNameValid, setDocumentNameValid] = useState<boolean>(false);
+  const [templateError, setTemplateError] = useState<string>("");
+  const [templateValid, setTemplateValid] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("basic");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   
   // State for template content and schema
   const [templateContent, setTemplateContent] = useState<string>("");
@@ -59,6 +63,8 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
   const [schemaFields, setSchemaFields] = useState<Record<string, SchemaField>>({});
   const [schemaValues, setSchemaValues] = useState<Record<string, any>>({});
   const [schemaErrors, setSchemaErrors] = useState<Record<string, string>>({});
+  const [formHasErrors, setFormHasErrors] = useState<boolean>(false);
+  const [schemaFieldsValid, setSchemaFieldsValid] = useState<Record<string, boolean>>({});
   
   const { addDocument } = useDocumentStore();
   const router = useRouter();
@@ -68,9 +74,16 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
       loadTemplates();
       // Reset form when dialog opens
       setDocumentName("");
+      setDocumentNameError("");
+      setDocumentNameValid(false);
+      setTemplateError("");
+      setTemplateValid(false);
       setSchemaValues({});
       setSchemaErrors({});
+      setSchemaFieldsValid({});
       setHasSchema(false);
+      setFormHasErrors(false);
+      setIsSubmitting(false);
     }
   }, [open]);
 
@@ -83,6 +96,7 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
       // Set default template if available
       if (templateList.length > 0) {
         setSelectedTemplate(templateList[0].name);
+        setTemplateValid(true);
         // Fetch the template content to check for schema
         await fetchTemplateContent(templateList[0].name);
       }
@@ -98,55 +112,33 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
     }
   };
 
-  // Function to fetch template content and extract schema
   const fetchTemplateContent = async (templateName: string) => {
     setIsFetchingTemplate(true);
-    setHasSchema(false);
-    setSchemaFields({});
-    setSchemaValues({});
-    
     try {
-      // Fetch the template content from the server
+      // Fetch the template content
       const response = await fetch(`/api/templates/content?name=${encodeURIComponent(templateName)}`);
-      
       if (!response.ok) {
-        throw new Error('Failed to fetch template content');
+        throw new Error(`Failed to fetch template content: ${response.statusText}`);
       }
       
-      const { content } = await response.json();
-      setTemplateContent(content);
+      const data = await response.json();
+      setTemplateContent(data.content);
       
-      // Check if the template has a schema using the new SDL format
-      const sdlSchema = extractSchemaFromTemplate(content);
+      // Extract schema from template
+      const rawSchema = extractSchemaFromTemplate(data.content);
+      console.log("Raw schema extracted from template:", rawSchema);
       
-      if (sdlSchema) {
-        console.log("Raw SDL schema extracted from template:", sdlSchema);
+      if (rawSchema) {
+        // Convert SDL to internal schema
+        const parsedSchema = sdlToInternalSchema(rawSchema);
+        console.log("Parsed schema:", parsedSchema);
         
-        // Debug: Log the raw schema for enum fields
-        Object.entries(sdlSchema.fields).forEach(([key, field]) => {
-          if (field.type === 'enum') {
-            console.log(`Raw enum field ${key} definition:`, field);
-            console.log(`Enum options for ${key}:`, (field as any).options);
-          }
-        });
-        
-        // Convert SDL schema to our internal schema format
-        const parsedSchema = sdlToInternalSchema(sdlSchema);
-        console.log("Parsed internal schema:", parsedSchema);
-        
-        // Check if we have any enum fields and log their options
+        // Log each field and its options for debugging
         Object.entries(parsedSchema).forEach(([key, field]) => {
+          console.log(`Field ${key}:`, field);
+          
           if (field.type === 'enum') {
             console.log(`Enum field ${key} options:`, (field as any).options);
-            
-            // Ensure options is an array
-            if (!(field as any).options || !(field as any).options.length) {
-              console.warn(`No options found for enum field ${key}`);
-              (field as any).options = [];
-            } else if (!Array.isArray((field as any).options)) {
-              console.warn(`Options for enum field ${key} is not an array:`, (field as any).options);
-              (field as any).options = [];
-            }
             
             // Log each option for debugging
             (field as any).options.forEach((option: string, index: number) => {
@@ -177,14 +169,28 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
         });
         
         setSchemaValues(initialValues);
+        
+        // Initialize validation state for schema fields
+        const initialValidState: Record<string, boolean> = {};
+        Object.entries(parsedSchema).forEach(([key, field]) => {
+          // Mark required fields with initial values as valid
+          if (!field.isOptional && initialValues[key] && 
+              (typeof initialValues[key] !== 'string' || initialValues[key].trim() !== '')) {
+            initialValidState[key] = true;
+          } else {
+            initialValidState[key] = false;
+          }
+        });
+        setSchemaFieldsValid(initialValidState);
+        
         setHasSchema(true);
       } else {
-        // If no schema, show a message to the user
-        toast({
-          title: "No Schema Found",
-          description: "This template doesn't have a schema defined. Please add a schema to use advanced features.",
-          variant: "default",
-        });
+        // If no schema, reset schema state
+        setHasSchema(false);
+        setSchemaFields({});
+        setSchemaValues({});
+        setSchemaErrors({});
+        setSchemaFieldsValid({});
       }
     } catch (error) {
       console.error("Error fetching template content:", error);
@@ -206,43 +212,84 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
     // Validate the values
     const errors = validateValues(values, schemaFields);
     setSchemaErrors(errors);
+    setFormHasErrors(Object.keys(errors).length > 0);
+    
+    // Update valid state for each field
+    const newValidState = { ...schemaFieldsValid };
+    Object.entries(schemaFields).forEach(([key, field]) => {
+      if (!field.isOptional) {
+        // Check if the field has a value and no error
+        const hasValue = values[key] !== undefined && values[key] !== null && 
+                        (typeof values[key] !== 'string' || values[key].trim() !== '');
+        const hasError = errors[key] !== undefined;
+        newValidState[key] = hasValue && !hasError;
+      }
+    });
+    setSchemaFieldsValid(newValidState);
+  };
+
+  // Validate document name
+  const validateDocumentName = (): boolean => {
+    if (!documentName.trim()) {
+      setDocumentNameError("Document name is required");
+      setDocumentNameValid(false);
+      return false;
+    }
+    setDocumentNameError("");
+    setDocumentNameValid(true);
+    return true;
+  };
+
+  // Validate template selection
+  const validateTemplate = (): boolean => {
+    if (!selectedTemplate) {
+      setTemplateError("Please select a template");
+      setTemplateValid(false);
+      return false;
+    }
+    setTemplateError("");
+    setTemplateValid(true);
+    return true;
+  };
+
+  // Validate schema values
+  const validateSchemaValues = (): boolean => {
+    if (!hasSchema) return true;
+    
+    const errors = validateValues(schemaValues, schemaFields);
+    setSchemaErrors(errors);
+    setFormHasErrors(Object.keys(errors).length > 0);
+    
+    // Update valid state for each field
+    const newValidState = { ...schemaFieldsValid };
+    Object.entries(schemaFields).forEach(([key, field]) => {
+      if (!field.isOptional) {
+        // Check if the field has a value and no error
+        const hasValue = schemaValues[key] !== undefined && schemaValues[key] !== null && 
+                        (typeof schemaValues[key] !== 'string' || schemaValues[key].trim() !== '');
+        const hasError = errors[key] !== undefined;
+        newValidState[key] = hasValue && !hasError;
+      }
+    });
+    setSchemaFieldsValid(newValidState);
+    
+    return Object.keys(errors).length === 0;
   };
 
   const handleCreateDocument = async () => {
-    if (!documentName.trim()) {
-      toast({
-        title: "Error",
-        description: "Document name is required",
-        variant: "destructive",
-      });
+    setIsSubmitting(true);
+    
+    // Validate all inputs
+    const isDocumentNameValid = validateDocumentName();
+    const isTemplateValid = validateTemplate();
+    const areSchemaValuesValid = validateSchemaValues();
+    
+    // If any validation fails, stop here
+    if (!isDocumentNameValid || !isTemplateValid || !areSchemaValuesValid) {
+      setIsSubmitting(false);
       return;
     }
 
-    if (!selectedTemplate) {
-      toast({
-        title: "Error",
-        description: "Please select a template",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // If using schema, validate the values
-    if (hasSchema) {
-      const errors = validateValues(schemaValues, schemaFields);
-      setSchemaErrors(errors);
-      
-      if (Object.keys(errors).length > 0) {
-        toast({
-          title: "Validation Error",
-          description: "Please fix the errors in the form",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    setIsLoading(true);
     try {
       // Process the template with variables
       const variables: Record<string, any> = {
@@ -281,14 +328,27 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   // Handle template selection change
   const handleTemplateChange = async (templateName: string) => {
     setSelectedTemplate(templateName);
+    setTemplateError("");
+    setTemplateValid(true);
     await fetchTemplateContent(templateName);
+  };
+
+  // Handle document name change
+  const handleDocumentNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDocumentName(e.target.value);
+    if (e.target.value.trim()) {
+      setDocumentNameError("");
+      setDocumentNameValid(true);
+    } else {
+      setDocumentNameValid(false);
+    }
   };
 
   return (
@@ -301,50 +361,79 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-2 mb-4">
-            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="advanced">Template Variables</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="basic" className="space-y-4">
+        <div className="space-y-6 py-4">
+          {/* Basic Info Section */}
+          <div className="space-y-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
+              <Label htmlFor="name" className="text-right flex items-center justify-end">
+                Name 
+                {documentNameValid ? (
+                  <CheckCircle2 className="ml-1 h-4 w-4 text-green-500" />
+                ) : (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
               </Label>
-              <Input
-                id="name"
-                value={documentName}
-                onChange={(e) => setDocumentName(e.target.value)}
-                className="col-span-3"
-                placeholder="Document name"
-                autoFocus
-              />
+              <div className="col-span-3 space-y-1">
+                <Input
+                  id="name"
+                  value={documentName}
+                  onChange={handleDocumentNameChange}
+                  className={documentNameError ? "border-red-500" : documentNameValid ? "border-green-500" : ""}
+                  placeholder="Document name"
+                  autoFocus
+                  onBlur={validateDocumentName}
+                />
+                {documentNameError && (
+                  <p className="text-xs text-red-500">{documentNameError}</p>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template" className="text-right">
-                Template
+              <Label htmlFor="template" className="text-right flex items-center justify-end">
+                Template 
+                {templateValid ? (
+                  <CheckCircle2 className="ml-1 h-4 w-4 text-green-500" />
+                ) : (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
               </Label>
-              <Select
-                value={selectedTemplate}
-                onValueChange={handleTemplateChange}
-                disabled={templates.length === 0 || isLoading}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a template" />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem key={template.name} value={template.name}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="col-span-3 space-y-1">
+                <Select
+                  value={selectedTemplate}
+                  onValueChange={handleTemplateChange}
+                  disabled={templates.length === 0 || isLoading}
+                >
+                  <SelectTrigger className={templateError ? "border-red-500" : templateValid ? "border-green-500" : ""}>
+                    <SelectValue placeholder="Select a template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((template) => (
+                      <SelectItem key={template.name} value={template.name}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {templateError && (
+                  <p className="text-xs text-red-500">{templateError}</p>
+                )}
+              </div>
             </div>
-          </TabsContent>
+          </div>
           
-          <TabsContent value="advanced" className="space-y-4">
+          {/* Template Variables Section */}
+          <div className="space-y-4 mt-6">
+            <h3 className="text-lg font-medium">Template Variables</h3>
+            
+            {formHasErrors && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Please fix the errors in the form before continuing.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {isFetchingTemplate ? (
               <div className="flex justify-center items-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -352,12 +441,12 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
               </div>
             ) : hasSchema ? (
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Template Variables</h3>
                 <SchemaForm
                   schema={schemaFields}
                   initialValues={schemaValues}
                   onChange={handleSchemaFormChange}
                   errors={schemaErrors}
+                  validFields={schemaFieldsValid}
                 />
               </div>
             ) : (
@@ -427,15 +516,18 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
         
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleCreateDocument} disabled={isLoading}>
-            {isLoading ? (
+          <Button 
+            onClick={handleCreateDocument} 
+            disabled={isSubmitting || isLoading}
+          >
+            {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating...

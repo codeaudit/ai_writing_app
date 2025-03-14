@@ -14,10 +14,11 @@ interface ArrayInputProps {
   value: any[];
   onChange: (value: any[]) => void;
   error?: string;
+  isValid?: boolean;
   path: string;
 }
 
-export function ArrayInput({ field, value, onChange, error, path }: ArrayInputProps) {
+export function ArrayInput({ field, value, onChange, error, isValid, path }: ArrayInputProps) {
   const items = Array.isArray(value) ? value : [];
   const [bulkInput, setBulkInput] = useState<string>('');
   const [inputMode, setInputMode] = useState<'individual' | 'bulk'>(
@@ -63,51 +64,28 @@ export function ArrayInput({ field, value, onChange, error, path }: ArrayInputPr
   };
 
   const handleAddItem = () => {
-    // Add a new item with default value based on the item type
-    let defaultValue;
-    
-    switch (field.itemType.type) {
-      case 'string':
-        defaultValue = '';
-        break;
-      case 'number':
-        defaultValue = 0;
-        break;
-      case 'boolean':
-        defaultValue = false;
-        break;
-      case 'date':
-        defaultValue = new Date();
-        break;
-      case 'object':
-        defaultValue = {};
-        break;
-      case 'array':
-        defaultValue = [];
-        break;
-      case 'enum':
-        defaultValue = field.itemType.options[0] || '';
-        break;
-      case 'record':
-        defaultValue = {};
-        break;
-      default:
-        defaultValue = '';
-    }
-    
-    onChange([...items, defaultValue]);
+    const newValue = [...items, undefined];
+    onChange(newValue);
   };
 
   const handleRemoveItem = (index: number) => {
-    const newItems = [...items];
-    newItems.splice(index, 1);
-    onChange(newItems);
+    const newValue = [...items];
+    newValue.splice(index, 1);
+    onChange(newValue);
   };
 
-  const handleItemChange = (index: number, newValue: any) => {
-    const newItems = [...items];
-    newItems[index] = newValue;
-    onChange(newItems);
+  const handleItemChange = (index: number, itemValue: any) => {
+    const newValue = [...items];
+    newValue[index] = itemValue;
+    onChange(newValue);
+  };
+
+  // Parse error messages for individual items
+  const getItemError = (index: number): string | undefined => {
+    if (!error) return undefined;
+    
+    const match = error.match(new RegExp(`Item ${index + 1}: (.*)`));
+    return match ? match[1] : undefined;
   };
 
   // Determine if we should show the tabs for switching between modes
@@ -119,8 +97,9 @@ export function ArrayInput({ field, value, onChange, error, path }: ArrayInputPr
       description={field.description}
       error={error}
       isRequired={!field.isOptional}
+      isValid={isValid}
     >
-      <div className="space-y-4 border rounded-md p-4">
+      <div className={`border rounded-md p-4 ${error ? 'border-red-500' : isValid ? 'border-green-500' : 'border-gray-200'}`}>
         {showTabs ? (
           <Tabs value={inputMode} onValueChange={(v) => handleModeChange(v as 'individual' | 'bulk')}>
             <TabsList className="grid w-full grid-cols-2">
@@ -161,6 +140,30 @@ export function ArrayInput({ field, value, onChange, error, path }: ArrayInputPr
         ) : (
           renderIndividualItems()
         )}
+        
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleAddItem}
+          className="mt-4"
+          disabled={field.maxItems !== undefined && items.length >= field.maxItems}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Item
+        </Button>
+        
+        {field.minItems !== undefined && (
+          <div className="text-xs text-gray-500 mt-2">
+            Minimum items: {field.minItems}
+          </div>
+        )}
+        
+        {field.maxItems !== undefined && (
+          <div className="text-xs text-gray-500 mt-1">
+            Maximum items: {field.maxItems}
+          </div>
+        )}
       </div>
     </FormField>
   );
@@ -169,29 +172,26 @@ export function ArrayInput({ field, value, onChange, error, path }: ArrayInputPr
     return (
       <>
         {items.length === 0 ? (
-          <div className="text-center text-gray-500 py-4">
-            No items. Click "Add Item" to add one.
-          </div>
+          <div className="text-sm text-gray-500 italic">No items</div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {items.map((item, index) => (
-              <div key={index} className="flex items-start gap-2 bg-muted/30 p-2 rounded-md">
+              <div key={index} className="flex items-start gap-2">
                 <div className="flex-1">
                   <RenderField
-                    field={{
-                      ...field.itemType,
-                      name: `${field.name}[${index}]`,
-                    }}
+                    field={field.itemType}
                     value={item}
                     onChange={(newValue) => handleItemChange(index, newValue)}
-                    path={`${path}[${index}]`}
+                    error={getItemError(index)}
+                    path={`${path}.${index}`}
                   />
                 </div>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="icon"
                   onClick={() => handleRemoveItem(index)}
-                  className="h-8 w-8 mt-1"
+                  className="mt-1"
                 >
                   <Trash className="h-4 w-4" />
                 </Button>
@@ -199,19 +199,6 @@ export function ArrayInput({ field, value, onChange, error, path }: ArrayInputPr
             ))}
           </div>
         )}
-        
-        <div className="flex justify-end mt-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleAddItem}
-            className="flex items-center gap-1"
-          >
-            <Plus className="h-4 w-4" />
-            Add Item
-          </Button>
-        </div>
       </>
     );
   }

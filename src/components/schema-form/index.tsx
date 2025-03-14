@@ -16,9 +16,10 @@ interface SchemaFormProps {
   initialValues?: Record<string, any>;
   onChange: (values: Record<string, any>) => void;
   errors?: Record<string, string>;
+  validFields?: Record<string, boolean>;
 }
 
-export function SchemaForm({ schema, initialValues = {}, onChange, errors = {} }: SchemaFormProps) {
+export function SchemaForm({ schema, initialValues = {}, onChange, errors = {}, validFields = {} }: SchemaFormProps) {
   const [values, setValues] = useState<Record<string, any>>(initialValues);
 
   // Initialize default values for fields that don't have initial values
@@ -62,6 +63,7 @@ export function SchemaForm({ schema, initialValues = {}, onChange, errors = {} }
             value={values[name]}
             onChange={(value) => handleFieldChange(name, value)}
             error={errors[name]}
+            isValid={validFields[name]}
           />
         </div>
       ))}
@@ -74,10 +76,11 @@ interface RenderFieldProps {
   value: any;
   onChange: (value: any) => void;
   error?: string;
+  isValid?: boolean;
   path?: string;
 }
 
-export function RenderField({ field, value, onChange, error, path = '' }: RenderFieldProps) {
+export function RenderField({ field, value, onChange, error, isValid, path = '' }: RenderFieldProps) {
   const fieldPath = path ? `${path}.${field.name}` : field.name;
   
   // Log for debugging
@@ -96,6 +99,7 @@ export function RenderField({ field, value, onChange, error, path = '' }: Render
           value={value}
           onChange={onChange}
           error={error}
+          isValid={isValid}
           path={fieldPath}
         />
       );
@@ -106,6 +110,7 @@ export function RenderField({ field, value, onChange, error, path = '' }: Render
           value={value}
           onChange={onChange}
           error={error}
+          isValid={isValid}
           path={fieldPath}
         />
       );
@@ -116,6 +121,7 @@ export function RenderField({ field, value, onChange, error, path = '' }: Render
           value={value}
           onChange={onChange}
           error={error}
+          isValid={isValid}
           path={fieldPath}
         />
       );
@@ -126,6 +132,7 @@ export function RenderField({ field, value, onChange, error, path = '' }: Render
           value={value}
           onChange={onChange}
           error={error}
+          isValid={isValid}
           path={fieldPath}
         />
       );
@@ -136,6 +143,7 @@ export function RenderField({ field, value, onChange, error, path = '' }: Render
           value={value}
           onChange={onChange}
           error={error}
+          isValid={isValid}
           path={fieldPath}
         />
       );
@@ -146,6 +154,7 @@ export function RenderField({ field, value, onChange, error, path = '' }: Render
           value={value}
           onChange={onChange}
           error={error}
+          isValid={isValid}
           path={fieldPath}
         />
       );
@@ -156,6 +165,7 @@ export function RenderField({ field, value, onChange, error, path = '' }: Render
           value={value}
           onChange={onChange}
           error={error}
+          isValid={isValid}
           path={fieldPath}
         />
       );
@@ -166,6 +176,7 @@ export function RenderField({ field, value, onChange, error, path = '' }: Render
           value={value}
           onChange={onChange}
           error={error}
+          isValid={isValid}
           path={fieldPath}
         />
       );

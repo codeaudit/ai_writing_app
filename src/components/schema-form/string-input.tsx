@@ -6,18 +6,26 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { FormField } from './form-field';
+import { CheckCircle2 } from 'lucide-react';
 
 interface StringInputProps {
   field: StringField;
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  isValid?: boolean;
   path: string;
 }
 
-export function StringInput({ field, value, onChange, error, path }: StringInputProps) {
+export function StringInput({ field, value, onChange, error, isValid, path }: StringInputProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     onChange(e.target.value);
+  };
+
+  const getInputClassName = () => {
+    if (error) return 'border-red-500';
+    if (isValid) return 'border-green-500';
+    return '';
   };
 
   const inputProps = {
@@ -25,7 +33,7 @@ export function StringInput({ field, value, onChange, error, path }: StringInput
     value: value || '',
     onChange: handleChange,
     placeholder: field.description || `Enter ${field.name}`,
-    className: error ? 'border-red-500' : '',
+    className: getInputClassName(),
   };
 
   // Use textarea for longer text fields
@@ -37,6 +45,7 @@ export function StringInput({ field, value, onChange, error, path }: StringInput
       description={field.description}
       error={error}
       isRequired={!field.isOptional}
+      isValid={isValid}
     >
       {useTextarea ? (
         <Textarea

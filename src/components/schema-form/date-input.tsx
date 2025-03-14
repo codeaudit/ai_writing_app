@@ -8,18 +8,16 @@ import { format } from 'date-fns';
 
 interface DateInputProps {
   field: DateField;
-  value: Date;
-  onChange: (value: Date) => void;
+  value: string;
+  onChange: (value: string) => void;
   error?: string;
+  isValid?: boolean;
   path: string;
 }
 
-export function DateInput({ field, value, onChange, error, path }: DateInputProps) {
+export function DateInput({ field, value, onChange, error, isValid, path }: DateInputProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dateValue = new Date(e.target.value);
-    if (!isNaN(dateValue.getTime())) {
-      onChange(dateValue);
-    }
+    onChange(e.target.value);
   };
 
   // Format date as YYYY-MM-DD for input
@@ -30,19 +28,26 @@ export function DateInput({ field, value, onChange, error, path }: DateInputProp
     return format(date, 'yyyy-MM-dd');
   };
 
+  const getInputClassName = () => {
+    if (error) return 'border-red-500';
+    if (isValid) return 'border-green-500';
+    return '';
+  };
+
   return (
     <FormField
       label={field.name}
       description={field.description}
       error={error}
       isRequired={!field.isOptional}
+      isValid={isValid}
     >
       <Input
         id={path}
         type="date"
-        value={formatDateForInput(value)}
+        value={value || ''}
         onChange={handleChange}
-        className={error ? 'border-red-500' : ''}
+        className={getInputClassName()}
         min={field.min ? formatDateForInput(field.min) : undefined}
         max={field.max ? formatDateForInput(field.max) : undefined}
       />
