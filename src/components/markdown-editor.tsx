@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHand
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
-import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo, BookmarkIcon, Search, Sparkles, Hash } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo, BookmarkIcon, Search, Sparkles, Hash, ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDocumentStore, Annotation } from "@/lib/store";
 import { OnMount, useMonaco, type Monaco, type EditorProps } from "@monaco-editor/react";
@@ -905,7 +905,7 @@ const MarkdownEditor = forwardRef<
               onClick={() => setShowCompositionComposer(true)}
               title="Compose"
             >
-              <Hash className="h-4 w-4" />
+              <Play className="h-4 w-4" />
             </Button>
           </div>
         </div>

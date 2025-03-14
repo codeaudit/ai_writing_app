@@ -130,35 +130,35 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
     <div>
       <div 
         className={cn(
-          "flex items-center gap-1 py-1 px-2 rounded-md hover:bg-muted group",
-          selectedFolderId === folder.id && "bg-muted"
+          "flex items-center gap-1 py-0.5 px-1 rounded-sm hover:bg-muted/50 group",
+          selectedFolderId === folder.id && "bg-muted/70"
         )}
-        style={{ paddingLeft: `${level * 12 + 4}px` }}
+        style={{ paddingLeft: `${level * 8 + 2}px` }}
       >
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="w-4 h-4 flex items-center justify-center text-muted-foreground"
-        >
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </button>
-        
-        <div className="flex items-center justify-center w-5 h-5">
+        <div className="flex items-center justify-center w-4 h-4 mr-0.5">
           <Checkbox
             checked={isFolderSelected}
             className={cn(
-              "transition-opacity folder-checkbox",
-              comparisonMode ? "opacity-100" : "opacity-0"
+              "transition-opacity folder-checkbox h-3 w-3 rounded-none",
+              comparisonMode ? "opacity-100" : "opacity-0 group-hover:opacity-70"
             )}
             onCheckedChange={() => toggleComparisonFolder(folder.id)}
             aria-label={`Select folder ${folder.name}`}
           />
         </div>
         
-        <Folder className="h-4 w-4 text-muted-foreground" />
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-3 h-3 flex items-center justify-center text-muted-foreground"
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
+        </button>
+        
+        <Folder className="h-3 w-3 text-muted-foreground" />
         
         {isRenaming ? (
           <Input
@@ -169,13 +169,13 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
               if (e.key === 'Enter') handleRename();
               if (e.key === 'Escape') setIsRenaming(false);
             }}
-            className="h-6 py-1 px-1"
+            className="h-5 py-0 px-1 text-xs"
             autoFocus
           />
         ) : (
           <button
             className={cn(
-              "flex-1 text-left text-sm truncate",
+              "flex-1 text-left text-xs truncate",
               isPartiallySelected && "font-medium text-primary"
             )}
             onClick={() => selectFolder(folder.id)}
@@ -189,12 +189,12 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100"
+              className="h-4 w-4 opacity-0 group-hover:opacity-100 p-0"
             >
-              <MoreVertical className="h-4 w-4" />
+              <MoreVertical className="h-3 w-3" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="text-xs">
             <DropdownMenuItem onClick={() => setIsRenaming(true)}>
               Rename
             </DropdownMenuItem>
@@ -229,7 +229,7 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
       </div>
 
       {isCreatingDocument && (
-        <div className="flex gap-2 mt-1 mb-1 ml-8">
+        <div className="flex gap-1 mt-0.5 mb-0.5 ml-6">
           <Input
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
@@ -241,13 +241,13 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
                 setIsCreatingDocument(false);
               }
             }}
-            className="h-7"
+            className="h-5 text-xs"
             autoFocus
           />
           <Button
             size="sm"
             onClick={handleCreateDocument}
-            className="h-7"
+            className="h-5 text-xs px-2"
           >
             Add
           </Button>
@@ -255,7 +255,7 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
       )}
 
       {isCreatingFolder && (
-        <div className="flex gap-2 mt-1 mb-1 ml-8">
+        <div className="flex gap-1 mt-0.5 mb-0.5 ml-6">
           <Input
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
@@ -267,13 +267,13 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
                 setIsCreatingFolder(false);
               }
             }}
-            className="h-7"
+            className="h-5 text-xs"
             autoFocus
           />
           <Button
             size="sm"
             onClick={handleCreateFolder}
-            className="h-7"
+            className="h-5 text-xs px-2"
           >
             Add
           </Button>
@@ -377,13 +377,24 @@ function DocumentItem({ document, level }: DocumentItemProps) {
     <>
       <div
         className={cn(
-          "flex items-center gap-1 py-1 px-2 rounded-md hover:bg-muted group",
-          selectedDocumentId === document.id && "bg-muted",
-          comparisonDocumentIds.includes(document.id) && "border-l-2 border-primary"
+          "flex items-center gap-1 py-0.5 px-1 rounded-sm hover:bg-muted/50 group",
+          selectedDocumentId === document.id && "bg-muted/70",
+          comparisonDocumentIds.includes(document.id) && "border-l border-primary"
         )}
-        style={{ paddingLeft: `${level * 12 + 20}px` }}
+        style={{ paddingLeft: `${level * 8 + 14}px` }}
       >
-        <File className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center justify-center w-4 h-4 mr-0.5">
+          <Checkbox
+            checked={comparisonDocumentIds.includes(document.id)}
+            onCheckedChange={handleToggleComparison}
+            className={cn(
+              "document-checkbox transition-opacity h-3 w-3 rounded-none",
+              comparisonDocumentIds.length > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-70"
+            )}
+          />
+        </div>
+        
+        <File className="h-3 w-3 text-muted-foreground" />
         
         {isRenaming ? (
           <Input
@@ -394,12 +405,12 @@ function DocumentItem({ document, level }: DocumentItemProps) {
               if (e.key === 'Enter') handleRename();
               if (e.key === 'Escape') setIsRenaming(false);
             }}
-            className="h-6 py-1 px-1"
+            className="h-5 py-0 px-1 text-xs"
             autoFocus
           />
         ) : (
           <button
-            className="flex-1 text-left text-sm truncate"
+            className="flex-1 text-left text-xs truncate"
             onClick={() => {
               if (canSelect) {
                 handleSelectDocument();
@@ -410,26 +421,17 @@ function DocumentItem({ document, level }: DocumentItemProps) {
           </button>
         )}
         
-        <Checkbox
-          checked={comparisonDocumentIds.includes(document.id)}
-          onCheckedChange={handleToggleComparison}
-          className={cn(
-            "document-checkbox transition-opacity",
-            comparisonDocumentIds.length > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          )}
-        />
-        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100"
+              className="h-4 w-4 opacity-0 group-hover:opacity-100 p-0"
             >
-              <MoreVertical className="h-4 w-4" />
+              <MoreVertical className="h-3 w-3" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="text-xs">
             <DropdownMenuItem onClick={() => setIsRenaming(true)}>
               Rename
             </DropdownMenuItem>
@@ -449,7 +451,7 @@ function DocumentItem({ document, level }: DocumentItemProps) {
             <DropdownMenuSeparator />
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
-                <Move className="h-4 w-4 mr-2" />
+                <Move className="h-3 w-3 mr-1" />
                 Move to
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
@@ -846,34 +848,36 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">Documents</h2>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1">
+          <h2 className="text-sm font-medium">Documents</h2>
           <Button
             variant="ghost" 
             size="icon" 
             onClick={() => setIsCreatingDocument(true)}
             title="Create new document"
+            className="h-6 w-6"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-3.5 w-3.5" />
           </Button>
           <Button
             variant="ghost" 
             size="icon" 
             onClick={() => setIsCreatingFolder(true)}
             title="Create new folder"
+            className="h-6 w-6"
           >
-            <FolderPlus className="h-5 w-5" />
+            <FolderPlus className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button
             variant={comparisonMode ? "secondary" : "outline"}
             size="sm"
             onClick={toggleComparisonMode}
-            className={cn(comparisonMode && "bg-primary text-primary-foreground")}
+            className={cn("h-6 text-xs px-2", comparisonMode && "bg-primary text-primary-foreground")}
           >
-            <GitCompare className="h-4 w-4 mr-2" />
+            <GitCompare className="h-3 w-3 mr-1" />
             {comparisonMode ? "Cancel" : "Select"}
           </Button>
           <Button
@@ -881,6 +885,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
             size="sm"
             onClick={() => setShowTokenCounterDialog(true)}
             disabled={comparisonDocumentIds.length === 0}
+            className="h-6 text-xs px-2"
           >
             Compose
           </Button>
@@ -888,7 +893,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
       </div>
       
       {(isCreatingDocument || isCreatingFolder) && (
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-1 mb-2">
           <Input
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
@@ -903,11 +908,13 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
                 setNewItemName("");
               }
             }}
+            className="h-6 text-xs"
             autoFocus
           />
           <Button
             size="sm"
             onClick={isCreatingDocument ? handleCreateDocument : handleCreateFolder}
+            className="h-6 text-xs px-2"
           >
             Create
           </Button>
@@ -918,34 +925,34 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
         placeholder="Search documents..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        className="mb-4"
+        className="mb-2 h-6 text-xs"
       />
       
       {comparisonMode && (
-        <div className="mb-4 p-3 bg-muted rounded-md">
-          <div className="text-sm font-medium mb-2">
-            Selection Mode: Select documents to compose
-            <span className="ml-2 font-bold">
+        <div className="mb-2 p-1.5 bg-muted/50 rounded-sm">
+          <div className="text-xs font-medium mb-1">
+            Selection Mode: 
+            <span className="ml-1 font-bold">
               ({comparisonDocumentIds.length} selected)
             </span>
           </div>
           {comparisonDocumentIds.length > 0 ? (
             <Button 
               variant="default" 
-              className="w-full"
+              className="w-full h-6 text-xs"
               onClick={() => setShowTokenCounterDialog(true)}
             >
-              Compose Selected Documents
+              Compose Selected
             </Button>
           ) : (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs text-muted-foreground">
               Select documents to compose
             </div>
           )}
         </div>
       )}
       
-      <div className="space-y-1 overflow-auto flex-1">
+      <div className="space-y-0.5 overflow-auto flex-1 pr-1">
         {rootFolders.map((folder) => (
           <FolderItem
             key={folder.id}
@@ -964,15 +971,15 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
         ))}
       </div>
       
-      <div className="mt-4 border-t pt-4 flex justify-between">
+      <div className="mt-2 border-t pt-2 flex justify-between">
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
-          className="flex-1 mr-2"
+          className="flex-1 mr-1 h-6 text-xs"
         >
-          <Upload className="h-4 w-4 mr-2" />
-          Import Vault
+          <Upload className="h-3 w-3 mr-1" />
+          Import
         </Button>
         <input
           type="file"
@@ -983,13 +990,13 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           className="hidden"
         />
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={handleExportDocuments}
-          className="flex-1"
+          className="flex-1 h-6 text-xs"
         >
-          <Download className="h-4 w-4 mr-2" />
-          Export Vault
+          <Download className="h-3 w-3 mr-1" />
+          Export
         </Button>
       </div>
       

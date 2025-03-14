@@ -154,6 +154,11 @@ const fixDates = (obj: any): any => {
   return fixedObj;
 };
 
+// Add this helper function after the imports
+const generateUniqueId = (prefix: string) => {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+};
+
 export const useDocumentStore = create<DocumentStore>()(
   persist(
     (set, get) => ({
@@ -711,7 +716,7 @@ export const useDocumentStore = create<DocumentStore>()(
         set({ error: null });
         const timestamp = new Date();
         const newComposition: Composition = {
-          id: `comp-${timestamp.getTime()}`,
+          id: generateUniqueId('comp'),
           name,
           content,
           contextDocuments,
@@ -732,7 +737,7 @@ export const useDocumentStore = create<DocumentStore>()(
             // Create the compositions folder
             const folderTimestamp = new Date();
             const newFolder: Folder = {
-              id: `folder-${folderTimestamp.getTime()}`,
+              id: generateUniqueId('folder'),
               name: 'compositions',
               createdAt: folderTimestamp,
               parentId: null,
@@ -755,6 +760,7 @@ export const useDocumentStore = create<DocumentStore>()(
           const compositionContent = `---
 title: ${name}
 date: ${timestamp.toISOString()}
+id: ${newComposition.id}
 contextDocuments: ${JSON.stringify(contextDocuments)}
 ---
 
@@ -817,6 +823,7 @@ ${content}`;
             const compositionContent = `---
 title: ${updatedComposition.name}
 date: ${updatedComposition.updatedAt.toISOString()}
+id: ${updatedComposition.id}
 contextDocuments: ${JSON.stringify(updatedComposition.contextDocuments)}
 ---
 
@@ -918,6 +925,7 @@ ${updatedComposition.content}`;
                 // Extract metadata
                 const titleMatch = frontmatter.match(/title:\s*(.*)/);
                 const dateMatch = frontmatter.match(/date:\s*(.*)/);
+                const idMatch = frontmatter.match(/id:\s*(.*)/);
                 const contextDocumentsMatch = frontmatter.match(/contextDocuments:\s*(.*)/);
                 
                 if (titleMatch && dateMatch) {
@@ -933,8 +941,11 @@ ${updatedComposition.content}`;
                     }
                   }
                   
+                  // Use the stored ID if available, otherwise generate a new unique ID
+                  const compositionId = idMatch ? idMatch[1].trim() : generateUniqueId('comp');
+                  
                   const composition = {
-                    id: `comp-${date.getTime()}`,
+                    id: compositionId,
                     name: title,
                     content: markdownContent.trim(),
                     contextDocuments,
@@ -953,7 +964,7 @@ ${updatedComposition.content}`;
                   const updatedAt = doc.updatedAt instanceof Date ? doc.updatedAt : new Date();
                   
                   compositions.push({
-                    id: `comp-${createdAt.getTime()}`,
+                    id: generateUniqueId('comp'),
                     name: doc.name,
                     content: markdownContent.trim(),
                     contextDocuments: [],
@@ -970,7 +981,7 @@ ${updatedComposition.content}`;
                 const updatedAt = doc.updatedAt instanceof Date ? doc.updatedAt : new Date();
                 
                 compositions.push({
-                  id: `comp-${createdAt.getTime()}`,
+                  id: generateUniqueId('comp'),
                   name: doc.name,
                   content: doc.content,
                   contextDocuments: [],

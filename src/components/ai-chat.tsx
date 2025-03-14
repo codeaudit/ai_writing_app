@@ -60,14 +60,13 @@ interface ContextDocument {
 }
 
 interface AIChatProps {
-  documentContent?: string;
   onInsertText?: (text: string) => void;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
 }
 
-export default function AIChat({ documentContent, onInsertText, isExpanded, onToggleExpand }: AIChatProps) {
-  const { documents, selectedDocumentId, updateDocument } = useDocumentStore();
+export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIChatProps) {
+  const { documents } = useDocumentStore();
   const { config } = useLLMStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -98,9 +97,6 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
   // Inside the AIChat component, add a new state for the save composition dialog
   const [showSaveCompositionDialog, setShowSaveCompositionDialog] = useState(false);
   const [compositionName, setCompositionName] = useState("");
-
-  // Get the selected document
-  const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
 
   // Load context files from localStorage when component mounts
   useEffect(() => {
@@ -271,12 +267,8 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
       // Create a debug version of the prompt that will be sent
       let debugSystemMessage = 'You are a helpful writing assistant.';
       
-      if (documentContent) {
-        debugSystemMessage += ` Use the following context to inform your responses: ${documentContent}`;
-      }
-      
       if (contextDocuments && contextDocuments.length > 0) {
-        debugSystemMessage += ' Use the following additional context documents to inform your responses:\n\n';
+        debugSystemMessage += ' Use the following context documents to inform your responses:\n\n';
         contextDocuments.forEach(doc => {
           debugSystemMessage += `Document: ${doc.name}\n${doc.content}\n\n`;
         });
@@ -293,7 +285,6 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
       // Call the server action with all messages for context
       const response = await generateChatResponse({
         messages: [...messages, userMessage],
-        context: documentContent,
         contextDocuments: contextDocuments.map(doc => ({
           id: doc.id,
           title: doc.name, // Map name to title for the server action
@@ -317,10 +308,9 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
     }
   };
 
-  // Filter out documents that are already in context or are the current document
+  // Filter out documents that are already in context
   const getAvailableDocuments = () => {
     return documents.filter(doc => 
-      doc.id !== selectedDocumentId && 
       !contextDocuments.some(contextDoc => contextDoc.id === doc.id)
     );
   };
@@ -452,11 +442,16 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
   const handleInsertResponse = (content: string) => {
     if (onInsertText) {
       onInsertText(content);
-      
       toast({
-        title: "Added to document",
-        description: "AI response has been added to your document.",
-        duration: 3000, // Auto-dismiss after 3 seconds
+        title: "Text inserted",
+        description: "The AI response has been inserted into the editor.",
+        duration: 3000,
+      });
+    } else {
+      toast({
+        title: "Cannot insert text",
+        description: "There is no active editor to insert text into.",
+        duration: 3000,
       });
     }
   };
@@ -482,16 +477,6 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
       toast({
         title: "Document already in context",
         description: `"${document.name}" is already added to the context.`,
-        duration: 3000, // Auto-dismiss after 3 seconds
-      });
-      return;
-    }
-    
-    // Check if document is the currently selected document
-    if (document.id === selectedDocumentId) {
-      toast({
-        title: "Document already in context",
-        description: `"${document.name}" is already the primary document.`,
         duration: 3000, // Auto-dismiss after 3 seconds
       });
       return;
@@ -766,16 +751,10 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
                       <DropdownMenuItem 
                         key={doc.id}
                         onClick={() => handleAddContextDocument(doc)}
-                        disabled={doc.id === selectedDocumentId || contextDocuments.some(d => d.id === doc.id)}
+                        disabled={contextDocuments.some(d => d.id === doc.id)}
                         className="flex items-center justify-between"
                       >
                         <span className="truncate">{doc.name}</span>
-                        {doc.id === selectedDocumentId && (
-                          <Badge variant="outline" className="ml-2 text-xs">Primary</Badge>
-                        )}
-                        {contextDocuments.some(d => d.id === doc.id) && (
-                          <Badge variant="outline" className="ml-2 text-xs">Added</Badge>
-                        )}
                       </DropdownMenuItem>
                     ))
                   ) : (
@@ -800,18 +779,19 @@ export default function AIChat({ documentContent, onInsertText, isExpanded, onTo
               </DialogTrigger>
               <DialogContent className="max-w-4xl max-h-[80vh]">
                 <DialogHeader>
-                  <DialogTitle>Debug: AI Request Information</DialogTitle>
+                  <DialogTitle>AI Debug Information</DialogTitle>
                   <DialogDescription>
-                    This shows the details of the last request sent to the language model.
+                    This shows the prompt that was sent to the AI model.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="mt-4">
+                
+                <ScrollArea className="mt-4 max-h-[60vh]">
                   <AIDebugPanel 
                     lastPrompt={lastPrompt} 
-                    contextDocuments={contextDocuments} 
-                    primaryDocument={documentContent}
+                    contextDocuments={contextDocuments}
                   />
-                </div>
+                </ScrollArea>
+                
                 <DialogFooter className="mt-4">
                   <DialogClose asChild>
                     <Button>Close</Button>

@@ -12,13 +12,11 @@ import { useLLMStore } from "@/lib/store";
 interface AIDebugPanelProps {
   lastPrompt: string;
   contextDocuments: Array<{ id: string; name: string; content: string }>;
-  primaryDocument?: string;
 }
 
 export default function AIDebugPanel({ 
   lastPrompt, 
-  contextDocuments, 
-  primaryDocument 
+  contextDocuments
 }: AIDebugPanelProps) {
   const { config } = useLLMStore();
   const [isCopied, setIsCopied] = useState(false);
@@ -42,12 +40,8 @@ export default function AIDebugPanel({
   const formatContextDocuments = () => {
     let formattedContent = '';
     
-    if (primaryDocument) {
-      formattedContent += `Primary Document:\n${primaryDocument}\n\n`;
-    }
-    
     if (contextDocuments.length > 0) {
-      formattedContent += 'Additional Context Documents:\n\n';
+      formattedContent += 'Context Documents:\n\n';
       contextDocuments.forEach(doc => {
         formattedContent += `Document: ${doc.name}\n${doc.content}\n\n`;
       });

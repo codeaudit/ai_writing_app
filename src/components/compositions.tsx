@@ -220,85 +220,94 @@ export default function Compositions() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Compositions</h2>
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-base font-medium">Compositions</h2>
         <Button 
-          variant="outline" 
-          size="sm" 
+          variant="ghost" 
+          size="icon" 
           onClick={handleRefresh}
           disabled={isLoading}
+          className="h-7 w-7"
         >
           {isLoading ? (
-            <RefreshCw className="h-4 w-4 animate-spin" />
+            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-3.5 w-3.5" />
           )}
         </Button>
       </div>
       
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 pr-2">
         {compositions.length === 0 ? (
-          <Card className="border-dashed bg-muted/30">
-            <CardContent className="pt-6 text-center">
-              <p className="text-muted-foreground text-sm">
-                No compositions yet. Save a chat conversation to create one.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="border border-dashed rounded-md bg-muted/20 p-3 text-center">
+            <p className="text-muted-foreground text-xs">
+              No compositions yet. Save a chat conversation to create one.
+            </p>
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {compositions.map((composition) => (
-              <Card key={composition.id} className="group">
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-base truncate">{composition.name}</CardTitle>
-                  <CardDescription className="text-xs">
-                    Created {formatDistanceToNow(new Date(composition.createdAt), { addSuffix: true })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 pb-2">
-                  <div className="text-sm text-muted-foreground line-clamp-2">
-                    {composition.content.substring(0, 150)}
-                    {composition.content.length > 150 && '...'}
+              <div 
+                key={composition.id} 
+                className="group border rounded-md hover:border-primary/30 hover:bg-muted/10 transition-colors"
+              >
+                <div className="p-2 cursor-pointer" onClick={() => {
+                  setSelectedComposition(composition);
+                  setShowViewDialog(true);
+                }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-sm font-medium truncate">{composition.name}</h3>
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatDistanceToNow(new Date(composition.createdAt), { addSuffix: true })}
+                    </span>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground line-clamp-1">
+                    {composition.content.substring(0, 100)}
+                    {composition.content.length > 100 && '...'}
                   </div>
                   
                   {composition.contextDocuments.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs text-muted-foreground mb-1">Context documents:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {composition.contextDocuments.map((doc) => (
-                          <Badge key={doc.id} variant="outline" className="text-xs">
-                            {doc.name}
-                          </Badge>
-                        ))}
-                      </div>
+                    <div className="mt-1 flex items-center gap-1 flex-wrap">
+                      <span className="text-[10px] text-muted-foreground">Contexts:</span>
+                      {composition.contextDocuments.slice(0, 3).map((doc) => (
+                        <Badge key={doc.id} variant="outline" className="text-[10px] px-1 py-0 h-4">
+                          {doc.name}
+                        </Badge>
+                      ))}
+                      {composition.contextDocuments.length > 3 && (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                          +{composition.contextDocuments.length - 3} more
+                        </Badge>
+                      )}
                     </div>
                   )}
-                </CardContent>
-                <Separator />
-                <CardFooter className="p-2 flex justify-end gap-2">
+                </div>
+                
+                <div className="flex items-center justify-end border-t px-1 py-0.5 gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2 text-primary hover:text-primary"
+                    className="h-6 px-1.5 text-xs text-primary"
                     onClick={() => handlePushToAI(composition)}
+                    title="Push to AI"
                   >
-                    <Send className="h-4 w-4 mr-1" />
-                    Push to AI
+                    <Send className="h-3 w-3" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2 text-destructive hover:text-destructive"
+                    className="h-6 px-1.5 text-xs text-destructive"
                     onClick={() => {
                       setSelectedComposition(composition);
                       setShowDeleteConfirmation(true);
                     }}
+                    title="Delete"
                   >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Delete
+                    <Trash2 className="h-3 w-3" />
                   </Button>
-                </CardFooter>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -306,18 +315,18 @@ export default function Compositions() {
       
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Composition</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{selectedComposition?.name}"? This action cannot be undone.
+            <AlertDialogDescription className="text-xs">
+              Are you sure you want to delete "{selectedComposition?.name}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="h-8 text-xs">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              className="h-8 text-xs bg-destructive hover:bg-destructive/90 text-white"
             >
               Delete
             </AlertDialogAction>
@@ -336,11 +345,11 @@ export default function Compositions() {
           </DialogHeader>
           
           {selectedComposition && (
-            <ScrollArea className="mt-4 max-h-[50vh]">
-              <div className="space-y-4">
+            <ScrollArea className="mt-2 max-h-[50vh]">
+              <div className="space-y-3">
                 {selectedComposition.contextDocuments.length > 0 && (
-                  <div className="bg-muted/30 p-3 rounded-md">
-                    <h4 className="text-sm font-medium mb-2">Context Documents</h4>
+                  <div className="bg-muted/20 p-2 rounded-md">
+                    <h4 className="text-xs font-medium mb-1">Context Documents</h4>
                     <div className="flex flex-wrap gap-1">
                       {selectedComposition.contextDocuments.map((doc) => (
                         <Badge key={doc.id} variant="secondary" className="text-xs">
@@ -351,16 +360,32 @@ export default function Compositions() {
                   </div>
                 )}
                 
-                <div className="whitespace-pre-wrap">
+                <div className="whitespace-pre-wrap text-sm">
                   {selectedComposition.content}
                 </div>
               </div>
             </ScrollArea>
           )}
           
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-2 space-x-2">
             <Button
               variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => {
+                if (selectedComposition) {
+                  handlePushToAI(selectedComposition);
+                  setShowViewDialog(false);
+                }
+              }}
+            >
+              <Send className="h-3.5 w-3.5 mr-1.5" />
+              Push to AI
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
               onClick={() => {
                 if (selectedComposition) {
                   handleOpenDocument(selectedComposition);
@@ -368,11 +393,11 @@ export default function Compositions() {
                 }
               }}
             >
-              <FileText className="h-4 w-4 mr-2" />
+              <FileText className="h-3.5 w-3.5 mr-1.5" />
               Open in Editor
             </Button>
             <DialogClose asChild>
-              <Button>Close</Button>
+              <Button size="sm" className="h-8">Close</Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>
