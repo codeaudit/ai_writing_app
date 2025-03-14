@@ -1,12 +1,8 @@
 ---
-title:
-  '[object Object]': null
-date:
-  '[object Object]': null
-tags: []
 id: doc-1741945192434-qev3k9b
+name: default
 createdAt: '2025-03-14T09:39:52.434Z'
-updatedAt: '2025-03-14T09:44:55.532Z'
+updatedAt: '2025-03-14T09:54:12.022Z'
 versions:
   - id: ver-1741945495532
     createdAt: '2025-03-14T09:44:55.532Z'

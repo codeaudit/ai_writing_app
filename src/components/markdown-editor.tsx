@@ -18,6 +18,7 @@ import { MarkdownRenderer } from "./markdown-renderer";
 import { AnnotationDialog } from "./annotation-dialog";
 import { TokenCounterDialog } from "./token-counter-dialog";
 import { CompositionComposer } from "./composition-composer";
+import matter from "gray-matter";
 
 // Dynamically import components that might cause hydration issues
 const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.default), { ssr: false });
@@ -212,7 +213,51 @@ const MarkdownEditor = forwardRef<
 
   useEffect(() => {
     if (selectedDocument) {
-      setContent(selectedDocument.content);
+      // Check if the content already has frontmatter
+      const hasFrontmatter = /^---\n[\s\S]*?\n---/.test(selectedDocument.content);
+      
+      if (hasFrontmatter) {
+        // Content already has frontmatter, use it as is
+        setContent(selectedDocument.content);
+      } else {
+        // Generate frontmatter for the document
+        const frontmatter = {
+          id: selectedDocument.id,
+          name: selectedDocument.name,
+          createdAt: selectedDocument.createdAt instanceof Date 
+            ? selectedDocument.createdAt.toISOString() 
+            : new Date(selectedDocument.createdAt).toISOString(),
+          updatedAt: selectedDocument.updatedAt instanceof Date 
+            ? selectedDocument.updatedAt.toISOString() 
+            : new Date(selectedDocument.updatedAt).toISOString(),
+          versions: selectedDocument.versions.map(v => ({
+            id: v.id,
+            createdAt: v.createdAt instanceof Date 
+              ? v.createdAt.toISOString() 
+              : new Date(v.createdAt).toISOString(),
+            message: v.message
+          })),
+          annotations: selectedDocument.annotations.map(anno => ({
+            id: anno.id,
+            documentId: anno.documentId,
+            startOffset: anno.startOffset,
+            endOffset: anno.endOffset,
+            content: anno.content,
+            color: anno.color,
+            createdAt: anno.createdAt instanceof Date 
+              ? anno.createdAt.toISOString() 
+              : new Date(anno.createdAt).toISOString(),
+            updatedAt: anno.updatedAt instanceof Date 
+              ? anno.updatedAt.toISOString() 
+              : new Date(anno.updatedAt).toISOString(),
+            tags: anno.tags
+          }))
+        };
+        
+        // Create content with frontmatter
+        const contentWithFrontmatter = matter.stringify(selectedDocument.content, frontmatter);
+        setContent(contentWithFrontmatter);
+      }
     } else {
       setContent("");
     }
@@ -338,6 +383,39 @@ const MarkdownEditor = forwardRef<
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       setContent(value);
+      
+      if (isAutoSaveEnabled) {
+        // Clear any existing auto-save timer
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+        }
+        
+        // Set a new timer for auto-save
+        autoSaveTimerRef.current = setTimeout(() => {
+          saveContent(value);
+        }, 1000); // Auto-save after 1 second of inactivity
+      }
+    }
+  };
+
+  const saveContent = (valueToSave: string) => {
+    if (!selectedDocumentId || !selectedDocument) return;
+    
+    setIsSaving(true);
+    
+    try {
+      // Parse the content to separate frontmatter and actual content
+      const { data, content: actualContent } = matter(valueToSave);
+      
+      // Update the document with the actual content (without frontmatter)
+      updateDocument(selectedDocumentId, { content: actualContent }, false);
+    } catch (error) {
+      console.error("Error parsing frontmatter:", error);
+      
+      // If parsing fails, save the content as is
+      updateDocument(selectedDocumentId, { content: valueToSave }, false);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -345,22 +423,46 @@ const MarkdownEditor = forwardRef<
     if (selectedDocumentId && selectedDocument && content !== selectedDocument.content) {
       setIsSaving(true);
       
-      // Always create a version when manually saving
-      setTimeout(() => {
-        updateDocument(
-          selectedDocumentId, 
-          { content }, 
-          true, // Always create version for manual saves
-          `Manual save on ${new Date().toLocaleString()}`
-        );
-        setIsSaving(false);
+      try {
+        // Parse the content to separate frontmatter and actual content
+        const { data, content: actualContent } = matter(content);
         
-        // Show toast notification
-        toast({
-          title: "Document saved",
-          description: "A new version has been created.",
-        });
-      }, 300);
+        // Always create a version when manually saving
+        setTimeout(() => {
+          updateDocument(
+            selectedDocumentId, 
+            { content: actualContent }, 
+            true, // Always create version for manual saves
+            `Manual save on ${new Date().toLocaleString()}`
+          );
+          setIsSaving(false);
+          
+          // Show toast notification
+          toast({
+            title: "Document saved",
+            description: "A new version has been created.",
+          });
+        }, 300);
+      } catch (error) {
+        console.error("Error parsing frontmatter:", error);
+        
+        // If parsing fails, save the content as is
+        setTimeout(() => {
+          updateDocument(
+            selectedDocumentId, 
+            { content }, 
+            true,
+            `Manual save on ${new Date().toLocaleString()}`
+          );
+          setIsSaving(false);
+          
+          // Show toast notification
+          toast({
+            title: "Document saved",
+            description: "A new version has been created.",
+          });
+        }, 300);
+      }
     }
   }, [selectedDocumentId, content, selectedDocument, updateDocument, toast]);
 
