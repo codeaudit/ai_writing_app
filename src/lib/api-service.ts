@@ -227,4 +227,43 @@ export const moveFolderOnServer = async (id: string, targetParentId: string | nu
     console.error('Error moving folder:', error);
     throw error;
   }
+};
+
+// Fetch templates from the server
+export const fetchTemplates = async (): Promise<{ name: string; path: string }[]> => {
+  try {
+    const response = await fetch('/api/templates');
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch templates');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    return [];
+  }
+};
+
+// Process a template with variables
+export const processTemplate = async (templateName: string, variables: Record<string, string>): Promise<string> => {
+  try {
+    const response = await fetch(`/api/templates?name=${encodeURIComponent(templateName)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(variables),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to process template');
+    }
+    
+    const data = await response.json();
+    return data.content;
+  } catch (error) {
+    console.error('Error processing template:', error);
+    throw error;
+  }
 }; 

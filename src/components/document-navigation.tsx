@@ -4,13 +4,14 @@ import { useState, useRef, useCallback, useContext, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download } from "lucide-react";
+import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download, FileText } from "lucide-react";
 import { useDocumentStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { VersionHistory } from "./version-history";
 import { toast } from "@/components/ui/use-toast";
+import { TemplateDialog } from "./template-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +55,7 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
   const [newItemName, setNewItemName] = useState("");
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   
   const router = useRouter();
   const {
@@ -201,6 +203,9 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
             <DropdownMenuItem onClick={() => setIsCreatingDocument(true)}>
               New Document
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowTemplateDialog(true)}>
+              New from Template
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setIsCreatingFolder(true)}>
               New Folder
             </DropdownMenuItem>
@@ -306,6 +311,14 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
           isOpen={showTokenCounterDialog}
           onClose={() => setShowTokenCounterDialog(false)}
           documents={selectedDocuments}
+        />
+      )}
+
+      {showTemplateDialog && (
+        <TemplateDialog
+          open={showTemplateDialog}
+          onOpenChange={setShowTemplateDialog}
+          folderId={folder.id}
         />
       )}
     </div>
@@ -554,6 +567,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, type: 'folder' | 'document' } | null>(null);
   const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredDocuments = documents.filter(doc => 
@@ -865,6 +879,15 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           <Button
             variant="ghost" 
             size="icon" 
+            onClick={() => setShowTemplateDialog(true)}
+            title="Create from template"
+            className="h-6 w-6"
+          >
+            <FileText className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost" 
+            size="icon" 
             onClick={() => setIsCreatingFolder(true)}
             title="Create new folder"
             className="h-6 w-6"
@@ -1019,6 +1042,14 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           isOpen={showTokenCounterDialog}
           onClose={() => setShowTokenCounterDialog(false)}
           documents={selectedDocuments}
+        />
+      )}
+
+      {showTemplateDialog && (
+        <TemplateDialog
+          open={showTemplateDialog}
+          onOpenChange={setShowTemplateDialog}
+          folderId={null}
         />
       )}
     </div>

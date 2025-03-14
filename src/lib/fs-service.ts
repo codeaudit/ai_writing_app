@@ -8,6 +8,9 @@ import yaml from 'js-yaml';
 // Base directory for all files and folders (the vault)
 const VAULT_DIR = path.join(process.cwd(), 'vault');
 
+// Templates directory
+const TEMPLATES_DIR = path.join(VAULT_DIR, 'templates');
+
 // Ensure vault directory exists
 try {
   if (!fs.existsSync(VAULT_DIR)) {
@@ -15,6 +18,33 @@ try {
   }
 } catch (error) {
   console.error('Error creating vault directory:', error);
+}
+
+// Ensure templates directory exists
+try {
+  if (!fs.existsSync(TEMPLATES_DIR)) {
+    fs.mkdirSync(TEMPLATES_DIR, { recursive: true });
+    
+    // Create a default template
+    const defaultTemplate = `---
+title: {{title}}
+date: {{date}}
+tags: []
+---
+
+# {{title}}
+
+Created on {{date}}
+
+## Overview
+
+Start writing here...
+`;
+    
+    fs.writeFileSync(path.join(TEMPLATES_DIR, 'default.md'), defaultTemplate, 'utf8');
+  }
+} catch (error) {
+  console.error('Error creating templates directory:', error);
 }
 
 // File paths for metadata index
@@ -49,7 +79,7 @@ const writeJsonFile = (filePath: string, data: any) => {
     ensureDir(path.dirname(filePath));
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
   } catch (error) {
-    console.error(`Error writing to ${filePath}:`, error);
+    console.error(`Error writing JSON file ${filePath}:`, error);
     throw error;
   }
 };
@@ -883,4 +913,57 @@ export const updateLinks = (oldName: string, newName: string) => {
 // Helper to escape special characters in regex
 const escapeRegExp = (string: string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+// Get all available templates
+export const getTemplates = (): { name: string; path: string }[] => {
+  try {
+    if (!fs.existsSync(TEMPLATES_DIR)) {
+      return [];
+    }
+    
+    const templateFiles = fs.readdirSync(TEMPLATES_DIR)
+      .filter(file => file.endsWith('.md'))
+      .map(file => ({
+        name: file.replace(/\.md$/, ''),
+        path: path.join(TEMPLATES_DIR, file)
+      }));
+    
+    return templateFiles;
+  } catch (error) {
+    console.error('Error getting templates:', error);
+    return [];
+  }
+};
+
+// Process a template with variable substitution
+export const processTemplate = (templateName: string, variables: Record<string, string>): string => {
+  try {
+    const templatePath = path.join(TEMPLATES_DIR, `${templateName}.md`);
+    
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`Template ${templateName} not found`);
+    }
+    
+    let templateContent = fs.readFileSync(templatePath, 'utf8');
+    
+    // Default variables
+    const defaultVariables = {
+      date: new Date().toISOString(),
+      time: new Date().toLocaleTimeString(),
+      timestamp: Date.now().toString(),
+      ...variables
+    };
+    
+    // Replace variables in the template
+    Object.entries(defaultVariables).forEach(([key, value]) => {
+      const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+      templateContent = templateContent.replace(regex, value);
+    });
+    
+    return templateContent;
+  } catch (error) {
+    console.error(`Error processing template ${templateName}:`, error);
+    throw error;
+  }
 }; 
