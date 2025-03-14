@@ -213,51 +213,8 @@ const MarkdownEditor = forwardRef<
 
   useEffect(() => {
     if (selectedDocument) {
-      // Check if the content already has frontmatter
-      const hasFrontmatter = /^---\n[\s\S]*?\n---/.test(selectedDocument.content);
-      
-      if (hasFrontmatter) {
-        // Content already has frontmatter, use it as is
-        setContent(selectedDocument.content);
-      } else {
-        // Generate frontmatter for the document
-        const frontmatter = {
-          id: selectedDocument.id,
-          name: selectedDocument.name,
-          createdAt: selectedDocument.createdAt instanceof Date 
-            ? selectedDocument.createdAt.toISOString() 
-            : new Date(selectedDocument.createdAt).toISOString(),
-          updatedAt: selectedDocument.updatedAt instanceof Date 
-            ? selectedDocument.updatedAt.toISOString() 
-            : new Date(selectedDocument.updatedAt).toISOString(),
-          versions: selectedDocument.versions.map(v => ({
-            id: v.id,
-            createdAt: v.createdAt instanceof Date 
-              ? v.createdAt.toISOString() 
-              : new Date(v.createdAt).toISOString(),
-            message: v.message
-          })),
-          annotations: selectedDocument.annotations.map(anno => ({
-            id: anno.id,
-            documentId: anno.documentId,
-            startOffset: anno.startOffset,
-            endOffset: anno.endOffset,
-            content: anno.content,
-            color: anno.color,
-            createdAt: anno.createdAt instanceof Date 
-              ? anno.createdAt.toISOString() 
-              : new Date(anno.createdAt).toISOString(),
-            updatedAt: anno.updatedAt instanceof Date 
-              ? anno.updatedAt.toISOString() 
-              : new Date(anno.updatedAt).toISOString(),
-            tags: anno.tags
-          }))
-        };
-        
-        // Create content with frontmatter
-        const contentWithFrontmatter = matter.stringify(selectedDocument.content, frontmatter);
-        setContent(contentWithFrontmatter);
-      }
+      // Just set the content as is, without generating frontmatter
+      setContent(selectedDocument.content);
     } else {
       setContent("");
     }
@@ -404,11 +361,17 @@ const MarkdownEditor = forwardRef<
     setIsSaving(true);
     
     try {
-      // Parse the content to separate frontmatter and actual content
-      const { data, content: actualContent } = matter(valueToSave);
-      
-      // Update the document with the actual content (without frontmatter)
-      updateDocument(selectedDocumentId, { content: actualContent }, false);
+      // Check if content has frontmatter
+      if (/^---\n[\s\S]*?\n---/.test(valueToSave)) {
+        // Parse the content to separate frontmatter and actual content
+        const { data, content: actualContent } = matter(valueToSave);
+        
+        // Update the document with the actual content (without frontmatter)
+        updateDocument(selectedDocumentId, { content: valueToSave }, false);
+      } else {
+        // No frontmatter, save as is
+        updateDocument(selectedDocumentId, { content: valueToSave }, false);
+      }
     } catch (error) {
       console.error("Error parsing frontmatter:", error);
       
@@ -424,14 +387,11 @@ const MarkdownEditor = forwardRef<
       setIsSaving(true);
       
       try {
-        // Parse the content to separate frontmatter and actual content
-        const { data, content: actualContent } = matter(content);
-        
         // Always create a version when manually saving
         setTimeout(() => {
           updateDocument(
             selectedDocumentId, 
-            { content: actualContent }, 
+            { content }, 
             true, // Always create version for manual saves
             `Manual save on ${new Date().toLocaleString()}`
           );
@@ -444,7 +404,7 @@ const MarkdownEditor = forwardRef<
           });
         }, 300);
       } catch (error) {
-        console.error("Error parsing frontmatter:", error);
+        console.error("Error saving document:", error);
         
         // If parsing fails, save the content as is
         setTimeout(() => {

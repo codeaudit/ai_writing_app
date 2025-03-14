@@ -4,6 +4,8 @@ import path from 'path';
 import { Document, Folder, DocumentVersion } from './store';
 import matter from 'gray-matter';
 import yaml from 'js-yaml';
+import nunjucks from 'nunjucks';
+import { format } from 'date-fns';
 
 // Base directory for all files and folders (the vault)
 const VAULT_DIR = path.join(process.cwd(), 'vault');
@@ -27,21 +29,159 @@ try {
     
     // Create a default template
     const defaultTemplate = `---
-title: {{title}}
-date: {{date}}
+title: {{ title }}
+date: {{ date }}
 tags: []
 ---
 
-# {{title}}
+# {{ title }}
 
-Created on {{date}}
+Created on {{ date | dateFormat('MMMM d, yyyy') }} at {{ time | timeFormat }}
 
 ## Overview
 
+{% if description %}
+{{ description }}
+{% else %}
 Start writing here...
+{% endif %}
+
+## Sections
+
+{% for i in range(1, 4) %}
+### Section {{ i }}
+
+Content for section {{ i }} goes here.
+
+{% endfor %}
+
+## Notes
+
+- Use **bold** for important points
+- Use *italic* for emphasis
+- Use \`code\` for code snippets
+
+---
+
+*Document created with {{ title | slugify }} template*
 `;
     
     fs.writeFileSync(path.join(TEMPLATES_DIR, 'default.md'), defaultTemplate, 'utf8');
+    
+    // Create a meeting notes template
+    const meetingTemplate = `---
+title: {{ title }}
+date: {{ date }}
+type: meeting
+attendees: []
+tags: ['meeting', 'notes']
+---
+
+# {{ title }}
+
+**Date:** {{ date | dateFormat('MMMM d, yyyy') }}
+**Time:** {{ time | timeFormat }}
+{% if location %}**Location:** {{ location }}{% endif %}
+
+## Attendees
+
+{% if attendees %}
+{% for attendee in attendees %}
+- {{ attendee }}
+{% endfor %}
+{% else %}
+- (Add attendees)
+{% endif %}
+
+## Agenda
+
+1. Introduction
+2. Discussion Points
+3. Action Items
+4. Next Steps
+
+## Notes
+
+### Discussion Points
+
+- 
+
+### Decisions Made
+
+- 
+
+### Action Items
+
+| Action | Owner | Due Date |
+|--------|-------|----------|
+|        |       |          |
+
+## Next Meeting
+
+**Date:** (TBD)
+**Time:** (TBD)
+`;
+    
+    fs.writeFileSync(path.join(TEMPLATES_DIR, 'meeting.md'), meetingTemplate, 'utf8');
+    
+    // Create a daily journal template
+    const journalTemplate = `---
+title: Daily Journal - {{ date | dateFormat('MMMM d, yyyy') }}
+date: {{ date }}
+type: journal
+tags: ['journal', 'daily']
+---
+
+# Daily Journal - {{ date | dateFormat('MMMM d, yyyy') }}
+
+## Morning Thoughts
+
+{% if morningThoughts %}
+{{ morningThoughts }}
+{% else %}
+Write your morning thoughts here...
+{% endif %}
+
+## Today's Goals
+
+{% if goals %}
+{% for goal in goals %}
+- [ ] {{ goal }}
+{% endfor %}
+{% else %}
+- [ ] Goal 1
+- [ ] Goal 2
+- [ ] Goal 3
+{% endif %}
+
+## Notes Throughout the Day
+
+### Morning
+
+- 
+
+### Afternoon
+
+- 
+
+### Evening
+
+- 
+
+## Reflection
+
+What went well today?
+
+What could have gone better?
+
+What did I learn?
+
+---
+
+*Journal entry for {{ date | dateFormat('EEEE, MMMM d, yyyy') }}*
+`;
+    
+    fs.writeFileSync(path.join(TEMPLATES_DIR, 'journal.md'), journalTemplate, 'utf8');
   }
 } catch (error) {
   console.error('Error creating templates directory:', error);
@@ -936,7 +1076,62 @@ export const getTemplates = (): { name: string; path: string }[] => {
   }
 };
 
-// Process a template with variable substitution
+// Configure Nunjucks
+const configureNunjucks = () => {
+  const env = nunjucks.configure({ 
+    autoescape: false,
+    trimBlocks: true,
+    lstripBlocks: true
+  });
+  
+  // Add custom filters
+  env.addFilter('dateFormat', (date, formatStr = 'PPP') => {
+    try {
+      return format(new Date(date), formatStr);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return date;
+    }
+  });
+  
+  env.addFilter('timeFormat', (date, formatStr = 'p') => {
+    try {
+      return format(new Date(date), formatStr);
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return date;
+    }
+  });
+  
+  env.addFilter('lowercase', (str) => {
+    return String(str).toLowerCase();
+  });
+  
+  env.addFilter('uppercase', (str) => {
+    return String(str).toUpperCase();
+  });
+  
+  env.addFilter('capitalize', (str) => {
+    return String(str).charAt(0).toUpperCase() + String(str).slice(1);
+  });
+  
+  env.addFilter('slugify', (str) => {
+    return String(str)
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+  });
+  
+  return env;
+};
+
+// Initialize Nunjucks
+const nunjucksEnv = configureNunjucks();
+
+// Process a template with variable substitution using Nunjucks
 export const processTemplate = (templateName: string, variables: Record<string, string>): string => {
   try {
     const templatePath = path.join(TEMPLATES_DIR, `${templateName}.md`);
@@ -950,18 +1145,20 @@ export const processTemplate = (templateName: string, variables: Record<string, 
     // Default variables
     const defaultVariables = {
       date: new Date().toISOString(),
+      dateFormatted: format(new Date(), 'PPP'),
       time: new Date().toLocaleTimeString(),
+      timeFormatted: format(new Date(), 'p'),
       timestamp: Date.now().toString(),
+      year: new Date().getFullYear().toString(),
+      month: (new Date().getMonth() + 1).toString().padStart(2, '0'),
+      day: new Date().getDate().toString().padStart(2, '0'),
       ...variables
     };
     
-    // Replace variables in the template
-    Object.entries(defaultVariables).forEach(([key, value]) => {
-      const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-      templateContent = templateContent.replace(regex, value);
-    });
+    // Process the template with Nunjucks
+    const processedContent = nunjucksEnv.renderString(templateContent, defaultVariables);
     
-    return templateContent;
+    return processedContent;
   } catch (error) {
     console.error(`Error processing template ${templateName}:`, error);
     throw error;

@@ -1,10 +1,10 @@
 ---
 id: doc-1741739766314-links
+name: Internal Links
 createdAt: '2025-03-12T00:36:06.314Z'
-updatedAt: '2025-03-12T00:36:06.314Z'
-tags:
-  - reference
-  - linking
+updatedAt: '2025-03-14T10:17:06.265Z'
+versions: []
+annotations: []
 ---
 # Internal Links
 

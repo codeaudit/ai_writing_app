@@ -12,6 +12,7 @@ import "katex/dist/katex.min.css";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useToast } from "@/components/ui/use-toast";
+import matter from "gray-matter";
 
 interface MarkdownRendererProps {
   content: string;
@@ -22,11 +23,29 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
   const { documents, selectDocument } = useDocumentStore();
   const { toast } = useToast();
 
-  // Process internal links in the format [[Link Name]]
-  const processedContent = content.replace(
-    /\[\[(.*?)\]\]/g,
-    (match, linkText) => `[${linkText}](#internal-link-${encodeURIComponent(linkText)})`
-  );
+  // Strip frontmatter before rendering
+  const stripFrontmatter = (content: string) => {
+    try {
+      // Use gray-matter to parse the content and extract the body without frontmatter
+      const { content: bodyContent } = matter(content);
+      return bodyContent;
+    } catch (error) {
+      console.error("Error parsing frontmatter:", error);
+      return content;
+    }
+  };
+
+  // Process the content to remove frontmatter and process internal links
+  const processedContent = useCallback((rawContent: string) => {
+    // First strip frontmatter
+    const contentWithoutFrontmatter = stripFrontmatter(rawContent);
+    
+    // Then process internal links
+    return contentWithoutFrontmatter.replace(
+      /\[\[(.*?)\]\]/g,
+      (match, linkText) => `[${linkText}](#internal-link-${encodeURIComponent(linkText)})`
+    );
+  }, []);
 
   // Handle internal link clicks
   const handleLinkClick = useCallback(
@@ -107,7 +126,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
           },
         }}
       >
-        {processedContent}
+        {processedContent(content)}
       </ReactMarkdown>
     </div>
   );
