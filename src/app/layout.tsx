@@ -8,7 +8,7 @@ import ConfigInitializer from "@/components/config-initializer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AI Whisperer Toolbox",
+  title: "The AI Whisperer's Toolbox",
   description: "AI Whispere Toolbox",
 };
 

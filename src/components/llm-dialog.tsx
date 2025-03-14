@@ -342,11 +342,10 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
   return (
     <>
       <Popover open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <PopoverAnchor asChild>
-          <div 
-            style={{ 
+        <PopoverAnchor>
+          <div style={{ 
               position: 'absolute', 
-              left: position?.x || editorLeftPosition, 
+              left: position?.x || 0, 
               top: position?.y || 0,
               width: '1px',
               height: '1px'
@@ -423,26 +422,33 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
         </PopoverContent>
       </Popover>
       
-      <AlertDialog open={showConfirmation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Apply Changes?</AlertDialogTitle>
-            <AlertDialogDescription>
+      {showConfirmation && (
+        <div 
+          className="fixed z-50 bg-background border rounded-lg shadow-lg p-4 w-80"
+          style={{
+            left: `${editorLeftPosition + 100}px`,
+            top: '50%',
+            transform: 'translateY(-50%)'
+          }}
+        >
+          <div className="space-y-4">
+            <div className="font-medium">Apply Changes?</div>
+            <div className="text-sm text-muted-foreground">
               Do you want to apply the generated text and remove the original selection?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleRejectChanges}>
-              <X className="h-4 w-4 mr-2" />
-              Reject
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleAcceptChanges}>
-              <Check className="h-4 w-4 mr-2" />
-              Accept
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </div>
+            <div className="flex justify-end space-x-2 pt-2">
+              <Button variant="outline" onClick={handleRejectChanges} className="h-8 px-3 text-xs">
+                <X className="h-3 w-3 mr-2" />
+                Reject
+              </Button>
+              <Button onClick={handleAcceptChanges} className="h-8 px-3 text-xs">
+                <Check className="h-3 w-3 mr-2" />
+                Accept
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 } 

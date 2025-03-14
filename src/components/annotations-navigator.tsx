@@ -130,8 +130,8 @@ export default function AnnotationsNavigator({
   const handleNavigateToAnnotation = (documentId: string, annotation: Annotation) => {
     if (onNavigateToAnnotation) {
       onNavigateToAnnotation(documentId, annotation);
-      // Update URL to reflect the document being viewed
-      router.push(`/documents/${documentId}`);
+      // Remove the router.push call to prevent tab switching
+      // router.push(`/documents/${documentId}`);
     }
   };
 

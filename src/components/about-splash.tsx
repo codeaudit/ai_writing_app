@@ -55,7 +55,7 @@ export function AboutSplash({ isOpen, onClose }: AboutSplashProps) {
           <div className="relative z-10 flex min-h-[400px] flex-col items-center justify-center p-8">
             {/* Hyper Text Animation */}
             <div className="mb-8 text-center">
-              <HyperText duration={100}>AI Whisperer Toolbox</HyperText>
+              <HyperText duration={100}>The AI Whisperer's Toolbox</HyperText>
 
                 
               <motion.p 
