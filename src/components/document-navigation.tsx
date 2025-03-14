@@ -130,12 +130,12 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
     <div>
       <div 
         className={cn(
-          "flex items-center gap-1 py-0.5 px-1 rounded-sm hover:bg-muted/50 group",
+          "flex items-center gap-0.5 py-0.5 px-1 rounded-sm hover:bg-muted/50 group",
           selectedFolderId === folder.id && "bg-muted/70"
         )}
         style={{ paddingLeft: `${level * 8 + 2}px` }}
       >
-        <div className="flex items-center justify-center w-4 h-4 mr-0.5">
+        <div className="flex items-center justify-center w-4 h-4 mr-0">
           <Checkbox
             checked={isFolderSelected}
             className={cn(
@@ -158,7 +158,7 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
           )}
         </button>
         
-        <Folder className="h-3 w-3 text-muted-foreground" />
+        <Folder className="h-3 w-3 text-muted-foreground ml-0.5" />
         
         {isRenaming ? (
           <Input
@@ -377,13 +377,13 @@ function DocumentItem({ document, level }: DocumentItemProps) {
     <>
       <div
         className={cn(
-          "flex items-center gap-1 py-0.5 px-1 rounded-sm hover:bg-muted/50 group",
+          "flex items-center gap-0.5 py-0.5 px-1 rounded-sm hover:bg-muted/50 group",
           selectedDocumentId === document.id && "bg-muted/70",
           comparisonDocumentIds.includes(document.id) && "border-l border-primary"
         )}
-        style={{ paddingLeft: `${level * 8 + 14}px` }}
+        style={{ paddingLeft: `${level * 8 + 2}px` }}
       >
-        <div className="flex items-center justify-center w-4 h-4 mr-0.5">
+        <div className="flex items-center justify-center w-4 h-4 mr-0">
           <Checkbox
             checked={comparisonDocumentIds.includes(document.id)}
             onCheckedChange={handleToggleComparison}
@@ -394,7 +394,9 @@ function DocumentItem({ document, level }: DocumentItemProps) {
           />
         </div>
         
-        <File className="h-3 w-3 text-muted-foreground" />
+        <div className="w-3 h-3"></div>
+        
+        <File className="h-3 w-3 text-muted-foreground ml-0.5" />
         
         {isRenaming ? (
           <Input
@@ -875,19 +877,10 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
             variant={comparisonMode ? "secondary" : "outline"}
             size="sm"
             onClick={toggleComparisonMode}
-            className={cn("h-6 text-xs px-2", comparisonMode && "bg-primary text-primary-foreground")}
+            className={cn("h-6 w-6 p-0", comparisonMode && "bg-primary text-primary-foreground")}
+            title={comparisonMode ? "Cancel selection mode" : "Enter selection mode"}
           >
-            <GitCompare className="h-3 w-3 mr-1" />
-            {comparisonMode ? "Cancel" : "Select"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTokenCounterDialog(true)}
-            disabled={comparisonDocumentIds.length === 0}
-            className="h-6 text-xs px-2"
-          >
-            Compose
+            <GitCompare className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
