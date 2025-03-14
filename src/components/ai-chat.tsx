@@ -505,10 +505,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     localStorage.setItem('aiComposerContext', JSON.stringify(updatedComposerContext));
     
     // Dispatch event to notify other components
-    const event = new CustomEvent('aiContextUpdated', { 
-      detail: { context: updatedComposerContext }
-    });
-    window.dispatchEvent(event);
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('aiContextUpdated', { 
+        detail: { context: updatedComposerContext }
+      });
+      window.dispatchEvent(event);
+    }
   };
   
   const handleClearAllContextDocuments = () => {
@@ -520,10 +522,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     localStorage.removeItem('aiComposerContext');
     
     // Dispatch event to notify other components
-    const event = new CustomEvent('aiContextUpdated', { 
-      detail: { context: [] }
-    });
-    window.dispatchEvent(event);
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('aiContextUpdated', { 
+        detail: { context: [] }
+      });
+      window.dispatchEvent(event);
+    }
   };
 
   // Add a focus event handler for the textarea

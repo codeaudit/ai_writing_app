@@ -160,10 +160,13 @@ export function CompositionComposer({
       localStorage.setItem('aiComposerContext', JSON.stringify(mergedContext));
       
       // Create a custom event to notify the AI composer about the context update
-      const event = new CustomEvent('aiContextUpdated', { 
-        detail: { context: mergedContext }
-      });
-      window.dispatchEvent(event);
+      // Only create and dispatch the event if we're in a browser environment
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent('aiContextUpdated', { 
+          detail: { context: mergedContext }
+        });
+        window.dispatchEvent(event);
+      }
       
       toast({
         title: "Added to AI context",

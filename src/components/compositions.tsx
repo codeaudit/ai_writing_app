@@ -174,39 +174,42 @@ export default function Compositions() {
       // Set the context documents in localStorage
       localStorage.setItem('aiComposerContext', JSON.stringify(validContextDocuments));
       
-      // First dispatch event to switch to the AI Composer tab
-      const switchTabEvent = new CustomEvent('switchToAIComposer');
-      window.dispatchEvent(switchTabEvent);
-      
-      // Small delay to ensure tab switch happens before other events
-      setTimeout(() => {
-        // Then dispatch event to update context
-        const contextEvent = new CustomEvent('aiContextUpdated', { 
-          detail: { context: validContextDocuments }
-        });
-        window.dispatchEvent(contextEvent);
-        console.log("Dispatched aiContextUpdated event with context:", validContextDocuments);
+      // Only create and dispatch events if we're in a browser environment
+      if (typeof window !== 'undefined') {
+        // First dispatch event to switch to the AI Composer tab
+        const switchTabEvent = new CustomEvent('switchToAIComposer');
+        window.dispatchEvent(switchTabEvent);
         
-        // Small delay to ensure context is updated before messages
+        // Small delay to ensure tab switch happens before other events
         setTimeout(() => {
-          // Finally, if there are messages, dispatch event to load them into the AI Chat
-          if (messages.length > 0) {
-            console.log("Dispatching aiChatMessagesLoaded event with messages:", messages);
-            const chatEvent = new CustomEvent('aiChatMessagesLoaded', { 
-              detail: { messages }
-            });
-            window.dispatchEvent(chatEvent);
-          } else {
-            console.log("No messages found in the composition, not dispatching aiChatMessagesLoaded event");
-          }
-          
-          toast({
-            title: "Pushed to AI Composer",
-            description: `"${composition.name}" has been loaded into the AI Composer with ${validContextDocuments.length} context document(s) and ${messages.length} message(s).`,
-            duration: 3000,
+          // Then dispatch event to update context
+          const contextEvent = new CustomEvent('aiContextUpdated', { 
+            detail: { context: validContextDocuments }
           });
+          window.dispatchEvent(contextEvent);
+          console.log("Dispatched aiContextUpdated event with context:", validContextDocuments);
+          
+          // Small delay to ensure context is updated before messages
+          setTimeout(() => {
+            // Finally, if there are messages, dispatch event to load them into the AI Chat
+            if (messages.length > 0) {
+              console.log("Dispatching aiChatMessagesLoaded event with messages:", messages);
+              const chatEvent = new CustomEvent('aiChatMessagesLoaded', { 
+                detail: { messages }
+              });
+              window.dispatchEvent(chatEvent);
+            } else {
+              console.log("No messages found in the composition, not dispatching aiChatMessagesLoaded event");
+            }
+            
+            toast({
+              title: "Pushed to AI Composer",
+              description: `"${composition.name}" has been loaded into the AI Composer with ${validContextDocuments.length} context document(s) and ${messages.length} message(s).`,
+              duration: 3000,
+            });
+          }, 100);
         }, 100);
-      }, 100);
+      }
     } catch (error) {
       console.error('Error pushing to AI:', error);
       toast({
