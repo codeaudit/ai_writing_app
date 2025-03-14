@@ -23,26 +23,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Loader2 } from "lucide-react";
+import { 
+  extractSchemaFromTemplate, 
+  parseZodSchema, 
+  generateInitialValues, 
+  validateValues,
+  SchemaField
+} from "@/lib/schema-parser";
+import { SchemaForm } from "@/components/schema-form";
 
 interface TemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   folderId?: string | null;
-}
-
-interface TemplateVariable {
-  name: string;
-  value: string;
-  description: string;
-}
-
-interface DetectedVariable {
-  name: string;
-  value: string;
 }
 
 export function TemplateDialog({ open, onOpenChange, folderId = null }: TemplateDialogProps) {
@@ -51,18 +47,16 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
   const [documentName, setDocumentName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("basic");
-  const [customVariables, setCustomVariables] = useState<TemplateVariable[]>([
-    { name: "description", value: "", description: "Brief description of the document" },
-    { name: "location", value: "", description: "Location (for meeting notes)" },
-    { name: "attendees", value: "", description: "Comma-separated list of attendees" },
-    { name: "goals", value: "", description: "Comma-separated list of goals" },
-    { name: "morningThoughts", value: "", description: "Morning thoughts for journal entries" },
-  ]);
   
-  // Add state for detected variables from template
-  const [detectedVariables, setDetectedVariables] = useState<DetectedVariable[]>([]);
+  // State for template content and schema
   const [templateContent, setTemplateContent] = useState<string>("");
   const [isFetchingTemplate, setIsFetchingTemplate] = useState<boolean>(false);
+  
+  // State for schema-based form
+  const [hasSchema, setHasSchema] = useState<boolean>(false);
+  const [schemaFields, setSchemaFields] = useState<Record<string, SchemaField>>({});
+  const [schemaValues, setSchemaValues] = useState<Record<string, any>>({});
+  const [schemaErrors, setSchemaErrors] = useState<Record<string, string>>({});
   
   const { addDocument } = useDocumentStore();
   const router = useRouter();
@@ -72,8 +66,9 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
       loadTemplates();
       // Reset form when dialog opens
       setDocumentName("");
-      setCustomVariables(customVariables.map(v => ({ ...v, value: "" })));
-      setDetectedVariables([]);
+      setSchemaValues({});
+      setSchemaErrors({});
+      setHasSchema(false);
     }
   }, [open]);
 
@@ -86,7 +81,7 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
       // Set default template if available
       if (templateList.length > 0) {
         setSelectedTemplate(templateList[0].name);
-        // Fetch the template content to scan for variables
+        // Fetch the template content to check for schema
         await fetchTemplateContent(templateList[0].name);
       }
     } catch (error) {
@@ -101,12 +96,15 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
     }
   };
 
-  // Function to fetch template content and scan for variables
+  // Function to fetch template content and extract schema
   const fetchTemplateContent = async (templateName: string) => {
     setIsFetchingTemplate(true);
+    setHasSchema(false);
+    setSchemaFields({});
+    setSchemaValues({});
+    
     try {
       // Fetch the template content from the server
-      // This is a mock implementation - you'll need to create an API endpoint to get the raw template content
       const response = await fetch(`/api/templates/content?name=${encodeURIComponent(templateName)}`);
       
       if (!response.ok) {
@@ -116,8 +114,27 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
       const { content } = await response.json();
       setTemplateContent(content);
       
-      // Scan for variables in the template
-      scanTemplateForVariables(content);
+      // Check if the template has a schema
+      const schema = extractSchemaFromTemplate(content);
+      
+      if (schema) {
+        // Parse the schema
+        const parsedSchema = parseZodSchema(schema);
+        setSchemaFields(parsedSchema);
+        
+        // Generate initial values
+        const initialValues = generateInitialValues(parsedSchema);
+        setSchemaValues(initialValues);
+        
+        setHasSchema(true);
+      } else {
+        // If no schema, show a message to the user
+        toast({
+          title: "No Schema Found",
+          description: "This template doesn't have a schema defined. Please add a schema to use advanced features.",
+          variant: "default",
+        });
+      }
     } catch (error) {
       console.error("Error fetching template content:", error);
       toast({
@@ -130,72 +147,13 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
     }
   };
 
-  // Function to scan template content for variables
-  const scanTemplateForVariables = (content: string) => {
-    // Reset detected variables
-    const newDetectedVariables: DetectedVariable[] = [];
+  // Function to handle schema form changes
+  const handleSchemaFormChange = (values: Record<string, any>) => {
+    setSchemaValues(values);
     
-    // Regular expression to find Nunjucks variables like {{ variable }}
-    // This regex looks for {{ variableName }} patterns, excluding some built-in variables
-    const variableRegex = /\{\{\s*([a-zA-Z0-9_]+)\s*(?:\|[^}]+)?\s*\}\}/g;
-    const builtInVariables = ['title', 'date', 'time', 'dateFormatted', 'timeFormatted', 'timestamp', 'year', 'month', 'day'];
-    
-    // Find all matches
-    let match;
-    const foundVariables = new Set<string>();
-    
-    while ((match = variableRegex.exec(content)) !== null) {
-      const variableName = match[1].trim();
-      
-      // Skip built-in variables and duplicates
-      if (!builtInVariables.includes(variableName) && !foundVariables.has(variableName)) {
-        foundVariables.add(variableName);
-        
-        // Check if this variable is already in customVariables
-        const existingVar = customVariables.find(v => v.name === variableName);
-        
-        newDetectedVariables.push({
-          name: variableName,
-          value: existingVar?.value || ""
-        });
-      }
-    }
-    
-    // Also scan for variables in for loops and if statements
-    // For example: {% for item in items %} or {% if variable %}
-    const controlRegex = /\{%\s*(?:for\s+\w+\s+in\s+([a-zA-Z0-9_]+)|if\s+([a-zA-Z0-9_]+))\s*%\}/g;
-    
-    while ((match = controlRegex.exec(content)) !== null) {
-      const variableName = (match[1] || match[2]).trim();
-      
-      // Skip built-in variables and duplicates
-      if (!builtInVariables.includes(variableName) && !foundVariables.has(variableName)) {
-        foundVariables.add(variableName);
-        
-        // Check if this variable is already in customVariables
-        const existingVar = customVariables.find(v => v.name === variableName);
-        
-        newDetectedVariables.push({
-          name: variableName,
-          value: existingVar?.value || ""
-        });
-      }
-    }
-    
-    setDetectedVariables(newDetectedVariables);
-  };
-
-  const updateCustomVariable = (index: number, value: string) => {
-    const updatedVariables = [...customVariables];
-    updatedVariables[index].value = value;
-    setCustomVariables(updatedVariables);
-  };
-
-  // Function to update detected variable value
-  const updateDetectedVariable = (index: number, value: string) => {
-    const updatedVariables = [...detectedVariables];
-    updatedVariables[index].value = value;
-    setDetectedVariables(updatedVariables);
+    // Validate the values
+    const errors = validateValues(values, schemaFields);
+    setSchemaErrors(errors);
   };
 
   const handleCreateDocument = async () => {
@@ -217,35 +175,38 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
       return;
     }
 
+    // If using schema, validate the values
+    if (hasSchema) {
+      const errors = validateValues(schemaValues, schemaFields);
+      setSchemaErrors(errors);
+      
+      if (Object.keys(errors).length > 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please fix the errors in the form",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
       // Process the template with variables
-      const variables: Record<string, string | string[]> = {
+      const variables: Record<string, any> = {
         title: documentName,
         date: new Date().toISOString(),
         time: new Date().toLocaleTimeString(),
       };
       
-      // Add custom variables
-      customVariables.forEach(variable => {
-        if (variable.value) {
-          // Handle special cases for arrays
-          if (variable.name === "attendees" || variable.name === "goals") {
-            variables[variable.name] = variable.value.split(',').map(item => item.trim());
-          } else {
-            variables[variable.name] = variable.value;
-          }
-        }
-      });
+      if (hasSchema) {
+        // Use schema values
+        Object.entries(schemaValues).forEach(([key, value]) => {
+          variables[key] = value;
+        });
+      }
       
-      // Add detected variables
-      detectedVariables.forEach(variable => {
-        if (variable.value) {
-          variables[variable.name] = variable.value;
-        }
-      });
-      
-      const content = await processTemplate(selectedTemplate, variables as Record<string, string>);
+      const content = await processTemplate(selectedTemplate, variables);
       
       // Create the document
       const newDocId = await addDocument(documentName, content, folderId);
@@ -272,17 +233,6 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
     }
   };
 
-  // Get relevant variables based on selected template
-  const getRelevantVariables = () => {
-    if (selectedTemplate === "meeting") {
-      return customVariables.filter(v => ["description", "location", "attendees"].includes(v.name));
-    } else if (selectedTemplate === "journal") {
-      return customVariables.filter(v => ["morningThoughts", "goals"].includes(v.name));
-    } else {
-      return customVariables.filter(v => ["description"].includes(v.name));
-    }
-  };
-
   // Handle template selection change
   const handleTemplateChange = async (templateName: string) => {
     setSelectedTemplate(templateName);
@@ -291,7 +241,7 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Document from Template</DialogTitle>
           <DialogDescription>
@@ -340,95 +290,42 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
                 </SelectContent>
               </Select>
             </div>
-            
-            {selectedTemplate && (
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="description" className="text-right pt-2">
-                  Description
-                </Label>
-                <Textarea
-                  id="description"
-                  value={customVariables.find(v => v.name === "description")?.value || ""}
-                  onChange={(e) => updateCustomVariable(
-                    customVariables.findIndex(v => v.name === "description"),
-                    e.target.value
-                  )}
-                  className="col-span-3 min-h-[80px]"
-                  placeholder="Brief description of the document"
-                />
-              </div>
-            )}
           </TabsContent>
           
           <TabsContent value="advanced" className="space-y-4">
+            {isFetchingTemplate ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading template...</span>
+              </div>
+            ) : hasSchema ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Template Variables</h3>
+                <SchemaForm
+                  schema={schemaFields}
+                  initialValues={schemaValues}
+                  onChange={handleSchemaFormChange}
+                  errors={schemaErrors}
+                />
+              </div>
+            ) : (
+              <div className="p-4 border rounded-md bg-muted/50">
+                <h3 className="text-lg font-medium mb-2">No Schema Defined</h3>
+                <p className="text-sm text-muted-foreground">
+                  This template doesn't have a schema defined. To use advanced features, 
+                  add a schema definition to your template using the following syntax:
+                </p>
+                <pre className="mt-2 p-2 bg-muted rounded-md text-xs overflow-x-auto">
+                  {`{% set schema = {
+  description: "z.string().describe('Brief description of the document')",
+  priority: "z.enum(['High', 'Medium', 'Low']).describe('Priority level')",
+  dueDate: "z.date().describe('When this is due')"
+} %}`}
+                </pre>
+              </div>
+            )}
+            
             <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="template-variables">
-                <AccordionTrigger>Template-Specific Variables</AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4">
-                    {getRelevantVariables().map((variable, index) => (
-                      <div key={variable.name} className="grid grid-cols-4 items-start gap-4">
-                        <Label htmlFor={variable.name} className="text-right pt-2">
-                          {variable.name.charAt(0).toUpperCase() + variable.name.slice(1)}
-                        </Label>
-                        {variable.name === "morningThoughts" ? (
-                          <Textarea
-                            id={variable.name}
-                            value={variable.value}
-                            onChange={(e) => updateCustomVariable(
-                              customVariables.findIndex(v => v.name === variable.name),
-                              e.target.value
-                            )}
-                            className="col-span-3 min-h-[80px]"
-                            placeholder={variable.description}
-                          />
-                        ) : (
-                          <Input
-                            id={variable.name}
-                            value={variable.value}
-                            onChange={(e) => updateCustomVariable(
-                              customVariables.findIndex(v => v.name === variable.name),
-                              e.target.value
-                            )}
-                            className="col-span-3"
-                            placeholder={variable.description}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-              
-              {detectedVariables.length > 0 && (
-                <AccordionItem value="detected-variables">
-                  <AccordionTrigger>
-                    Detected Template Variables
-                    {isFetchingTemplate && (
-                      <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                    )}
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4">
-                      {detectedVariables.map((variable, index) => (
-                        <div key={variable.name} className="grid grid-cols-4 items-start gap-4">
-                          <Label htmlFor={`detected-${variable.name}`} className="text-right pt-2">
-                            {variable.name.charAt(0).toUpperCase() + variable.name.slice(1)}
-                          </Label>
-                          <Input
-                            id={`detected-${variable.name}`}
-                            value={variable.value}
-                            onChange={(e) => updateDetectedVariable(index, e.target.value)}
-                            className="col-span-3"
-                            placeholder={`Value for ${variable.name}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              )}
-              
               <AccordionItem value="built-in-variables">
                 <AccordionTrigger>Built-in Variables</AccordionTrigger>
                 <AccordionContent>

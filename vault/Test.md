@@ -1,25 +1,37 @@
 ---
-id: doc-1741948320482
-createdAt: '2025-03-14T10:32:00.482Z'
-updatedAt: '2025-03-14T10:32:00.482Z'
+id: doc-1741954182261
+createdAt: '2025-03-14T12:09:42.261Z'
+updatedAt: '2025-03-14T12:09:42.261Z'
 versions:
-  - id: ver-1741948320482-initial
-    createdAt: '2025-03-14T10:32:00.482Z'
+  - id: ver-1741954182261-initial
+    createdAt: '2025-03-14T12:09:42.261Z'
     message: Initial version
 annotations: []
 ---
 
+
 # test
 
-Created on March 14th, 2025 at 6:32:00 AM
-
-## Description
+**Project Description**: test
+**Due Date**: March 14, 2025
+**Budget**: $1
+**Public**: Yes
+## Overview
 
 test
 
-## Overview
+## Team Members
 
+No team members assigned yet.
 
+## Tags
 
+No tags assigned.
 
-Start writing here...
+## Tasks
+
+- [ ] Task 1
+- [ ] Task 2
+- [ ] Task 3
+
+## Notes 

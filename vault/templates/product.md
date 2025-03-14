@@ -4,43 +4,47 @@ description: Template for creating product documentation
 ---
 
 {% set schema = {
-  productName: "z.string().min(2).max(100).describe('Product name')",
-  
-  price: "z.number().positive().describe('Product price in USD')",
-  
-  description: "z.string().optional().describe('Detailed product description')",
-  
-  inStock: "z.boolean().default(true).describe('Whether the product is available')",
-  
-  categories: "z.array(z.string()).min(1).describe('Product categories')",
-  
+  productName: "z.string().describe('Name of the product')",
+  category: "z.enum(['Electronics', 'Clothing', 'Food', 'Books', 'Home', 'Other']).describe('Product category')",
+  price: "z.number().positive().describe('Product price')",
+  inStock: "z.boolean().default(true).describe('Whether the product is in stock')",
   releaseDate: "z.date().describe('Product release date')",
-  
-  features: "z.array(z.string()).min(1).describe('Key product features')"
+  features: "z.array(z.string()).describe('Key product features')",
+  colors: "z.array(z.string()).describe('Available colors')"
 } %}
 
-# {{ productName }}
+# {{ title }}
 
-**Price:** ${{ price }}
-**Release Date:** {{ releaseDate | dateFormat('MMMM d, yyyy') }}
-**In Stock:** {{ inStock ? 'Yes' : 'No' }}
+## Product Information
 
-## Description
+**Name**: {{ productName }}
+**Category**: {{ category }}
+**Price**: ${{ price }}
+**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}
+**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}
 
-{{ description }}
+## Features
 
-## Categories
-
-{% for category in categories %}
-- {{ category }}
-{% endfor %}
-
-## Key Features
-
+{% if features.length > 0 %}
 {% for feature in features %}
 - {{ feature }}
 {% endfor %}
+{% else %}
+No features listed.
+{% endif %}
 
-## Additional Information
+## Available Colors
 
-This product was created on {{ date | dateFormat('MMMM d, yyyy') }}. 
+{% if colors.length > 0 %}
+{% for color in colors %}
+- {{ color }}
+{% endfor %}
+{% else %}
+No color options available.
+{% endif %}
+
+## Description
+
+Write your product description here...
+
+## Notes 

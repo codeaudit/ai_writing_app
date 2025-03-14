@@ -189,7 +189,7 @@
     ]
   },
   {
-    "id": "doc-1741951820976-v70vkbj",
+    "id": "doc-1741954183495-u6rud9s",
     "name": "Home.md",
     "content": "# Home\n\nWelcome to my Obsidian vault! This is the starting point.\n\nFrom here, you can navigate to other notes.\n\nSee my [[Daily Routine]] or learn more about [[Project Alpha]].\n\nThis is a simple example to demonstrate backlinks.\n\n\n\n\n**Explanation:**\n\n*   **Backlinks:** In Obsidian, backlinks are links *to* a note.  So, if you open `Daily Routine.md`, you'll see backlinks from `Home.md` and potentially `Project Alpha.md` (depending on how Obsidian displays them - sometimes it's only direct links, other times it's all mentions).  Similarly, `Project Alpha.md` will show backlinks from `Home.md` and `Daily Routine.md`.  `Home.md` will not show any backlinks.\n\n*   **Link Syntax:** Obsidian uses `[[ ... ]]` to create internal links.  `[[Note Name]]` creates a link to a note named \"Note Name\".  `[[Note Name|Display Text]]` creates a link to a note named \"Note Name\" but displays \"Display Text\" in the link.  This allows you to make the link more readable in context.\n\n*   **File Names:**  The file names (`Home.md`, `Daily Routine.md`, `Project Alpha.md`) are crucial. Obsidian uses the file name (without the `.md` extension) as the default \"note name\" for linking purposes.\n\n*   **Creating the Files:** To use this example:\n    1.  Open your Obsidian vault.\n    2.  Create three new files named `Home.md`, `Daily Routine.md`, and `Project Alpha.md`.\n    3.  Copy and paste the content for each file into the corresponding Obsidian file.\n    4.  Obsidian should automatically detect and display the backlinks.  Look for a \"Backlinks\" pane or section within Obsidian.  You might need to enable it in the Obsidian settings (Core Plugins -> Backlinks).\n\n*   **Purpose of the Example:** This example demonstrates how linking different notes together creates a network of information.  Obsidian's backlink feature helps you see how different ideas and concepts are connected in your vault.\n\n**How to Use This:**\n\n1.  **Copy and Paste:**  Copy the content of each file into a corresponding `.md` file in your Obsidian vault.\n2.  **Open the Backlinks Pane:** In Obsidian, make sure the \"Backlinks\" core plugin is enabled. Then, open the Backlinks pane (usually found in the right sidebar).\n3.  **Navigate:** Open each file and observe the backlinks that appear in the Backlinks pane.\n\nThis simple example should give you a good starting point for understanding and using backlinks in Obsidian. You can expand on this by creating more notes and linking them together in different ways. Remember to experiment and see how backlinks can help you organize and connect your ideas.\n",
     "createdAt": "2025-03-12T00:37:31.538Z",
@@ -212,7 +212,7 @@
     "annotations": []
   },
   {
-    "id": "doc-1741951820976-dfx2tyr",
+    "id": "doc-1741812680601",
     "name": "foo",
     "content": "\n\n## Prompt\n\ngenerate a sample obsidian file with backlinks\n\n## Response\n\nOkay, here's a set of three Obsidian files designed to demonstrate backlinks. I'll provide the content for each file separately, along with explanations.\n\n**File 1:  `Home.md`**\n\n```markdown\n# Home\n\nWelcome to my Obsidian vault! This is the starting point.\n\nFrom here, you can navigate to other notes. \n\nSee my [[Daily Routine]] or learn more about [[Project Alpha]].\n\nThis is a simple example to demonstrate backlinks.\n\n```\n\n**File 2:  `Daily Routine.md`**\n\n```markdown\n# Daily Routine\n\nThis note describes my daily routine.\n\nIt's important to maintain a consistent [[Home|home]] base to build from.\n\nMy morning usually starts with coffee.\n\nI often refer back to [[Project Alpha]] to keep my priorities straight.\n\n```\n\n**File 3:  `Project Alpha.md`**\n\n```markdown\n# Project Alpha\n\nThis note is about Project Alpha.\n\nIt's referenced from my [[Home|Home page]] and also my [[Daily Routine]].\n\nKey tasks include:\n* Task 1\n* Task 2\n\nThis is a very important [[Home|home]] project.\n```\n\n**Explanation:**\n\n*   **Backlinks:** In Obsidian, backlinks are links *to* a note.  So, if you open `Daily Routine.md`, you'll see backlinks from `Home.md` and potentially `Project Alpha.md` (depending on how Obsidian displays them - sometimes it's only direct links, other times it's all mentions).  Similarly, `Project Alpha.md` will show backlinks from `Home.md` and `Daily Routine.md`.  `Home.md` will not show any backlinks.\n\n*   **Link Syntax:** Obsidian uses `[[ ... ]]` to create internal links.  `[[Note Name]]` creates a link to a note named \"Note Name\".  `[[Note Name|Display Text]]` creates a link to a note named \"Note Name\" but displays \"Display Text\" in the link.  This allows you to make the link more readable in context.\n\n*   **File Names:**  The file names (`Home.md`, `Daily Routine.md`, `Project Alpha.md`) are crucial. Obsidian uses the file name (without the `.md` extension) as the default \"note name\" for linking purposes.\n\n*   **Creating the Files:** To use this example:\n    1.  Open your Obsidian vault.\n    2.  Create three new files named `Home.md`, `Daily Routine.md`, and `Project Alpha.md`.\n    3.  Copy and paste the content for each file into the corresponding Obsidian file.\n    4.  Obsidian should automatically detect and display the backlinks.  Look for a \"Backlinks\" pane or section within Obsidian.  You might need to enable it in the Obsidian settings (Core Plugins -> Backlinks).\n\n*   **Purpose of the Example:** This example demonstrates how linking different notes together creates a network of information.  Obsidian's backlink feature helps you see how different ideas and concepts are connected in your vault.\n\n**How to Use This:**\n\n1.  **Copy and Paste:**  Copy the content of each file into a corresponding `.md` file in your Obsidian vault.\n2.  **Open the Backlinks Pane:** In Obsidian, make sure the \"Backlinks\" core plugin is enabled. Then, open the Backlinks pane (usually found in the right sidebar).\n3.  **Navigate:** Open each file and observe the backlinks that appear in the Backlinks pane.\n\nThis simple example should give you a good starting point for understanding and using backlinks in Obsidian. You can expand on this by creating more notes and linking them together in different ways. Remember to experiment and see how backlinks can help you organize and connect your ideas.\n",
     "createdAt": "2025-03-12T20:51:20.601Z",
@@ -252,7 +252,7 @@
     "annotations": []
   },
   {
-    "id": "doc-1741946913910",
+    "id": "doc-1741954183495-fokeow0",
     "name": "default",
     "content": "\n# Test with Description\n\nCreated on 2025-03-14T10:08:33.812Z\n\n## Overview\n\nHere's the descrpription\n\nStart writing here...\n",
     "createdAt": "2025-03-14T10:08:33.910Z",
@@ -269,16 +269,16 @@
     "annotations": []
   },
   {
-    "id": "doc-1741948320482",
+    "id": "doc-1741954182261",
     "name": "Test",
-    "content": "\n# test\n\nCreated on March 14th, 2025 at 6:32:00 AM\n\n## Description\n\ntest\n\n## Overview\n\n\n\n\nStart writing here...\n",
-    "createdAt": "2025-03-14T10:32:00.482Z",
-    "updatedAt": "2025-03-14T10:32:00.482Z",
+    "content": "\n\n# test\n\n**Project Description**: test\n**Due Date**: March 14, 2025\n**Budget**: $1\n**Public**: Yes\n## Overview\n\ntest\n\n## Team Members\n\nNo team members assigned yet.\n\n## Tags\n\nNo tags assigned.\n\n## Tasks\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] Task 3\n\n## Notes \n",
+    "createdAt": "2025-03-14T12:09:42.261Z",
+    "updatedAt": "2025-03-14T12:09:42.261Z",
     "versions": [
       {
-        "id": "ver-1741948320482-initial",
+        "id": "ver-1741954182261-initial",
         "content": "",
-        "createdAt": "2025-03-14T10:32:00.482Z",
+        "createdAt": "2025-03-14T12:09:42.261Z",
         "message": "Initial version"
       }
     ],
@@ -428,22 +428,39 @@
     "annotations": []
   },
   {
-    "id": "doc-1741951820977-ryqd0th",
+    "id": "doc-1741954183495-8ynyydn",
     "name": "product",
-    "content": "\n{% set schema = {\n  productName: \"z.string().min(2).max(100).describe('Product name')\",\n  \n  price: \"z.number().positive().describe('Product price in USD')\",\n  \n  description: \"z.string().optional().describe('Detailed product description')\",\n  \n  inStock: \"z.boolean().default(true).describe('Whether the product is available')\",\n  \n  categories: \"z.array(z.string()).min(1).describe('Product categories')\",\n  \n  releaseDate: \"z.date().describe('Product release date')\",\n  \n  features: \"z.array(z.string()).min(1).describe('Key product features')\"\n} %}\n\n# {{ productName }}\n\n**Price:** ${{ price }}\n**Release Date:** {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n**In Stock:** {{ inStock ? 'Yes' : 'No' }}\n\n## Description\n\n{{ description }}\n\n## Categories\n\n{% for category in categories %}\n- {{ category }}\n{% endfor %}\n\n## Key Features\n\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n\n## Additional Information\n\nThis product was created on {{ date | dateFormat('MMMM d, yyyy') }}. ",
-    "createdAt": "2025-03-14T11:30:20.977Z",
-    "updatedAt": "2025-03-14T11:30:20.977Z",
+    "content": "\n{% set schema = {\n  productName: \"z.string().describe('Name of the product')\",\n  category: \"z.enum(['Electronics', 'Clothing', 'Food', 'Books', 'Home', 'Other']).describe('Product category')\",\n  price: \"z.number().positive().describe('Product price')\",\n  inStock: \"z.boolean().default(true).describe('Whether the product is in stock')\",\n  releaseDate: \"z.date().describe('Product release date')\",\n  features: \"z.array(z.string()).describe('Key product features')\",\n  colors: \"z.array(z.string()).describe('Available colors')\"\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
+    "createdAt": "2025-03-14T12:09:43.495Z",
+    "updatedAt": "2025-03-14T12:09:43.495Z",
     "versions": [],
     "folderId": "folder-1741944992902-o39tkyp",
     "annotations": []
   },
   {
-    "id": "doc-1741951820977-b5m07p7",
+    "id": "doc-1741954183495-gsdn9oc",
     "name": "project",
-    "content": "\n{% set schema = {\n  projectName: \"z.string().min(3).max(100).describe('Project name')\",\n  \n  client: \"z.object({\n    name: z.string().describe('Client name'),\n    contactPerson: z.string().describe('Primary contact person'),\n    email: z.string().email().describe('Contact email'),\n    phone: z.string().optional().describe('Contact phone number')\n  }).describe('Client information')\",\n  \n  timeline: \"z.object({\n    startDate: z.date().describe('Project start date'),\n    endDate: z.date().describe('Expected completion date'),\n    milestones: z.array(z.object({\n      name: z.string().describe('Milestone name'),\n      date: z.date().describe('Milestone date')\n    })).min(1).describe('Project milestones')\n  }).describe('Project timeline')\",\n  \n  budget: \"z.number().positive().describe('Project budget in USD')\",\n  \n  team: \"z.array(z.object({\n    name: z.string().describe('Team member name'),\n    role: z.string().describe('Team member role')\n  })).min(1).describe('Project team members')\",\n  \n  objectives: \"z.array(z.string()).min(1).describe('Project objectives')\",\n  \n  scope: \"z.string().min(50).describe('Project scope description')\",\n  \n  risks: \"z.array(z.string()).optional().describe('Potential project risks')\"\n} %}\n\n# {{ projectName }} - Project Specification\n\n## Client Information\n\n**Client:** {{ client.name }}\n**Contact Person:** {{ client.contactPerson }}\n**Email:** {{ client.email }}\n{% if client.phone %}**Phone:** {{ client.phone }}{% endif %}\n\n## Project Timeline\n\n**Start Date:** {{ timeline.startDate | dateFormat('MMMM d, yyyy') }}\n**End Date:** {{ timeline.endDate | dateFormat('MMMM d, yyyy') }}\n\n### Milestones\n\n{% for milestone in timeline.milestones %}\n- **{{ milestone.name }}**: {{ milestone.date | dateFormat('MMMM d, yyyy') }}\n{% endfor %}\n\n## Budget\n\n**Total Budget:** ${{ budget }}\n\n## Team\n\n{% for member in team %}\n- **{{ member.name }}** - {{ member.role }}\n{% endfor %}\n\n## Objectives\n\n{% for objective in objectives %}\n- {{ objective }}\n{% endfor %}\n\n## Project Scope\n\n{{ scope }}\n\n{% if risks and risks.length > 0 %}\n## Potential Risks\n\n{% for risk in risks %}\n- {{ risk }}\n{% endfor %}\n{% endif %}\n\n---\n\nDocument created on {{ date | dateFormat('MMMM d, yyyy') }} ",
-    "createdAt": "2025-03-14T11:30:20.977Z",
-    "updatedAt": "2025-03-14T11:30:20.977Z",
+    "content": "{% set schema = {\n  description: \"z.string().describe('Brief description of the project')\",\n  status: \"z.enum(['Not Started', 'In Progress', 'Completed', 'On Hold']).describe('Current project status')\",\n  priority: \"z.enum(['Low', 'Medium', 'High', 'Critical']).describe('Project priority level')\",\n  dueDate: \"z.date().describe('Project deadline')\",\n  budget: \"z.number().min(0).describe('Project budget in dollars')\",\n  isPublic: \"z.boolean().default(false).describe('Whether this project is publicly visible')\",\n  tags: \"z.array(z.string()).describe('Project tags or categories')\",\n  team: \"z.array(z.string()).describe('Team members working on this project')\"\n} %}\n\n# {{ title }}\n\n**Project Description**: {{ description }}\n**Status**: {{ status }}\n**Priority**: {{ priority }}\n**Due Date**: {{ dueDate | dateFormat('MMMM d, yyyy') }}\n**Budget**: ${{ budget }}\n**Public**: {% if isPublic %}Yes{% else %}No{% endif %}\n\n## Overview\n\n{{ description }}\n\n## Team Members\n\n{% if team.length > 0 %}\n{% for member in team %}\n- {{ member }}\n{% endfor %}\n{% else %}\nNo team members assigned yet.\n{% endif %}\n\n## Tags\n\n{% if tags.length > 0 %}\n{% for tag in tags %}\n- {{ tag }}\n{% endfor %}\n{% else %}\nNo tags assigned.\n{% endif %}\n\n## Tasks\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] Task 3\n\n## Notes ",
+    "createdAt": "2025-03-14T12:09:43.495Z",
+    "updatedAt": "2025-03-14T12:09:43.495Z",
     "versions": [],
+    "folderId": "folder-1741944992902-o39tkyp",
+    "annotations": []
+  },
+  {
+    "id": "doc-1741954007552",
+    "name": "project_no_status",
+    "content": "{% set schema = {\n  description: \"z.string().describe('Brief description of the project')\",\n  dueDate: \"z.date().describe('Project deadline')\",\n  budget: \"z.number().min(0).describe('Project budget in dollars')\",\n  isPublic: \"z.boolean().default(false).describe('Whether this project is publicly visible')\",\n} %}\n\n# {{ title }}\n\n**Project Description**: {{ description }}\n**Due Date**: {{ dueDate | dateFormat('MMMM d, yyyy') }}\n**Budget**: ${{ budget }}\n**Public**: {% if isPublic %}Yes{% else %}No{% endif %}\n\n## Overview\n\n{{ description }}\n\n## Team Members\n\n{% if team.length > 0 %}\n{% for member in team %}\n- {{ member }}\n{% endfor %}\n{% else %}\nNo team members assigned yet.\n{% endif %}\n\n## Tags\n\n{% if tags.length > 0 %}\n{% for tag in tags %}\n- {{ tag }}\n{% endfor %}\n{% else %}\nNo tags assigned.\n{% endif %}\n\n## Tasks\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] Task 3\n\n## Notes \n",
+    "createdAt": "2025-03-14T12:06:47.552Z",
+    "updatedAt": "2025-03-14T12:09:21.962Z",
+    "versions": [
+      {
+        "id": "ver-1741954007552-initial",
+        "content": "",
+        "createdAt": "2025-03-14T12:06:47.552Z",
+        "message": "Initial version"
+      }
+    ],
     "folderId": "folder-1741944992902-o39tkyp",
     "annotations": []
   },

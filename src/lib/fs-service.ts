@@ -1132,35 +1132,93 @@ const configureNunjucks = () => {
 const nunjucksEnv = configureNunjucks();
 
 // Process a template with variable substitution using Nunjucks
-export const processTemplate = (templateName: string, variables: Record<string, string>): string => {
+export const processTemplate = (templateName: string, variables: Record<string, any>): string => {
   try {
     const templatePath = path.join(TEMPLATES_DIR, `${templateName}.md`);
     
     if (!fs.existsSync(templatePath)) {
-      throw new Error(`Template ${templateName} not found`);
+      throw new Error(`Template not found: ${templateName}`);
     }
     
-    let templateContent = fs.readFileSync(templatePath, 'utf8');
+    // Read the template content
+    const templateContent = fs.readFileSync(templatePath, 'utf8');
+    
+    // Configure Nunjucks if not already configured
+    const nunjucksEnv = configureNunjucks();
     
     // Default variables
     const defaultVariables = {
       date: new Date().toISOString(),
-      dateFormatted: format(new Date(), 'PPP'),
+      dateFormatted: new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
       time: new Date().toLocaleTimeString(),
-      timeFormatted: format(new Date(), 'p'),
-      timestamp: Date.now().toString(),
+      timeFormatted: new Date().toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+      }),
+      timestamp: new Date().getTime().toString(),
       year: new Date().getFullYear().toString(),
       month: (new Date().getMonth() + 1).toString().padStart(2, '0'),
       day: new Date().getDate().toString().padStart(2, '0'),
+    };
+    
+    // Merge default variables with user-provided variables
+    const mergedVariables: Record<string, any> = {
+      ...defaultVariables,
       ...variables
     };
     
+    // Process Date objects to ensure they're formatted correctly for Nunjucks
+    const processDateValues = (obj: Record<string, any>): Record<string, any> => {
+      const result: Record<string, any> = {};
+      
+      Object.entries(obj).forEach(([key, value]) => {
+        // Handle Date objects
+        if (value instanceof Date) {
+          result[key] = value.toISOString();
+        } 
+        // Handle nested objects
+        else if (value && typeof value === 'object' && !Array.isArray(value)) {
+          result[key] = processDateValues(value as Record<string, any>);
+        } 
+        // Handle arrays
+        else if (Array.isArray(value)) {
+          result[key] = value.map(item => {
+            if (item instanceof Date) {
+              return item.toISOString();
+            } else if (item && typeof item === 'object') {
+              return processDateValues(item as Record<string, any>);
+            }
+            return item;
+          });
+        } 
+        // Handle primitive values
+        else {
+          result[key] = value;
+        }
+      });
+      
+      return result;
+    };
+    
+    // Process all variables to handle Date objects
+    const processedVariables = processDateValues(mergedVariables);
+    
+    // Remove the schema definition from the template before processing
+    // Using a workaround for the 's' flag (dotAll) for compatibility
+    const schemaRegex = /\{%\s*set\s+schema\s*=\s*\{[^}]*(?:\{[^}]*\}[^}]*)*\}\s*%\}/g;
+    const cleanedTemplate = templateContent.replace(schemaRegex, '');
+    
     // Process the template with Nunjucks
-    const processedContent = nunjucksEnv.renderString(templateContent, defaultVariables);
+    const processedContent = nunjucksEnv.renderString(cleanedTemplate, processedVariables);
     
     return processedContent;
   } catch (error) {
-    console.error(`Error processing template ${templateName}:`, error);
-    throw error;
+    console.error('Error processing template:', error);
+    throw new Error(`Failed to process template: ${error instanceof Error ? error.message : String(error)}`);
   }
 }; 
