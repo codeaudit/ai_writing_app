@@ -10,12 +10,44 @@ versions:
 annotations: []
 ---
 
+{% set schema = {
+  "fields": {
+    "description": {
+      "type": "string",
+      "description": "Brief description of the document"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Document tags or categories"
+    },
+    "isImportant": {
+      "type": "boolean",
+      "default": false,
+      "description": "Mark as important document"
+    }
+  }
+} %}
+
 # {{title}}
 
-Created on {{date}}
+Created on {{date | dateFormat('MMMM d, yyyy')}}
+
+{% if isImportant %}
+**IMPORTANT DOCUMENT**
+{% endif %}
 
 ## Overview
 
 {{description}}
+
+{% if tags.length > 0 %}
+## Tags
+{% for tag in tags %}
+- {{tag}}
+{% endfor %}
+{% endif %}
 
 Start writing here...

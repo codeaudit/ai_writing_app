@@ -4,13 +4,45 @@ description: Template for creating product documentation
 ---
 
 {% set schema = {
-  productName: "z.string().describe('Name of the product')",
-  category: "z.enum(['Electronics', 'Clothing', 'Food', 'Books', 'Home', 'Other']).describe('Product category')",
-  price: "z.number().positive().describe('Product price')",
-  inStock: "z.boolean().default(true).describe('Whether the product is in stock')",
-  releaseDate: "z.date().describe('Product release date')",
-  features: "z.array(z.string()).describe('Key product features')",
-  colors: "z.array(z.string()).describe('Available colors')"
+  "fields": {
+    "productName": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "category": {
+      "type": "enum",
+      "options": ["Electronics", "Clothing", "Food", "Books", "Home", "Other"],
+      "description": "Product category"
+    },
+    "price": {
+      "type": "number",
+      "positive": true,
+      "description": "Product price"
+    },
+    "inStock": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the product is in stock"
+    },
+    "releaseDate": {
+      "type": "date",
+      "description": "Product release date"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Key product features"
+    },
+    "colors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Available colors"
+    }
+  }
 } %}
 
 # {{ title }}

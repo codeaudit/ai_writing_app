@@ -76,322 +76,392 @@ export type SchemaField =
   | EnumField
   | RecordField;
 
+// Schema Definition Language (SDL) types
+export interface SDLFieldBase {
+  type: string;
+  description?: string;
+  optional?: boolean;
+  default?: any;
+}
+
+export interface SDLStringField extends SDLFieldBase {
+  type: 'string';
+  minLength?: number;
+  maxLength?: number;
+  format?: 'email' | 'url' | 'uuid';
+}
+
+export interface SDLNumberField extends SDLFieldBase {
+  type: 'number';
+  min?: number;
+  max?: number;
+  integer?: boolean;
+  positive?: boolean;
+}
+
+export interface SDLBooleanField extends SDLFieldBase {
+  type: 'boolean';
+}
+
+export interface SDLDateField extends SDLFieldBase {
+  type: 'date';
+  min?: string | Date;
+  max?: string | Date;
+}
+
+export interface SDLArrayField extends SDLFieldBase {
+  type: 'array';
+  items: SDLField;
+  minItems?: number;
+  maxItems?: number;
+}
+
+export interface SDLObjectField extends SDLFieldBase {
+  type: 'object';
+  properties: Record<string, SDLField>;
+}
+
+export interface SDLEnumField extends SDLFieldBase {
+  type: 'enum';
+  options: string[];
+}
+
+export interface SDLRecordField extends SDLFieldBase {
+  type: 'record';
+  values: SDLField;
+}
+
+export type SDLField =
+  | SDLStringField
+  | SDLNumberField
+  | SDLBooleanField
+  | SDLDateField
+  | SDLArrayField
+  | SDLObjectField
+  | SDLEnumField
+  | SDLRecordField;
+
+export interface SDLSchema {
+  fields: Record<string, SDLField>;
+}
+
 // Function to extract schema from template content
-export function extractSchemaFromTemplate(templateContent: string): Record<string, string> | null {
-  // Look for {% set schema = { ... } %}
-  // Using a workaround for the 's' flag (dotAll) for compatibility
-  const schemaRegex = /\{%\s*set\s+schema\s*=\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}\s*%\}/;
+export function extractSchemaFromTemplate(templateContent: string): SDLSchema | null {
+  // Look for {% set schema = ... %}
+  const schemaRegex = /\{%\s*set\s+schema\s*=\s*(\{[^]*?\})\s*%\}/;
   
-  // Split the template content into lines and join with \n to handle multiline matching
-  const normalizedContent = templateContent.split('\n').join('\n');
-  const schemaMatch = normalizedContent.match(schemaRegex);
+  const schemaMatch = templateContent.match(schemaRegex);
   
   if (!schemaMatch || !schemaMatch[1]) {
     return null;
   }
   
-  const schemaContent = schemaMatch[1];
-  
-  // Parse the schema content into key-value pairs
-  const schema: Record<string, string> = {};
-  
-  // Split by commas, but be careful with nested objects
-  let depth = 0;
-  let currentKey = '';
-  let currentValue = '';
-  let inKey = true;
-  
-  for (let i = 0; i < schemaContent.length; i++) {
-    const char = schemaContent[i];
-    
-    if (char === '{') {
-      depth++;
-      if (depth > 0) currentValue += char;
-    } else if (char === '}') {
-      depth--;
-      if (depth >= 0) currentValue += char;
-    } else if (char === ':' && inKey && depth === 0) {
-      inKey = false;
-      currentKey = currentKey.trim();
-    } else if (char === ',' && depth === 0) {
-      if (currentKey && currentValue) {
-        schema[currentKey] = currentValue.trim();
-      }
-      currentKey = '';
-      currentValue = '';
-      inKey = true;
-    } else {
-      if (inKey) {
-        currentKey += char;
-      } else {
-        currentValue += char;
-      }
-    }
+  try {
+    // Parse the JSON schema definition
+    const schemaJson = JSON.parse(schemaMatch[1]);
+    return schemaJson as SDLSchema;
+  } catch (error) {
+    console.error('Error parsing schema JSON:', error);
+    return null;
   }
-  
-  // Add the last key-value pair
-  if (currentKey && currentValue) {
-    schema[currentKey.trim()] = currentValue.trim();
-  }
-  
-  return schema;
 }
 
-// Function to parse Zod-like schema syntax
-export function parseZodSchema(schema: Record<string, string>): Record<string, SchemaField> {
+// Convert SDL schema to our internal schema format
+export function sdlToInternalSchema(sdlSchema: SDLSchema): Record<string, SchemaField> {
   const result: Record<string, SchemaField> = {};
   
-  for (const [key, value] of Object.entries(schema)) {
-    result[key] = parseZodField(key, value);
+  for (const [name, field] of Object.entries(sdlSchema.fields)) {
+    result[name] = sdlFieldToInternal(name, field);
   }
   
   return result;
 }
 
-// Helper function to parse a single Zod field
-function parseZodField(name: string, zodString: string): SchemaField {
-  // Remove quotes from the string
-  const cleanZodString = zodString.replace(/^"|"$/g, '').replace(/^'|'$/g, '');
-  
-  // Extract description if present
-  let description = '';
-  const describeMatch = cleanZodString.match(/\.describe\(['"]([^'"]*)['"]\)/);
-  if (describeMatch) {
-    description = describeMatch[1];
-  }
-  
-  // Check if optional
-  const isOptional = cleanZodString.includes('.optional()');
-  
-  // Check for default value
-  let defaultValue: any = undefined;
-  const defaultMatch = cleanZodString.match(/\.default\(([^)]*)\)/);
-  if (defaultMatch) {
-    try {
-      // Try to parse as JSON, fall back to string if it fails
-      defaultValue = JSON.parse(defaultMatch[1]);
-    } catch {
-      // Handle boolean, string literals, etc.
-      const val = defaultMatch[1].trim();
-      if (val === 'true') defaultValue = true;
-      else if (val === 'false') defaultValue = false;
-      else if (val.match(/^['"].*['"]$/)) defaultValue = val.slice(1, -1);
-      else defaultValue = val;
-    }
-  }
-  
-  // Parse based on type
-  if (cleanZodString.startsWith('z.string()')) {
-    const field: StringField = {
-      type: 'string',
-      name,
-      description,
-      isOptional,
-      defaultValue,
-    };
-    
-    // Check for min/max length
-    const minMatch = cleanZodString.match(/\.min\((\d+)\)/);
-    if (minMatch) {
-      field.minLength = parseInt(minMatch[1], 10);
-    }
-    
-    const maxMatch = cleanZodString.match(/\.max\((\d+)\)/);
-    if (maxMatch) {
-      field.maxLength = parseInt(maxMatch[1], 10);
-    }
-    
-    // Check for format
-    if (cleanZodString.includes('.email()')) {
-      field.format = 'email';
-    } else if (cleanZodString.includes('.url()')) {
-      field.format = 'url';
-    } else if (cleanZodString.includes('.uuid()')) {
-      field.format = 'uuid';
-    }
-    
-    return field;
-  } else if (cleanZodString.startsWith('z.number()')) {
-    const field: NumberField = {
-      type: 'number',
-      name,
-      description,
-      isOptional,
-      defaultValue,
-    };
-    
-    // Check for min/max
-    const minMatch = cleanZodString.match(/\.min\((\d+(?:\.\d+)?)\)/);
-    if (minMatch) {
-      field.min = parseFloat(minMatch[1]);
-    }
-    
-    const maxMatch = cleanZodString.match(/\.max\((\d+(?:\.\d+)?)\)/);
-    if (maxMatch) {
-      field.max = parseFloat(maxMatch[1]);
-    }
-    
-    // Check for integer, positive
-    field.isInteger = cleanZodString.includes('.int()');
-    field.isPositive = cleanZodString.includes('.positive()');
-    
-    return field;
-  } else if (cleanZodString.startsWith('z.boolean()')) {
-    return {
-      type: 'boolean',
-      name,
-      description,
-      isOptional,
-      defaultValue,
-    };
-  } else if (cleanZodString.startsWith('z.date()')) {
-    return {
-      type: 'date',
-      name,
-      description,
-      isOptional,
-      defaultValue,
-    };
-  } else if (cleanZodString.startsWith('z.array(')) {
-    // Extract the item type
-    const itemTypeMatch = cleanZodString.match(/z\.array\(([^)]+)\)/);
-    let itemTypeStr = 'z.string()';
-    
-    if (itemTypeMatch && itemTypeMatch[1]) {
-      itemTypeStr = itemTypeMatch[1];
-    }
-    
-    const field: ArrayField = {
-      type: 'array',
-      name,
-      description,
-      isOptional,
-      defaultValue,
-      itemType: parseZodField(`${name}Item`, itemTypeStr),
-    };
-    
-    // Check for min/max items
-    const minMatch = cleanZodString.match(/\.min\((\d+)\)/);
-    if (minMatch) {
-      field.minItems = parseInt(minMatch[1], 10);
-    }
-    
-    const maxMatch = cleanZodString.match(/\.max\((\d+)\)/);
-    if (maxMatch) {
-      field.maxItems = parseInt(maxMatch[1], 10);
-    }
-    
-    return field;
-  } else if (cleanZodString.startsWith('z.enum(')) {
-    // Extract enum options
-    const optionsMatch = cleanZodString.match(/z\.enum\(\[([^\]]+)\]\)/);
-    const options: string[] = [];
-    
-    if (optionsMatch && optionsMatch[1]) {
-      // Parse the enum options
-      const optionsStr = optionsMatch[1];
-      
-      // More robust parsing for enum options
-      let currentOption = '';
-      let inQuotes = false;
-      let quoteChar = '';
-      
-      for (let i = 0; i < optionsStr.length; i++) {
-        const char = optionsStr[i];
-        
-        if ((char === "'" || char === '"') && (i === 0 || optionsStr[i-1] !== '\\')) {
-          if (!inQuotes) {
-            // Start of a quoted string
-            inQuotes = true;
-            quoteChar = char;
-          } else if (char === quoteChar) {
-            // End of a quoted string
-            inQuotes = false;
-            if (currentOption) {
-              options.push(currentOption);
-              currentOption = '';
-            }
-          } else {
-            // Different quote character inside a quoted string
-            currentOption += char;
-          }
-        } else if (char === ',' && !inQuotes) {
-          // Skip commas between options
-          continue;
-        } else if (inQuotes) {
-          // Add character to current option
-          currentOption += char;
-        }
-      }
-    }
-    
-    console.log(`Parsed enum options for ${name}:`, options);
-    
-    return {
-      type: 'enum',
-      name,
-      description,
-      isOptional,
-      defaultValue,
-      options,
-    };
-  } else if (cleanZodString.startsWith('z.object(')) {
-    // Extract object properties
-    const propertiesMatch = cleanZodString.match(/z\.object\(\{([^}]+)\}\)/);
-    const properties: SchemaField[] = [];
-    
-    if (propertiesMatch && propertiesMatch[1]) {
-      const propertiesStr = propertiesMatch[1];
-      
-      // This is a simplified approach - for a real implementation, you'd need
-      // a more robust parser to handle nested objects correctly
-      const propertyMatches = propertiesStr.match(/([a-zA-Z0-9_]+):\s*([^,]+)(?:,|$)/g);
-      
-      if (propertyMatches) {
-        propertyMatches.forEach(propStr => {
-          const [propName, propType] = propStr.split(':').map(s => s.trim());
-          if (propName && propType) {
-            properties.push(parseZodField(propName, propType.replace(/,$/, '')));
-          }
-        });
-      }
-    }
-    
-    return {
-      type: 'object',
-      name,
-      description,
-      isOptional,
-      defaultValue,
-      properties,
-    };
-  } else if (cleanZodString.startsWith('z.record(')) {
-    // Extract value type
-    const valueTypeMatch = cleanZodString.match(/z\.record\([^,]+,\s*([^)]+)\)/);
-    let valueTypeStr = 'z.string()';
-    
-    if (valueTypeMatch && valueTypeMatch[1]) {
-      valueTypeStr = valueTypeMatch[1];
-    }
-    
-    return {
-      type: 'record',
-      name,
-      description,
-      isOptional,
-      defaultValue,
-      valueType: parseZodField(`${name}Value`, valueTypeStr),
-    };
-  }
-  
-  // Default to string if type can't be determined
-  return {
-    type: 'string',
+// Convert a single SDL field to internal format
+function sdlFieldToInternal(name: string, field: SDLField): SchemaField {
+  const baseField: SchemaFieldBase = {
     name,
-    description,
-    isOptional,
-    defaultValue,
+    type: field.type as SchemaFieldType,
+    description: field.description || '',
+    isOptional: field.optional || false,
+    defaultValue: field.default,
   };
+  
+  switch (field.type) {
+    case 'string': {
+      const stringField: StringField = {
+        ...baseField,
+        type: 'string',
+      };
+      
+      if ((field as SDLStringField).minLength !== undefined) {
+        stringField.minLength = (field as SDLStringField).minLength;
+      }
+      
+      if ((field as SDLStringField).maxLength !== undefined) {
+        stringField.maxLength = (field as SDLStringField).maxLength;
+      }
+      
+      if ((field as SDLStringField).format !== undefined) {
+        stringField.format = (field as SDLStringField).format;
+      }
+      
+      return stringField;
+    }
+    
+    case 'number': {
+      const numberField: NumberField = {
+        ...baseField,
+        type: 'number',
+      };
+      
+      if ((field as SDLNumberField).min !== undefined) {
+        numberField.min = (field as SDLNumberField).min;
+      }
+      
+      if ((field as SDLNumberField).max !== undefined) {
+        numberField.max = (field as SDLNumberField).max;
+      }
+      
+      if ((field as SDLNumberField).integer !== undefined) {
+        numberField.isInteger = (field as SDLNumberField).integer;
+      }
+      
+      if ((field as SDLNumberField).positive !== undefined) {
+        numberField.isPositive = (field as SDLNumberField).positive;
+      }
+      
+      return numberField;
+    }
+    
+    case 'boolean': {
+      return {
+        ...baseField,
+        type: 'boolean',
+      };
+    }
+    
+    case 'date': {
+      const dateField: DateField = {
+        ...baseField,
+        type: 'date',
+      };
+      
+      if ((field as SDLDateField).min !== undefined) {
+        const minDate = (field as SDLDateField).min;
+        dateField.min = typeof minDate === 'string' ? new Date(minDate) : minDate;
+      }
+      
+      if ((field as SDLDateField).max !== undefined) {
+        const maxDate = (field as SDLDateField).max;
+        dateField.max = typeof maxDate === 'string' ? new Date(maxDate) : maxDate;
+      }
+      
+      return dateField;
+    }
+    
+    case 'array': {
+      const arrayField = field as SDLArrayField;
+      return {
+        ...baseField,
+        type: 'array',
+        minItems: arrayField.minItems,
+        maxItems: arrayField.maxItems,
+        itemType: sdlFieldToInternal(`${name}Item`, arrayField.items),
+      };
+    }
+    
+    case 'object': {
+      const objectField = field as SDLObjectField;
+      const properties: SchemaField[] = [];
+      
+      for (const [propName, propField] of Object.entries(objectField.properties)) {
+        properties.push(sdlFieldToInternal(propName, propField));
+      }
+      
+      return {
+        ...baseField,
+        type: 'object',
+        properties,
+      };
+    }
+    
+    case 'enum': {
+      const enumField = field as SDLEnumField;
+      return {
+        ...baseField,
+        type: 'enum',
+        options: enumField.options || [],
+      };
+    }
+    
+    case 'record': {
+      const recordField = field as SDLRecordField;
+      return {
+        ...baseField,
+        type: 'record',
+        valueType: sdlFieldToInternal(`${name}Value`, recordField.values),
+      };
+    }
+    
+    default:
+      // Default to string for unknown types
+      return {
+        ...baseField,
+        type: 'string',
+      };
+  }
+}
+
+// Convert SDL schema to Zod schema (for validation)
+export function sdlToZodSchema(sdlSchema: SDLSchema): z.ZodObject<any> {
+  const shape: Record<string, z.ZodTypeAny> = {};
+  
+  for (const [name, field] of Object.entries(sdlSchema.fields)) {
+    shape[name] = sdlFieldToZod(field);
+  }
+  
+  return z.object(shape);
+}
+
+// Convert a single SDL field to Zod schema
+function sdlFieldToZod(field: SDLField): z.ZodTypeAny {
+  let schema: z.ZodTypeAny;
+  
+  switch (field.type) {
+    case 'string': {
+      const stringField = field as SDLStringField;
+      schema = z.string();
+      
+      if (stringField.minLength !== undefined) {
+        schema = (schema as z.ZodString).min(stringField.minLength);
+      }
+      
+      if (stringField.maxLength !== undefined) {
+        schema = (schema as z.ZodString).max(stringField.maxLength);
+      }
+      
+      if (stringField.format === 'email') {
+        schema = (schema as z.ZodString).email();
+      } else if (stringField.format === 'url') {
+        schema = (schema as z.ZodString).url();
+      } else if (stringField.format === 'uuid') {
+        schema = (schema as z.ZodString).uuid();
+      }
+      
+      break;
+    }
+    
+    case 'number': {
+      const numberField = field as SDLNumberField;
+      schema = z.number();
+      
+      if (numberField.min !== undefined) {
+        schema = (schema as z.ZodNumber).min(numberField.min);
+      }
+      
+      if (numberField.max !== undefined) {
+        schema = (schema as z.ZodNumber).max(numberField.max);
+      }
+      
+      if (numberField.integer) {
+        schema = (schema as z.ZodNumber).int();
+      }
+      
+      if (numberField.positive) {
+        schema = (schema as z.ZodNumber).positive();
+      }
+      
+      break;
+    }
+    
+    case 'boolean': {
+      schema = z.boolean();
+      break;
+    }
+    
+    case 'date': {
+      const dateField = field as SDLDateField;
+      schema = z.date();
+      
+      if (dateField.min !== undefined) {
+        const minDate = typeof dateField.min === 'string' ? new Date(dateField.min) : dateField.min;
+        schema = (schema as z.ZodDate).min(minDate);
+      }
+      
+      if (dateField.max !== undefined) {
+        const maxDate = typeof dateField.max === 'string' ? new Date(dateField.max) : dateField.max;
+        schema = (schema as z.ZodDate).max(maxDate);
+      }
+      
+      break;
+    }
+    
+    case 'array': {
+      const arrayField = field as SDLArrayField;
+      schema = z.array(sdlFieldToZod(arrayField.items));
+      
+      if (arrayField.minItems !== undefined) {
+        schema = (schema as z.ZodArray<any>).min(arrayField.minItems);
+      }
+      
+      if (arrayField.maxItems !== undefined) {
+        schema = (schema as z.ZodArray<any>).max(arrayField.maxItems);
+      }
+      
+      break;
+    }
+    
+    case 'object': {
+      const objectField = field as SDLObjectField;
+      const shape: Record<string, z.ZodTypeAny> = {};
+      
+      for (const [propName, propField] of Object.entries(objectField.properties)) {
+        shape[propName] = sdlFieldToZod(propField);
+      }
+      
+      schema = z.object(shape);
+      break;
+    }
+    
+    case 'enum': {
+      const enumField = field as SDLEnumField;
+      if (!enumField.options || enumField.options.length === 0) {
+        // Fallback for empty enum
+        schema = z.string();
+      } else {
+        schema = z.enum(enumField.options as [string, ...string[]]);
+      }
+      break;
+    }
+    
+    case 'record': {
+      const recordField = field as SDLRecordField;
+      schema = z.record(z.string(), sdlFieldToZod(recordField.values));
+      break;
+    }
+    
+    default:
+      // Default to string for unknown types
+      schema = z.string();
+  }
+  
+  // Add description if available
+  if (field.description) {
+    schema = schema.describe(field.description);
+  }
+  
+  // Make optional if specified
+  if (field.optional) {
+    schema = schema.optional();
+  }
+  
+  // Add default value if specified
+  if (field.default !== undefined) {
+    schema = schema.default(field.default);
+  }
+  
+  return schema;
 }
 
 // Function to generate initial values from schema

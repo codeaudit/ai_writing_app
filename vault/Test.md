@@ -1,24 +1,26 @@
 ---
-id: doc-1741954182261
-createdAt: '2025-03-14T12:09:42.261Z'
-updatedAt: '2025-03-14T12:09:42.261Z'
+id: doc-1741955228596
+createdAt: '2025-03-14T12:27:08.596Z'
+updatedAt: '2025-03-14T12:27:08.596Z'
 versions:
-  - id: ver-1741954182261-initial
-    createdAt: '2025-03-14T12:09:42.261Z'
+  - id: ver-1741955228596-initial
+    createdAt: '2025-03-14T12:27:08.596Z'
     message: Initial version
 annotations: []
 ---
 
 
-# test
+# Test
 
-**Project Description**: test
+**Project Description**: Desc
+**Status**: 
+**Priority**: 
 **Due Date**: March 14, 2025
 **Budget**: $1
-**Public**: Yes
+**Public**: No
 ## Overview
 
-test
+Desc
 
 ## Team Members
 
@@ -26,7 +28,9 @@ No team members assigned yet.
 
 ## Tags
 
-No tags assigned.
+- one
+- two
+- three
 
 ## Tasks
 

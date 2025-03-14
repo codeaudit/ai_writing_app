@@ -1,13 +1,57 @@
+---
+id: doc-1741966030134-p04qfua
+createdAt: '2025-03-14T15:27:10.134Z'
+updatedAt: '2025-03-14T15:33:56.372Z'
+versions: []
+annotations: []
+---
 {% set schema = {
-  description: "z.string().describe('Brief description of the project')",
-  status: "z.enum(['Not Started', 'In Progress', 'Completed', 'On Hold']).describe('Current project status')",
-  priority: "z.enum(['Low', 'Medium', 'High', 'Critical']).describe('Project priority level')",
-  dueDate: "z.date().describe('Project deadline')",
-  budget: "z.number().min(0).describe('Project budget in dollars')",
-  isPublic: "z.boolean().default(false).describe('Whether this project is publicly visible')",
-  tags: "z.array(z.string()).describe('Project tags or categories')",
-  team: "z.array(z.string()).describe('Team members working on this project')"
+  "fields": {
+    "description": {
+      "type": "string",
+      "description": "Brief description of the project"
+    },
+    "status": {
+      "type": "enum",
+      "options": ["Not Started", "In Progress", "Completed", "On Hold"],
+      "description": "Current project status"
+    },
+    "priority": {
+      "type": "enum",
+      "options": ["Low", "Medium", "High", "Critical"],
+      "description": "Project priority level"
+    },
+    "dueDate": {
+      "type": "date",
+      "description": "Project deadline"
+    },
+    "budget": {
+      "type": "number",
+      "min": 0,
+      "description": "Project budget in dollars"
+    },
+    "isPublic": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this project is publicly visible"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Project tags or categories"
+    },
+    "team": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Team members working on this project"
+    }
+  }
 } %}
+
 
 # {{ title }}
 

@@ -28,10 +28,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Loader2 } from "lucide-react";
 import { 
   extractSchemaFromTemplate, 
-  parseZodSchema, 
+  sdlToInternalSchema,
+  sdlToZodSchema,
   generateInitialValues, 
   validateValues,
-  SchemaField
+  SchemaField,
+  SDLSchema
 } from "@/lib/schema-parser";
 import { SchemaForm } from "@/components/schema-form";
 
@@ -114,18 +116,67 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
       const { content } = await response.json();
       setTemplateContent(content);
       
-      // Check if the template has a schema
-      const schema = extractSchemaFromTemplate(content);
+      // Check if the template has a schema using the new SDL format
+      const sdlSchema = extractSchemaFromTemplate(content);
       
-      if (schema) {
-        // Parse the schema
-        const parsedSchema = parseZodSchema(schema);
+      if (sdlSchema) {
+        console.log("Raw SDL schema extracted from template:", sdlSchema);
+        
+        // Debug: Log the raw schema for enum fields
+        Object.entries(sdlSchema.fields).forEach(([key, field]) => {
+          if (field.type === 'enum') {
+            console.log(`Raw enum field ${key} definition:`, field);
+            console.log(`Enum options for ${key}:`, (field as any).options);
+          }
+        });
+        
+        // Convert SDL schema to our internal schema format
+        const parsedSchema = sdlToInternalSchema(sdlSchema);
+        console.log("Parsed internal schema:", parsedSchema);
+        
+        // Check if we have any enum fields and log their options
+        Object.entries(parsedSchema).forEach(([key, field]) => {
+          if (field.type === 'enum') {
+            console.log(`Enum field ${key} options:`, (field as any).options);
+            
+            // Ensure options is an array
+            if (!(field as any).options || !(field as any).options.length) {
+              console.warn(`No options found for enum field ${key}`);
+              (field as any).options = [];
+            } else if (!Array.isArray((field as any).options)) {
+              console.warn(`Options for enum field ${key} is not an array:`, (field as any).options);
+              (field as any).options = [];
+            }
+            
+            // Log each option for debugging
+            (field as any).options.forEach((option: string, index: number) => {
+              console.log(`  Option ${index}: "${option}"`);
+            });
+          }
+        });
+        
         setSchemaFields(parsedSchema);
         
         // Generate initial values
         const initialValues = generateInitialValues(parsedSchema);
-        setSchemaValues(initialValues);
+        console.log("Generated initial values:", initialValues);
         
+        // Ensure enum fields have default values
+        Object.entries(parsedSchema).forEach(([key, field]) => {
+          if (field.type === 'enum') {
+            const options = Array.isArray((field as any).options) ? (field as any).options : [];
+            console.log(`Setting up enum field ${key} with options:`, options);
+            
+            if (options.length > 0) {
+              if (!initialValues[key] || initialValues[key] === '') {
+                initialValues[key] = field.defaultValue || options[0];
+                console.log(`Set default value for enum field ${key}:`, initialValues[key]);
+              }
+            }
+          }
+        });
+        
+        setSchemaValues(initialValues);
         setHasSchema(true);
       } else {
         // If no schema, show a message to the user
@@ -149,6 +200,7 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
 
   // Function to handle schema form changes
   const handleSchemaFormChange = (values: Record<string, any>) => {
+    console.log("Schema form values changed:", values);
     setSchemaValues(values);
     
     // Validate the values
@@ -317,9 +369,21 @@ export function TemplateDialog({ open, onOpenChange, folderId = null }: Template
                 </p>
                 <pre className="mt-2 p-2 bg-muted rounded-md text-xs overflow-x-auto">
                   {`{% set schema = {
-  description: "z.string().describe('Brief description of the document')",
-  priority: "z.enum(['High', 'Medium', 'Low']).describe('Priority level')",
-  dueDate: "z.date().describe('When this is due')"
+  "fields": {
+    "description": {
+      "type": "string",
+      "description": "Brief description of the document"
+    },
+    "priority": {
+      "type": "enum",
+      "options": ["High", "Medium", "Low"],
+      "description": "Priority level"
+    },
+    "dueDate": {
+      "type": "date",
+      "description": "When this is due"
+    }
+  }
 } %}`}
                 </pre>
               </div>

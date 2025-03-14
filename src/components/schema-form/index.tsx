@@ -21,11 +21,33 @@ interface SchemaFormProps {
 export function SchemaForm({ schema, initialValues = {}, onChange, errors = {} }: SchemaFormProps) {
   const [values, setValues] = useState<Record<string, any>>(initialValues);
 
+  // Initialize default values for fields that don't have initial values
   useEffect(() => {
-    setValues(initialValues);
-  }, [initialValues]);
+    const newValues = { ...initialValues };
+    let hasChanges = false;
+
+    // Set default values for enum fields that don't have values
+    Object.entries(schema).forEach(([name, field]) => {
+      if (field.type === 'enum' && (!initialValues[name] || initialValues[name] === '')) {
+        if (field.options.length > 0) {
+          const defaultValue = field.defaultValue || field.options[0];
+          newValues[name] = defaultValue;
+          hasChanges = true;
+          console.log(`Setting default value for enum field ${name}:`, defaultValue);
+        }
+      }
+    });
+
+    if (hasChanges) {
+      setValues(newValues);
+      onChange(newValues);
+    } else {
+      setValues(initialValues);
+    }
+  }, [schema, initialValues, onChange]);
 
   const handleFieldChange = (name: string, value: any) => {
+    console.log(`Field ${name} changed:`, value);
     const newValues = { ...values, [name]: value };
     setValues(newValues);
     onChange(newValues);
@@ -57,6 +79,14 @@ interface RenderFieldProps {
 
 export function RenderField({ field, value, onChange, error, path = '' }: RenderFieldProps) {
   const fieldPath = path ? `${path}.${field.name}` : field.name;
+  
+  // Log for debugging
+  if (field.type === 'enum') {
+    console.log(`RenderField for enum ${field.name}:`, {
+      options: (field as any).options,
+      value
+    });
+  }
   
   switch (field.type) {
     case 'string':
