@@ -1,9 +1,9 @@
 {
-  "enabled": true,
+  "enabled": false,
   "patterns": [
     "*.md",
     "!.obsidian/*",
-    "!templates/*",
-    "!composition_templates/*"
+    "!templates/**",
+    "!composition_templates/**"
   ]
 }

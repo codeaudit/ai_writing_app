@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import { saveFilterToServer, loadFilterFromServer } from "@/lib/api-service";
+import { validatePatterns } from "@/lib/filter-utils";
 
 interface FilterDialogProps {
   open: boolean;
@@ -34,11 +35,13 @@ export function FilterDialog({ open, onOpenChange, onFilterChange }: FilterDialo
     patterns: [],
   });
   const [filterText, setFilterText] = useState("");
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   
   // Load filter config when dialog opens
   useEffect(() => {
     if (open) {
       loadFilterConfig();
+      setValidationErrors([]);
     }
   }, [open]);
   
@@ -59,8 +62,27 @@ export function FilterDialog({ open, onOpenChange, onFilterChange }: FilterDialo
     }
   };
   
+  const validateFilterText = () => {
+    // Parse filter text into array of patterns
+    const patterns = filterText
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('#')); // Skip empty lines and comments
+    
+    // Validate patterns
+    const errors = validatePatterns(patterns);
+    setValidationErrors(errors);
+    
+    return errors.length === 0;
+  };
+  
   const saveFilterConfig = async () => {
     try {
+      // Validate patterns first
+      if (!validateFilterText()) {
+        return; // Don't save if there are validation errors
+      }
+      
       // Parse filter text into array of patterns
       const patterns = filterText
         .split('\n')
@@ -98,19 +120,25 @@ export function FilterDialog({ open, onOpenChange, onFilterChange }: FilterDialo
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Document Filter</DialogTitle>
           <DialogDescription>
-            Configure which documents to show in the navigator using Git-style filter patterns.
+            Configure which documents to show in the navigator using GitIgnore-style patterns.
           </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
           <div className="flex items-center justify-between">
-            <Label htmlFor="filter-enabled" className="text-sm font-medium">
-              Filter Enabled
-            </Label>
+            <div>
+              <Label htmlFor="filter-enabled" className="text-sm font-medium">
+                Apply Filter
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                When enabled, the patterns below will be applied to filter the document view.
+                When disabled, all documents will be shown (filter patterns are ignored).
+              </p>
+            </div>
             <Switch
               id="filter-enabled"
               checked={filterConfig.enabled}
@@ -126,17 +154,44 @@ export function FilterDialog({ open, onOpenChange, onFilterChange }: FilterDialo
               id="filter-patterns"
               placeholder="# Enter one pattern per line
 # Examples:
-*.md         # Include all markdown files
-!templates/* # Exclude templates directory
-docs/*.md    # Include markdown files in docs directory"
-              className="h-[200px] font-mono text-sm"
+*.md         # Include only markdown files
+!templates/  # Show the templates directory (negate exclusion)
+notes/       # Hide the notes directory
+docs/**/*.md # Include markdown files in docs directory and subdirectories
+!important/* # Keep files in the important directory visible"
+              className="h-[250px] font-mono text-sm"
               value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
+              onChange={(e) => {
+                setFilterText(e.target.value);
+                setValidationErrors([]);
+              }}
             />
-            <p className="text-xs text-muted-foreground">
-              Each line is a pattern. Use * as wildcard, ! to negate a pattern.
-              Lines starting with # are comments.
-            </p>
+            
+            {validationErrors.length > 0 && (
+              <div className="text-xs text-destructive space-y-1 mt-1">
+                <p><strong>Pattern Errors:</strong></p>
+                <ul className="list-disc pl-5">
+                  {validationErrors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            <div className="text-xs text-muted-foreground space-y-2">
+              <p><strong>Pattern Format:</strong></p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><code>pattern</code> - Include only files matching the pattern</li>
+                <li><code>!pattern</code> - Exclude files matching the pattern (show them)</li>
+                <li><code>dir/</code> - Hide a directory and all its contents</li>
+                <li><code>*</code> - Wildcard (matches any characters except /)</li>
+                <li><code>**</code> - Matches any directory depth</li>
+                <li><code>/pattern</code> - Pattern applies only at root level</li>
+                <li><code>[abc]</code> - Character class (matches a, b, or c)</li>
+                <li><code>[a-z]</code> - Character range (matches a through z)</li>
+              </ul>
+              <p><strong>To hide a directory:</strong> Simply add the directory name followed by a slash: <code>directory_name/</code></p>
+            </div>
           </div>
         </div>
         

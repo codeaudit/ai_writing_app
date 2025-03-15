@@ -14,7 +14,7 @@ import { toast } from "@/components/ui/use-toast";
 import { TemplateDialog } from "./template-dialog";
 import { VaultIntegrityDialog } from "./vault-integrity-dialog";
 import { FilterDialog, FilterConfig } from "./filter-dialog";
-import { filterDocuments } from "@/lib/filter-utils";
+import { filterDocuments, shouldShowFolder, getDocumentPath, matchesPatterns } from "@/lib/filter-utils";
 import { loadFilterFromServer } from "@/lib/api-service";
 import {
   DropdownMenu,
@@ -48,9 +48,12 @@ interface FolderItemProps {
   folder: { id: string; name: string; parentId: string | null };
   level: number;
   comparisonMode: boolean;
+  filteredDocuments: Document[];
+  searchQuery: string;
+  filterConfig: FilterConfig;
 }
 
-function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
+function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQuery, filterConfig }: FolderItemProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(folder.name);
@@ -80,8 +83,56 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
   } = useDocumentStore();
 
   const childFolders = folders.filter(f => f.parentId === folder.id);
-  const folderDocuments = documents.filter(d => d.folderId === folder.id);
+  const folderDocuments = filteredDocuments.filter(d => d.folderId === folder.id);
   
+  // Check if this folder has any visible documents or child folders with visible documents
+  const hasVisibleContent = folderDocuments.length > 0;
+  
+  // If this folder has no visible content, don't render it
+  if (!hasVisibleContent && searchQuery.trim() !== '') {
+    return null;
+  }
+
+  // Filter visible child folders
+  const visibleChildFolders = childFolders.filter(childFolder => {
+    // If we're not filtering or searching, show all folders
+    if (!filterConfig.enabled && searchQuery === '') {
+      return true;
+    }
+    
+    // If we're only searching (filter not enabled), check if this folder or its children
+    // contain any documents that match the search query
+    if (!filterConfig.enabled && searchQuery !== '') {
+      return shouldShowFolder(childFolder.id, folders, filteredDocuments);
+    }
+    
+    // If filter is enabled, first check if the folder itself should be filtered out
+    if (filterConfig.enabled) {
+      // Get the folder path
+      let folderPath = childFolder.name + '/';
+      let currentFolderId = childFolder.parentId;
+      
+      // Build the folder path by traversing up the folder hierarchy
+      while (currentFolderId) {
+        const parent = folders.find(f => f.id === currentFolderId);
+        if (!parent) break;
+        folderPath = parent.name + '/' + folderPath;
+        currentFolderId = parent.parentId;
+      }
+      
+      // Check if the folder path matches any filter patterns
+      // If it doesn't match (should be excluded), return false
+      if (!matchesPatterns(folderPath, filterConfig.patterns)) {
+        return false;
+      }
+      
+      // If the folder itself is not filtered out, check if it has any visible documents
+      return shouldShowFolder(childFolder.id, folders, filteredDocuments);
+    }
+    
+    return false;
+  });
+
   const handleRename = () => {
     if (newName.trim() && newName !== folder.name) {
       updateFolder(folder.id, newName.trim());
@@ -312,12 +363,15 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
 
       {isExpanded && (
         <>
-          {childFolders.map((childFolder) => (
+          {visibleChildFolders.map((childFolder) => (
             <FolderItem
               key={childFolder.id}
               folder={childFolder}
               level={level + 1}
               comparisonMode={comparisonMode}
+              filteredDocuments={filteredDocuments}
+              searchQuery={searchQuery}
+              filterConfig={filterConfig}
             />
           ))}
           
@@ -326,6 +380,7 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
               key={doc.id}
               document={doc}
               level={level + 1}
+              filteredDocuments={filteredDocuments}
             />
           ))}
         </>
@@ -354,9 +409,10 @@ function FolderItem({ folder, level, comparisonMode }: FolderItemProps) {
 interface DocumentItemProps {
   document: { id: string; name: string; folderId: string | null };
   level: number;
+  filteredDocuments?: Document[];
 }
 
-function DocumentItem({ document, level }: DocumentItemProps) {
+function DocumentItem({ document, level, filteredDocuments }: DocumentItemProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(document.name);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
@@ -631,6 +687,51 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   const filteredDocuments = filterConfig.enabled
     ? filterDocuments(searchFilteredDocuments, folders, filterConfig.patterns)
     : searchFilteredDocuments;
+  
+  // Get root folders and documents
+  const rootFolders = folders.filter(f => f.parentId === null);
+  const rootDocuments = filteredDocuments.filter(d => d.folderId === null);
+  
+  // Filter root folders to only show those that have visible documents
+  const visibleRootFolders = rootFolders.filter(folder => {
+    // If we're not filtering or searching, show all folders
+    if (!filterConfig.enabled && searchQuery === '') {
+      return true;
+    }
+    
+    // If we're only searching (filter not enabled), check if this folder or its children
+    // contain any documents that match the search query
+    if (!filterConfig.enabled && searchQuery !== '') {
+      return shouldShowFolder(folder.id, folders, filteredDocuments);
+    }
+    
+    // If filter is enabled, first check if the folder itself should be filtered out
+    if (filterConfig.enabled) {
+      // Get the folder path
+      let folderPath = folder.name + '/';
+      let currentFolder = folder;
+      let parentId = folder.parentId;
+      
+      // Build the folder path by traversing up the folder hierarchy
+      while (parentId) {
+        const parent = folders.find(f => f.id === parentId);
+        if (!parent) break;
+        folderPath = parent.name + '/' + folderPath;
+        parentId = parent.parentId;
+      }
+      
+      // Check if the folder path matches any filter patterns
+      // If it doesn't match (should be excluded), return false
+      if (!matchesPatterns(folderPath, filterConfig.patterns)) {
+        return false;
+      }
+      
+      // If the folder itself is not filtered out, check if it has any visible documents
+      return shouldShowFolder(folder.id, folders, filteredDocuments);
+    }
+    
+    return false;
+  });
 
   const createNewDocument = () => {
     // Determine the appropriate folder ID for the new document
@@ -981,9 +1082,6 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
     URL.revokeObjectURL(url);
   };
 
-  const rootFolders = folders.filter(f => f.parentId === null);
-  const rootDocuments = documents.filter(d => d.folderId === null);
-
   // Get selected documents for token counter
   const selectedDocuments = documents.filter(doc => 
     comparisonDocumentIds.includes(doc.id)
@@ -1047,7 +1145,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
             size="sm"
             onClick={() => setShowFilterDialog(true)}
             className="h-6 w-6 p-0"
-            title="Filter documents"
+            title={filterConfig.enabled ? "Filter is active - click to modify" : "Set up document filters"}
           >
             <Filter className="h-3.5 w-3.5" />
           </Button>
@@ -1124,12 +1222,15 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
       )}
       
       <div className="space-y-0.5 overflow-auto flex-1 pr-1">
-        {rootFolders.map((folder) => (
+        {visibleRootFolders.map((folder) => (
           <FolderItem
             key={folder.id}
             folder={folder}
             level={0}
             comparisonMode={comparisonMode}
+            filteredDocuments={filteredDocuments}
+            searchQuery={searchQuery}
+            filterConfig={filterConfig}
           />
         ))}
         
@@ -1138,6 +1239,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
             key={doc.id}
             document={doc}
             level={0}
+            filteredDocuments={filteredDocuments}
           />
         ))}
       </div>
