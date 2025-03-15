@@ -22,5 +22,11 @@
     "name": "templates",
     "createdAt": "2025-03-15T20:59:29.191Z",
     "parentId": null
+  },
+  {
+    "id": "folder-1742076920804",
+    "name": "output",
+    "createdAt": "2025-03-15T22:15:20.804Z",
+    "parentId": null
   }
 ]

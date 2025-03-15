@@ -535,9 +535,9 @@
   {
     "id": "doc-1741977908255",
     "name": "default",
-    "content": "{% set schema = {\n  \"fields\": {\n    \"description\": {\n      \"type\": \"string\",\n      \"description\": \"Brief description of the document\"\n    },\n    \"tags\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Document tags or categories\"\n    },\n    \"isImportant\": {\n      \"type\": \"boolean\",\n      \"default\": false,\n      \"description\": \"Mark as important document\"\n    }\n  }\n} %}\n\n#This is default template for composition\n\n# {{ title }}\n\nCreated on {{ date | dateFormat('MMMM d, yyyy') }} at {{ time | timeFormat }}\n\n{% if contextDocumentsWithContent.length > 0 %}\n## Context Documents\n\n{% for doc in contextDocumentsWithContent %}\n- {{ doc.name }}\n- {{ doc.content }}\n{% endfor %}\n{% endif %}\n\n{% if chatMessages.length > 0 %}\n## Chat History\n\n{% for message in chatMessages %}\n### {{ message.role | capitalize }}\n\n{{ message.content }}\n\n{% endfor %}\n{% endif %}\n\n## New Content\n\n{% if description %}\n{{ description }}\n{% else %}\nStart writing here...\n{% endif %}\n",
+    "content": "{% set schema = {\n  \"fields\": {\n    \"description\": {\n      \"type\": \"string\",\n      \"description\": \"Brief description of the document\"\n    },\n    \"tags\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Document tags or categories\"\n    },\n    \"isImportant\": {\n      \"type\": \"boolean\",\n      \"default\": false,\n      \"description\": \"Mark as important document\"\n    }\n  }\n} %}\n\n#This is default template for composition\n\n# {{ title }}\n\nCreated on {{ date | dateFormat('MMMM d, yyyy') }} at {{ time | timeFormat }}\n\n{% if contextDocuments.length > 0 %}\n## Context Documents\n\n{% for doc in contextDocuments %}\n- {{ doc.name }}\n- {{ doc.content }}\n{% endfor %}\n{% endif %}\n\n{% if chatMessages.length > 0 %}\n## Chat History\n\n{% for message in chatMessages %}\n### {{ message.role | capitalize }}\n\n{{ message.content }}\n\n{% endfor %}\n{% endif %}\n\n## New Content\n\n{% if description %}\n{{ description }}\n{% else %}\nStart writing here...\n{% endif %}\n",
     "createdAt": "2025-03-14T18:45:08.255Z",
-    "updatedAt": "2025-03-15T01:28:11.549Z",
+    "updatedAt": "2025-03-15T21:59:13.963Z",
     "versions": [
       {
         "id": "ver-1741977908255-initial",
@@ -550,16 +550,16 @@
     "annotations": []
   },
   {
-    "id": "doc-1742002384486",
-    "name": "AoW Comp",
-    "content": "\n# AoW Comp\n\nComposition with context documents.\nContext documents:\n- [[Art of War]]\n\n",
-    "createdAt": "2025-03-15T01:33:04.486Z",
-    "updatedAt": "2025-03-15T01:33:04.486Z",
+    "id": "doc-1742076838470",
+    "name": "format comp",
+    "content": "\n# format comp\n\nComposition with context documents.\nContext documents:\n- [[1-Formatting-Test]]\n\n",
+    "createdAt": "2025-03-15T22:13:58.470Z",
+    "updatedAt": "2025-03-15T22:13:58.470Z",
     "versions": [
       {
-        "id": "ver-1742002384486-initial",
+        "id": "ver-1742076838470-initial",
         "content": "",
-        "createdAt": "2025-03-15T01:33:04.486Z",
+        "createdAt": "2025-03-15T22:13:58.470Z",
         "message": "Initial version"
       }
     ],
@@ -567,11 +567,79 @@
     "annotations": []
   },
   {
+    "id": "doc-1742076852332",
+    "name": "format comp test 1",
+    "content": "\n#This is default template for composition\n\n# format comp test 1\n\nCreated on March 15, 2025 at 6:14:12 PM\n\n## Context Documents\n\n- 1-Formatting-Test\n- \n# Comprehensive Markdown Formatting Test\n\nThis document tests various markdown formatting features to ensure proper rendering in the UI.\n\n## Text Formatting\n\n**Bold text** for emphasis\n*Italic text* for subtle emphasis\n***Bold and italic*** for strong emphasis\n~~Strikethrough~~ for deleted content\n`Inline code` for code snippets\n> Blockquote for quoted content\n>> Nested blockquote for nested quotes\n\n## Lists\n\n### Unordered Lists\n- Item 1\n  - Nested item 1.1\n  - Nested item 1.2\n    - Deeply nested item 1.2.1\n- Item 2\n- Item 3\n\n### Ordered Lists\n1. First item\n2. Second item\n   1. Nested item 2.1\n   2. Nested item 2.2\n3. Third item\n\n### Task Lists\n- [x] Completed task\n- [ ] Incomplete task\n- [x] Another completed task\n- [ ] Task with **formatted** *text*\n\n## Tables\n\n| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n| **Bold** | *Italic* | `Code`   |\n\n### Complex Table\n\n| Name | Age | Occupation | Notes |\n|------|-----|------------|-------|\n| John | 32  | Developer  | Works on [[Project Alpha]] |\n| Jane | 28  | Designer   | Collaborates with marketing |\n| Alex | 45  | Manager    | Oversees team of 12 |\n\n## Code Blocks\n\n```javascript\nfunction helloWorld() {\n  console.log(\"Hello, world!\");\n  return true;\n}\n```\n\n```python\ndef fibonacci(n):\n    if n <= 1:\n        return n\n    else:\n        return fibonacci(n-1) + fibonacci(n-2)\n```\n\n## Links\n\n[External link to Google](https://www.google.com)\n[[Internal link to another document]]\n[[Project Alpha|Link with custom text]]\n\n## Images\n\n![Image alt text](https://via.placeholder.com/150)\n\n## Horizontal Rule\n\n---\n\n## Mixed Content\n\n1. First point about **important** concept\n   > Quote supporting this point\n   > - With a nested list\n   > - And another item\n\n2. Second point with `code` and *emphasis*\n   ```\n   Example block\n   of code\n   ```\n\n## Special Characters\n\nCopyright symbol: ©\nRegistered trademark: ®\nEmoji: 😊 🚀 💡\n\n## Math Expressions (if supported)\n\nInline math: $E = mc^2$\n\nBlock math:\n$$\n\\frac{d}{dx}(x^n) = nx^{n-1}\n$$\n\n## Footnotes\n\nHere's a sentence with a footnote[^1].\n\n[^1]: This is the footnote content.\n\n## Definition Lists\n\nTerm 1\n: Definition 1\n\nTerm 2\n: Definition 2\n: Another definition for term 2\n\n\n\n## New Content\n\nStart writing here...\n",
+    "createdAt": "2025-03-15T22:14:12.332Z",
+    "updatedAt": "2025-03-15T22:14:12.332Z",
+    "versions": [
+      {
+        "id": "ver-1742076852332-initial",
+        "content": "",
+        "createdAt": "2025-03-15T22:14:12.332Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
+    "id": "doc-1742076154963",
+    "name": "format test 2",
+    "content": "# this is the default template from templates\n\n# format test 2\n\nCreated on March 15, 2025\n\n\n## Overview\n\n\n\n\nStart writing here...\n",
+    "createdAt": "2025-03-15T22:02:34.963Z",
+    "updatedAt": "2025-03-15T22:02:34.963Z",
+    "versions": [
+      {
+        "id": "ver-1742076154963-initial",
+        "content": "",
+        "createdAt": "2025-03-15T22:02:34.963Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
+    "id": "doc-1742076195359",
+    "name": "format test 3",
+    "content": "\n#This is default template for composition\n\n# format test 3\n\nCreated on March 15, 2025 at 6:03:13 PM\n\n\n\n## New Content\n\nStart writing here...\n",
+    "createdAt": "2025-03-15T22:03:15.359Z",
+    "updatedAt": "2025-03-15T22:03:15.359Z",
+    "versions": [
+      {
+        "id": "ver-1742076195359-initial",
+        "content": "",
+        "createdAt": "2025-03-15T22:03:15.359Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
+    "id": "doc-1742075991428",
+    "name": "format test",
+    "content": "\n# format test\n\nCreated on March 15, 2025\n\n\n## Overview\n\n\n\n\nStart writing here...\n",
+    "createdAt": "2025-03-15T21:59:51.428Z",
+    "updatedAt": "2025-03-15T21:59:51.428Z",
+    "versions": [
+      {
+        "id": "ver-1742075991428-initial",
+        "content": "",
+        "createdAt": "2025-03-15T21:59:51.428Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
     "id": "doc-1741945192434-qev3k9b",
     "name": "default",
-    "content": "\n# {{title}}\n\nCreated on {{date | dateFormat('MMMM d, yyyy')}}\n\n{% if isImportant %}\n**IMPORTANT DOCUMENT**\n{% endif %}\n\n## Overview\n\n{{description}}\n\n{% if tags.length > 0 %}\n## Tags\n{% for tag in tags %}\n- {{tag}}\n{% endfor %}\n{% endif %}\n\nStart writing here...\n",
+    "content": "# this is the default template from templates\n\n# {{title}}\n\nCreated on {{date | dateFormat('MMMM d, yyyy')}}\n\n{% if isImportant %}\n**IMPORTANT DOCUMENT**\n{% endif %}\n\n## Overview\n\n{{description}}\n\n{% if tags.length > 0 %}\n## Tags\n{% for tag in tags %}\n- {{tag}}\n{% endfor %}\n{% endif %}\n\nStart writing here...\n",
     "createdAt": "2025-03-14T09:39:52.434Z",
-    "updatedAt": "2025-03-15T01:27:52.646Z",
+    "updatedAt": "2025-03-15T22:02:04.593Z",
     "versions": [
       {
         "id": "ver-1741945495532",
@@ -601,11 +669,11 @@
     "annotations": []
   },
   {
-    "id": "doc-1742075162631-enn9xi6",
+    "id": "doc-1742076859606-dv1monq",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-15T21:46:02.631Z",
-    "updatedAt": "2025-03-15T21:46:02.631Z",
+    "createdAt": "2025-03-15T22:14:19.606Z",
+    "updatedAt": "2025-03-15T22:14:19.606Z",
     "versions": [],
     "folderId": "folder-1742072369191-8lgw70w",
     "annotations": []

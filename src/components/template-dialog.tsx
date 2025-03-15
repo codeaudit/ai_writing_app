@@ -419,11 +419,16 @@ export function TemplateDialog({
           variables[key] = value;
         });
       }
+      
       // Process the template
       const content = await processTemplate(selectedTemplate, variables);
       
+      // Determine the folder ID for the new document
+      // If we're creating from a composition template, always place in root (null)
+      const targetFolderId = templateDirectory === 'composition_templates' ? null : folderId;
+      
       // Create the document
-      const newDocId = await addDocument(documentName, content, folderId);
+      const newDocId = await addDocument(documentName, content, targetFolderId);
       
       // Close the dialog
       onOpenChange(false);
@@ -563,8 +568,8 @@ export function TemplateDialog({
       const processData = await processResponse.json();
       const content = processData.content;
       
-      // Create the document
-      const newDocId = await addDocument(documentName, content, folderId);
+      // Always create composition documents in the root of the vault
+      const newDocId = await addDocument(documentName, content, null);
       
       // Close the dialog
       onOpenChange(false);

@@ -1,7 +1,7 @@
 ---
 id: doc-1741977908255
 createdAt: '2025-03-14T18:45:08.255Z'
-updatedAt: '2025-03-15T01:28:11.549Z'
+updatedAt: '2025-03-15T21:59:13.963Z'
 versions:
   - id: ver-1741977908255-initial
     createdAt: '2025-03-14T18:45:08.255Z'
@@ -35,10 +35,10 @@ annotations: []
 
 Created on {{ date | dateFormat('MMMM d, yyyy') }} at {{ time | timeFormat }}
 
-{% if contextDocumentsWithContent.length > 0 %}
+{% if contextDocuments.length > 0 %}
 ## Context Documents
 
-{% for doc in contextDocumentsWithContent %}
+{% for doc in contextDocuments %}
 - {{ doc.name }}
 - {{ doc.content }}
 {% endfor %}
