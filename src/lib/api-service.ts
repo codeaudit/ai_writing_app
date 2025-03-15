@@ -266,4 +266,56 @@ export const processTemplate = async (templateName: string, variables: Record<st
     console.error('Error processing template:', error);
     throw error;
   }
+};
+
+// Filter API functions
+export interface FilterConfig {
+  enabled: boolean;
+  patterns: string[];
+}
+
+// Load filter configuration from server
+export const loadFilterFromServer = async (): Promise<FilterConfig> => {
+  try {
+    const response = await fetch('/api/filter', {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to load filter config: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error loading filter config:', error);
+    throw error;
+  }
+};
+
+// Save filter configuration to server
+export const saveFilterToServer = async (filterConfig: FilterConfig): Promise<FilterConfig> => {
+  try {
+    const response = await fetch('/api/filter', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(filterConfig),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to save filter config: ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    return result.config;
+  } catch (error) {
+    console.error('Error saving filter config:', error);
+    throw error;
+  }
 }; 

@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useContext, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download, FileText, FilePlus, MoreHorizontal, Shield, RefreshCw } from "lucide-react";
+import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download, FileText, FilePlus, MoreHorizontal, Shield, RefreshCw, Filter } from "lucide-react";
 import { useDocumentStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,6 +13,9 @@ import { VersionHistory } from "./version-history";
 import { toast } from "@/components/ui/use-toast";
 import { TemplateDialog } from "./template-dialog";
 import { VaultIntegrityDialog } from "./vault-integrity-dialog";
+import { FilterDialog, FilterConfig } from "./filter-dialog";
+import { filterDocuments } from "@/lib/filter-utils";
+import { loadFilterFromServer } from "@/lib/api-service";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -614,12 +617,20 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showIntegrityDialog, setShowIntegrityDialog] = useState(false);
+  const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filterConfig, setFilterConfig] = useState<FilterConfig>({ enabled: false, patterns: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredDocuments = documents.filter(doc => 
+  // Apply search filter
+  const searchFilteredDocuments = documents.filter(doc => 
     doc.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  
+  // Apply pattern filter if enabled
+  const filteredDocuments = filterConfig.enabled
+    ? filterDocuments(searchFilteredDocuments, folders, filterConfig.patterns)
+    : searchFilteredDocuments;
 
   const createNewDocument = () => {
     // Determine the appropriate folder ID for the new document
@@ -852,6 +863,24 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
     }
   };
 
+  // Load filter config on component mount
+  useEffect(() => {
+    const loadFilterConfig = async () => {
+      try {
+        const config = await loadFilterFromServer();
+        setFilterConfig(config);
+      } catch (error) {
+        console.error("Error loading filter config:", error);
+      }
+    };
+    
+    loadFilterConfig();
+  }, []);
+  
+  const handleFilterChange = (newConfig: FilterConfig) => {
+    setFilterConfig(newConfig);
+  };
+  
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
@@ -1012,6 +1041,15 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
             title="Refresh documents from file system"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button
+            variant={filterConfig.enabled ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setShowFilterDialog(true)}
+            className="h-6 w-6 p-0"
+            title="Filter documents"
+          >
+            <Filter className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
@@ -1189,6 +1227,12 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           // Reload documents and folders after integrity check
           useDocumentStore.getState().loadData();
         }}
+      />
+
+      <FilterDialog
+        open={showFilterDialog}
+        onOpenChange={setShowFilterDialog}
+        onFilterChange={handleFilterChange}
       />
     </div>
   );
