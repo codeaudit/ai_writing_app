@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useContext, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download, FileText, FilePlus, MoreHorizontal, Shield } from "lucide-react";
+import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download, FileText, FilePlus, MoreHorizontal, Shield, RefreshCw } from "lucide-react";
 import { useDocumentStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -600,6 +600,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
     deleteFolder,
     updateFolder,
     folders,
+    loadData,
   } = useDocumentStore();
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -613,6 +614,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showIntegrityDialog, setShowIntegrityDialog] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredDocuments = documents.filter(doc => 
@@ -850,6 +852,32 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      toast({
+        title: "Refreshing documents",
+        description: "Updating content from the file system...",
+      });
+      
+      await loadData();
+      
+      toast({
+        title: "Refresh complete",
+        description: `Successfully refreshed ${documents.length} documents from the file system.`,
+      });
+    } catch (error) {
+      console.error("Error refreshing documents:", error);
+      toast({
+        title: "Refresh failed",
+        description: "There was an error refreshing documents from the file system.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const handleExportDocuments = async () => {
     try {
       // Show loading toast
@@ -974,6 +1002,16 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
             title={comparisonMode ? "Cancel selection mode" : "Enter selection mode"}
           >
             <GitCompare className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-6 w-6 p-0"
+            title="Refresh documents from file system"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>

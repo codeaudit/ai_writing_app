@@ -1,32 +1,14 @@
 [
   {
-    "id": "folder-1741742086204-3pxe6c7",
-    "name": "Daily Notes",
-    "createdAt": "2025-03-12T01:14:46.204Z",
-    "parentId": null
-  },
-  {
-    "id": "folder-1741742086204-6xmvmgg",
-    "name": "Projects",
-    "createdAt": "2025-03-12T01:14:46.204Z",
-    "parentId": null
-  },
-  {
-    "id": "folder-1741742086204-863tcy1",
-    "name": "Test",
-    "createdAt": "2025-03-12T01:14:46.204Z",
-    "parentId": null
-  },
-  {
     "id": "folder-1742065261980-9lbooun",
     "name": "UI_Test_Files",
     "createdAt": "2025-03-15T19:01:01.980Z",
     "parentId": null
   },
   {
-    "id": "folder-1741977887978",
+    "id": "folder-1742072369191-8g0dgav",
     "name": "composition_templates",
-    "createdAt": "2025-03-14T18:44:47.978Z",
+    "createdAt": "2025-03-15T20:59:29.191Z",
     "parentId": null
   },
   {
@@ -36,9 +18,9 @@
     "parentId": null
   },
   {
-    "id": "folder-1741944992902-o39tkyp",
+    "id": "folder-1742072369191-8lgw70w",
     "name": "templates",
-    "createdAt": "2025-03-14T09:36:32.903Z",
+    "createdAt": "2025-03-15T20:59:29.191Z",
     "parentId": null
   }
 ]
