@@ -149,6 +149,23 @@ export async function generateTextServerAction(options: LLMRequestOptions): Prom
         maxTokens,
       });
       
+      // Log debug information
+      try {
+        const cookieStore = await cookies();
+        const sessionId = cookieStore.get('ai-session-id')?.value || 'unknown';
+        await logAIDebug(sessionId, {
+          provider,
+          model: modelName,
+          systemMessage,
+          userPrompt,
+          responseLength: result.text.length,
+          responsePreview: result.text.substring(0, 100) + (result.text.length > 100 ? '...' : ''),
+          contextDocumentsCount: contextDocuments.length,
+        });
+      } catch (logError) {
+        console.error('Error logging AI debug info:', logError);
+      }
+      
       return {
         text: result.text,
         model: modelName,
@@ -289,8 +306,45 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
     
     // Generate text with or without streaming
     if (stream) {
-      // For streaming, we'll implement this later if needed
-      throw new Error('Streaming is not yet supported in the server action');
+      // For streaming, return a streamed response
+      const result = await streamText({
+        model,
+        system: systemMessage,
+        prompt: userPrompt,
+        temperature: configTemperature,
+        maxTokens: configMaxTokens,
+      });
+      
+      // Log debug information
+      try {
+        const cookieStore = await cookies();
+        const sessionId = cookieStore.get('ai-session-id')?.value || 'unknown';
+        await logAIDebug(sessionId, {
+          provider,
+          model: modelName,
+          systemMessage,
+          userPrompt,
+          responseLength: 0, // Length unknown for streaming
+          responsePreview: 'Streaming response',
+          contextDocumentsCount: contextDocuments.length,
+        });
+      } catch (logError) {
+        console.error('Error logging AI debug info:', logError);
+      }
+      
+      // For streaming responses, we need to handle the async text property
+      const streamedText = await result.text || 'Streamed response';
+      
+      return {
+        message: {
+          role: 'assistant',
+          content: streamedText,
+          id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+        },
+        model: modelName,
+        provider,
+        debugPrompt: formatDebugPrompt(systemMessage, userPrompt, provider, modelName)
+      };
     } else {
       // For non-streaming, we return the complete text
       const result = await aiGenerateText({

@@ -66,6 +66,12 @@ export async function POST(request: NextRequest) {
     // Configure Nunjucks
     const nunjucksEnv = configureNunjucks();
     
+    // Add debug logging
+    console.log('Template processing request received');
+    console.log('Template:', template.substring(0, 100) + '...');
+    console.log('Variables keys:', Object.keys(variables));
+    console.log('Context documents:', variables.contextDocuments ? JSON.stringify(variables.contextDocuments, null, 2) : 'None provided');
+    
     // Default variables
     const defaultVariables = {
       date: new Date().toISOString(),
@@ -83,8 +89,13 @@ export async function POST(request: NextRequest) {
       ...variables,
     };
     
+    // More debug logging
+    console.log('Merged variables keys:', Object.keys(mergedVariables));
+    
     // Process the template with Nunjucks
     const processedContent = nunjucksEnv.renderString(template, mergedVariables);
+    
+    console.log('Template processed successfully');
     
     return NextResponse.json({ content: processedContent });
   } catch (error) {

@@ -88,6 +88,7 @@ interface DocumentStore {
   addDocument: (name: string, content: string, folderId?: string | null) => Promise<string>;
   updateDocument: (id: string, data: Partial<Document>, createVersion?: boolean, versionMessage?: string) => Promise<void>;
   deleteDocument: (id: string) => Promise<void>;
+  deleteMultipleDocuments: (ids: string[]) => Promise<void>;
   moveDocument: (documentId: string, folderId: string | null) => Promise<void>;
   renameDocument: (documentId: string, newName: string) => Promise<void>;
   selectDocument: (id: string | null) => void;
@@ -316,6 +317,8 @@ export const useDocumentStore = create<DocumentStore>()(
                 ? state.documents.find(d => d.id !== id)?.id ?? null 
                 : null) 
             : state.selectedDocumentId,
+          // Also remove from comparison documents if present
+          comparisonDocumentIds: state.comparisonDocumentIds.filter(docId => docId !== id)
         }));
         
         // Then delete from server
@@ -324,6 +327,40 @@ export const useDocumentStore = create<DocumentStore>()(
         } catch (error) {
           console.error('Error deleting document from server:', error);
           set({ error: 'Failed to delete document from server.' });
+        }
+      },
+      
+      // New method to delete multiple documents at once
+      deleteMultipleDocuments: async (ids: string[]) => {
+        if (!ids.length) return;
+        set({ error: null });
+        
+        // Update local state immediately
+        set((state) => {
+          // Filter out the deleted documents
+          const updatedDocuments = state.documents.filter(doc => !ids.includes(doc.id));
+          
+          // Determine new selected document if current one is being deleted
+          let newSelectedId = state.selectedDocumentId;
+          if (state.selectedDocumentId && ids.includes(state.selectedDocumentId)) {
+            newSelectedId = updatedDocuments.length > 0 ? updatedDocuments[0].id : null;
+          }
+          
+          return {
+            documents: updatedDocuments,
+            selectedDocumentId: newSelectedId,
+            // Remove deleted documents from comparison list
+            comparisonDocumentIds: state.comparisonDocumentIds.filter((docId: string) => !ids.includes(docId))
+          };
+        });
+        
+        // Delete from server one by one
+        try {
+          // Use Promise.all to delete all documents in parallel
+          await Promise.all(ids.map((id: string) => deleteDocumentFromServer(id)));
+        } catch (error) {
+          console.error('Error deleting multiple documents from server:', error);
+          set({ error: 'Failed to delete some documents from server.' });
         }
       },
       

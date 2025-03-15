@@ -1,14 +1,13 @@
 ---
 id: doc-1741977908255
 createdAt: '2025-03-14T18:45:08.255Z'
-updatedAt: '2025-03-14T22:34:52.025Z'
+updatedAt: '2025-03-15T01:28:11.549Z'
 versions:
   - id: ver-1741977908255-initial
     createdAt: '2025-03-14T18:45:08.255Z'
     message: Initial version
 annotations: []
 ---
-
 {% set schema = {
   "fields": {
     "description": {
@@ -36,10 +35,10 @@ annotations: []
 
 Created on {{ date | dateFormat('MMMM d, yyyy') }} at {{ time | timeFormat }}
 
-{% if contextDocuments.length > 0 %}
+{% if contextDocumentsWithContent.length > 0 %}
 ## Context Documents
 
-{% for doc in contextDocuments %}
+{% for doc in contextDocumentsWithContent %}
 - {{ doc.name }}
 - {{ doc.content }}
 {% endfor %}

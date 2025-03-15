@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useContext, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download, FileText, FilePlus, MoreHorizontal } from "lucide-react";
+import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download, FileText, FilePlus, MoreHorizontal, Shield } from "lucide-react";
 import { useDocumentStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { VersionHistory } from "./version-history";
 import { toast } from "@/components/ui/use-toast";
 import { TemplateDialog } from "./template-dialog";
+import { VaultIntegrityDialog } from "./vault-integrity-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -364,6 +365,7 @@ function DocumentItem({ document, level }: DocumentItemProps) {
     comparisonDocumentIds,
     updateDocument,
     deleteDocument,
+    deleteMultipleDocuments,
     selectDocument,
     toggleComparisonDocument,
     moveDocument,
@@ -511,12 +513,29 @@ function DocumentItem({ document, level }: DocumentItemProps) {
             <DropdownMenuItem
               className="text-destructive"
               onClick={() => {
-                if (confirm(`Are you sure you want to delete "${document.name}"?`)) {
-                  deleteDocument(document.id);
-                  toast({
-                    title: "Document deleted",
-                    description: `"${document.name}" has been deleted.`,
-                  });
+                // Check if we're in comparison mode with multiple documents selected
+                if (comparisonDocumentIds.length > 1 && comparisonDocumentIds.includes(document.id)) {
+                  // Get names of selected documents for confirmation message
+                  const selectedDocs = documents.filter(doc => comparisonDocumentIds.includes(doc.id));
+                  const docCount = selectedDocs.length;
+                  
+                  if (confirm(`Are you sure you want to delete ${docCount} selected documents? This action cannot be undone.`)) {
+                    // Delete all selected documents
+                    deleteMultipleDocuments(comparisonDocumentIds);
+                    toast({
+                      title: "Documents deleted",
+                      description: `${docCount} documents have been deleted.`,
+                    });
+                  }
+                } else {
+                  // Regular single document deletion
+                  if (confirm(`Are you sure you want to delete "${document.name}"?`)) {
+                    deleteDocument(document.id);
+                    toast({
+                      title: "Document deleted",
+                      description: `"${document.name}" has been deleted.`,
+                    });
+                  }
                 }
               }}
             >
@@ -574,6 +593,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
     addDocument, 
     selectDocument,
     deleteDocument,
+    deleteMultipleDocuments,
     toggleComparisonDocument,
     clearComparisonDocuments,
     addFolder,
@@ -589,8 +609,10 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   const [newItemName, setNewItemName] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, type: 'folder' | 'document' } | null>(null);
+  const [showMultiDeleteConfirm, setShowMultiDeleteConfirm] = useState(false);
   const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [showIntegrityDialog, setShowIntegrityDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredDocuments = documents.filter(doc => 
@@ -655,6 +677,29 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           description: `"${doc.name}" has been deleted.`,
         });
       }
+    }
+  };
+
+  const handleDeleteSelectedDocuments = async () => {
+    if (comparisonDocumentIds.length > 0) {
+      // Close the confirmation dialog
+      setShowMultiDeleteConfirm(false);
+      
+      // Get the names of the documents to be deleted for the toast message
+      const selectedDocs = documents.filter(doc => comparisonDocumentIds.includes(doc.id));
+      const docNames = selectedDocs.map(doc => doc.name);
+      
+      // Delete the documents
+      await deleteMultipleDocuments(comparisonDocumentIds);
+      
+      // Show success toast
+      toast({
+        title: "Documents deleted",
+        description: `${comparisonDocumentIds.length} documents have been deleted.`,
+      });
+      
+      // Exit comparison mode
+      setComparisonMode(false);
     }
   };
 
@@ -978,13 +1023,22 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
             </span>
           </div>
           {comparisonDocumentIds.length > 0 ? (
-            <Button 
-              variant="default" 
-              className="w-full h-6 text-xs"
-              onClick={() => setShowTokenCounterDialog(true)}
-            >
-              Compose Selected
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="default" 
+                className="flex-1 h-6 text-xs"
+                onClick={() => setShowTokenCounterDialog(true)}
+              >
+                Compose Selected
+              </Button>
+              <Button 
+                variant="destructive" 
+                className="h-6 text-xs"
+                onClick={() => setShowMultiDeleteConfirm(true)}
+              >
+                Delete Selected
+              </Button>
+            </div>
           ) : (
             <div className="text-xs text-muted-foreground">
               Select documents to compose
@@ -1012,32 +1066,43 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
         ))}
       </div>
       
-      <div className="mt-2 border-t pt-2 flex justify-between">
+      <div className="mt-2 border-t pt-2 flex flex-col gap-2">
+        <div className="flex justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1 mr-1 h-6 text-xs"
+          >
+            <Upload className="h-3 w-3 mr-1" />
+            Import
+          </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportDocuments}
+            accept=".md,.markdown,.txt,.zip"
+            multiple
+            className="hidden"
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleExportDocuments}
+            className="flex-1 h-6 text-xs"
+          >
+            <Download className="h-3 w-3 mr-1" />
+            Export
+          </Button>
+        </div>
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => fileInputRef.current?.click()}
-          className="flex-1 mr-1 h-6 text-xs"
+          onClick={() => setShowIntegrityDialog(true)}
+          className="h-6 text-xs w-full"
         >
-          <Upload className="h-3 w-3 mr-1" />
-          Import
-        </Button>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleImportDocuments}
-          accept=".md,.markdown,.txt,.zip"
-          multiple
-          className="hidden"
-        />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleExportDocuments}
-          className="flex-1 h-6 text-xs"
-        >
-          <Download className="h-3 w-3 mr-1" />
-          Export
+          <Shield className="h-3 w-3 mr-1" />
+          Check Vault Integrity
         </Button>
       </div>
       
@@ -1078,6 +1143,15 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           templateDirectory="templates"
         />
       )}
+
+      <VaultIntegrityDialog
+        open={showIntegrityDialog}
+        onOpenChange={setShowIntegrityDialog}
+        onComplete={() => {
+          // Reload documents and folders after integrity check
+          useDocumentStore.getState().loadData();
+        }}
+      />
     </div>
   );
 } 
