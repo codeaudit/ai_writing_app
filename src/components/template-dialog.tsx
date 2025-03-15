@@ -86,7 +86,6 @@ export function TemplateDialog({
         loadCompositionTemplates(true); // Load as primary templates
       } else {
         loadTemplates();
-        loadCompositionTemplates(false); // Load as secondary templates
       }
       
       // Reset form when dialog opens
@@ -359,8 +358,43 @@ export function TemplateDialog({
       
       // Add composition data if available
       if (composition) {
-        // Add context documents
-        variables.contextDocuments = composition.contextDocuments;
+        // Use the enriched context documents that already have content
+        if (composition.contextDocuments && composition.contextDocuments.some(doc => 'content' in doc)) {
+          // If the contextDocuments already have content property, use them directly
+          variables.contextDocuments = composition.contextDocuments;
+          variables.contextDocumentsWithContent = composition.contextDocuments;
+        } else {
+          // Otherwise, get content from the document store (fallback)
+          variables.contextDocuments = composition.contextDocuments;
+          
+          // Get full document content for context documents
+          const fullDocuments = documents;
+
+          // I'm confused.  Does this actually work?
+          const contextDocsWithContent = composition.contextDocuments.filter(doc => {
+            const exists = documents.some(d => d.id === doc.id);
+            if (!exists) {
+              console.warn(`Context document with ID ${doc.id} and name ${doc.name} not found in current documents`);
+            }
+            return exists;
+          });
+
+          /*
+          const contextDocsWithContent = composition.contextDocuments.map(docRef => {
+            const fullDoc = fullDocuments.find(d => d.id === docRef.id);
+            // Using optional chaining and fallback to empty string if content is missing
+            return {
+              id: docRef.id,
+              name: docRef.name,
+              content: fullDoc?.content || ''
+            };
+          });
+          */
+          
+          // This line assigns the enriched context documents (with full content) to the variables object
+          // This makes the documents with their content available to the template for rendering
+          variables.contextDocuments = contextDocsWithContent;
+        }
         
         // Extract chat messages from the composition content
         const chatThreadMatch = composition.content.match(/## Chat Thread\s*\n\n([\s\S]*)/);
@@ -382,19 +416,6 @@ export function TemplateDialog({
         }
         
         variables.chatMessages = chatMessages;
-        
-        // Get full document content for context documents if needed
-        const fullDocuments = documents;
-        const contextDocsWithContent = composition.contextDocuments.map(docRef => {
-          const fullDoc = fullDocuments.find(d => d.id === docRef.id);
-          return {
-            id: docRef.id,
-            name: docRef.name,
-            content: fullDoc?.content || ''
-          };
-        });
-        
-        variables.contextDocumentsWithContent = contextDocsWithContent;
       }
       
       if (hasSchema) {
@@ -404,31 +425,9 @@ export function TemplateDialog({
         });
       }
       
-      // Use the appropriate API endpoint based on the template directory
-      let content;
-      if (templateDirectory === 'composition_templates') {
-        // Process the template with the process API
-        const processResponse = await fetch('/api/templates/process', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            template: templateContent,
-            variables,
-          }),
-        });
-        
-        if (!processResponse.ok) {
-          throw new Error(`Failed to process template: ${processResponse.statusText}`);
-        }
-        
-        const processData = await processResponse.json();
-        content = processData.content;
-      } else {
-        // Use the regular processTemplate function
-        content = await processTemplate(selectedTemplate, variables);
-      }
+      
+      let content = await processTemplate(selectedTemplate, variables);
+      
       
       // Create the document
       const newDocId = await addDocument(documentName, content, folderId);
@@ -490,8 +489,28 @@ export function TemplateDialog({
       
       // Add composition data if available
       if (composition) {
-        // Add context documents
-        variables.contextDocuments = composition.contextDocuments;
+        // Use the enriched context documents that already have content
+        if (composition.contextDocuments && composition.contextDocuments.some(doc => 'content' in doc)) {
+          // If the contextDocuments already have content property, use them directly
+          variables.contextDocuments = composition.contextDocuments;
+          variables.contextDocumentsWithContent = composition.contextDocuments;
+        } else {
+          // Otherwise, get content from the document store (fallback)
+          variables.contextDocuments = composition.contextDocuments;
+          
+          // Get full document content for context documents
+          const fullDocuments = documents;
+          const contextDocsWithContent = composition.contextDocuments.map(docRef => {
+            const fullDoc = fullDocuments.find(d => d.id === docRef.id);
+            return {
+              id: docRef.id,
+              name: docRef.name,
+              content: fullDoc?.content || ''
+            };
+          });
+          
+          variables.contextDocuments = contextDocsWithContent;
+        }
         
         // Extract chat messages from the composition content
         const chatThreadMatch = composition.content.match(/## Chat Thread\s*\n\n([\s\S]*)/);
@@ -513,19 +532,6 @@ export function TemplateDialog({
         }
         
         variables.chatMessages = chatMessages;
-        
-        // Get full document content for context documents if needed
-        const fullDocuments = documents;
-        const contextDocsWithContent = composition.contextDocuments.map(docRef => {
-          const fullDoc = fullDocuments.find(d => d.id === docRef.id);
-          return {
-            id: docRef.id,
-            name: docRef.name,
-            content: fullDoc?.content || ''
-          };
-        });
-        
-        variables.contextDocumentsWithContent = contextDocsWithContent;
       }
       
       // Add schema values if available

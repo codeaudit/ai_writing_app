@@ -1,7 +1,7 @@
 ---
 id: doc-1741977908255
 createdAt: '2025-03-14T18:45:08.255Z'
-updatedAt: '2025-03-14T18:54:59.029Z'
+updatedAt: '2025-03-14T22:34:52.025Z'
 versions:
   - id: ver-1741977908255-initial
     createdAt: '2025-03-14T18:45:08.255Z'
@@ -30,6 +30,8 @@ annotations: []
   }
 } %}
 
+#This is default template for composition
+
 # {{ title }}
 
 Created on {{ date | dateFormat('MMMM d, yyyy') }} at {{ time | timeFormat }}
@@ -39,6 +41,7 @@ Created on {{ date | dateFormat('MMMM d, yyyy') }} at {{ time | timeFormat }}
 
 {% for doc in contextDocuments %}
 - {{ doc.name }}
+- {{ doc.content }}
 {% endfor %}
 {% endif %}
 

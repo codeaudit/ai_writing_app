@@ -56,6 +56,7 @@ export interface ChatResponse {
   message: ChatMessage;
   model: string;
   provider: string;
+  debugPrompt?: string;
 }
 
 // Main LLM service function
@@ -79,12 +80,15 @@ export async function generateTextServerAction(options: LLMRequestOptions): Prom
   // Build system message with context if provided
   let systemMessage = 'You are a helpful writing assistant.';
   
+  let userPrompt: string = ""
   if (contextDocuments && contextDocuments.length > 0) {
-    systemMessage += ' Use the following additional context to inform your responses:\n\n';
+    userPrompt += ' Use the following additional context to inform your responses:\n\n';
     contextDocuments.forEach(doc => {
-      systemMessage += `Document: ${doc.title}\n${doc.content}\n\n`;
+      userPrompt += `Document: ${doc.title}\n${doc.content}\n\n`;
     });
   }
+
+  userPrompt += prompt;
   
   try {
     // Set up provider-specific model
@@ -123,7 +127,7 @@ export async function generateTextServerAction(options: LLMRequestOptions): Prom
       const result = await streamText({
         model,
         system: systemMessage,
-        prompt,
+        prompt: userPrompt,
         temperature,
         maxTokens,
       });
@@ -140,7 +144,7 @@ export async function generateTextServerAction(options: LLMRequestOptions): Prom
       const result = await aiGenerateText({
         model,
         system: systemMessage,
-        prompt,
+        prompt: userPrompt,
         temperature,
         maxTokens,
       });
@@ -233,21 +237,23 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
   
   // Get the last user message
   const lastMessage = messages[messages.length - 1];
-  const userPrompt = lastMessage.content;
+  var userPrompt = ''
   
   // Build system message with context if provided
   let systemMessage = 'You are a helpful writing assistant.';
   
   if (context) {
-    systemMessage += ` Use the following context to inform your responses: ${context}`;
+    userPrompt += ` Use the following context to inform your responses: <context>${context}</context>`;
   }
   
   if (contextDocuments && contextDocuments.length > 0) {
-    systemMessage += ' Use the following additional context documents to inform your responses:\n\n';
+    userPrompt += ' Use the following additional context documents to inform your responses:\n\n';
     contextDocuments.forEach(doc => {
-      systemMessage += `Document: ${doc.title}\n${doc.content}\n\n`;
+      userPrompt += `Document: ${doc.title}\n${doc.content}\n\n`;
     });
   }
+
+  userPrompt += lastMessage.content
   
   try {
     // Set up provider-specific model
@@ -319,7 +325,8 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
           id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
         },
         model: modelName,
-        provider
+        provider,
+        debugPrompt: formatDebugPrompt(systemMessage, userPrompt, provider, modelName)
       };
     }
   } catch (error) {

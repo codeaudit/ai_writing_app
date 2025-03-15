@@ -264,24 +264,6 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     setIsLoading(true);
     
     try {
-      // Create a debug version of the prompt that will be sent
-      let debugSystemMessage = 'You are a helpful writing assistant.';
-      
-      if (contextDocuments && contextDocuments.length > 0) {
-        debugSystemMessage += ' Use the following context documents to inform your responses:\n\n';
-        contextDocuments.forEach(doc => {
-          debugSystemMessage += `Document: ${doc.name}\n${doc.content}\n\n`;
-        });
-      }
-      
-      // Store the debug prompt using our utility function
-      setLastPrompt(formatDebugPrompt(
-        debugSystemMessage,
-        input,
-        config.provider || 'openai',
-        config.model || 'gpt-4o'
-      ));
-      
       // Call the server action with all messages for context
       const response = await generateChatResponse({
         messages: [...messages, userMessage],
@@ -292,6 +274,11 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         })),
         stream: false
       });
+      
+      // Set the debug prompt from the response
+      if (response.debugPrompt) {
+        setLastPrompt(response.debugPrompt);
+      }
       
       // Add the assistant's response to the chat
       setMessages(prev => [...prev, response.message]);

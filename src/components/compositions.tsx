@@ -226,7 +226,19 @@ export default function Compositions() {
   // Function to handle sending composition to template
   const handleSendToTemplate = (composition: Composition) => {
     if (composition) {
-      setSelectedComposition(composition);
+      // Ensure we have the full document content for each context document
+      const enrichedComposition = {
+        ...composition,
+        contextDocuments: composition.contextDocuments.map(docRef => {
+          const fullDoc = documents.find(d => d.id === docRef.id);
+          return {
+            ...docRef,
+            content: fullDoc?.content || ''
+          };
+        })
+      };
+      
+      setSelectedComposition(enrichedComposition);
       setShowViewDialog(false);
       setShowTemplateDialog(true);
     }

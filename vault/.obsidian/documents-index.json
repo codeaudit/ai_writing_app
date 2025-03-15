@@ -29,6 +29,40 @@
     ]
   },
   {
+    "id": "doc-1741992263445",
+    "name": "ArtOfWar",
+    "content": "\n\n#This is default template for composition\n\n# ArtOfWar\n\nCreated on March 14, 2025 at 6:44:23 PM\n\n\n\n## New Content\n\nThis is create document\n",
+    "createdAt": "2025-03-14T22:44:23.445Z",
+    "updatedAt": "2025-03-14T22:44:23.445Z",
+    "versions": [
+      {
+        "id": "ver-1741992263445-initial",
+        "content": "",
+        "createdAt": "2025-03-14T22:44:23.445Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
+    "id": "doc-1741992187206",
+    "name": "ArtOfWar1",
+    "content": "\n\n#This is default template for composition\n\n# ArtOfWar1\n\nCreated on March 14, 2025 at 6:43:07 PM\n\n## Context Documents\n\n- Art of War\n- \n\n\n## New Content\n\nStart writing here...\n",
+    "createdAt": "2025-03-14T22:43:07.206Z",
+    "updatedAt": "2025-03-14T22:43:07.206Z",
+    "versions": [
+      {
+        "id": "ver-1741992187206-initial",
+        "content": "",
+        "createdAt": "2025-03-14T22:43:07.206Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
     "id": "doc-1741739766314-backlinks",
     "name": "Backlinks",
     "content": "# Backlinks\n\nBacklinks show you which notes link to the current note. This is a powerful way to discover connections in your knowledge base.\n\n## How Backlinks Work\n\nWhen you create a link to a note using the `[[Note Name]]` syntax, that link is tracked. The target note will show that it has been linked from other notes.\n\nFor example:\n- [[Internal Links]] links to this note\n- [[Welcome]] links to this note\n\n## Benefits of Backlinks\n\n- Discover unexpected connections\n- See how ideas relate to each other\n- Find notes that reference the current topic\n- Build a bidirectional network of knowledge\n\nBacklinks are displayed in the right sidebar when viewing a note.\n",
@@ -49,6 +83,57 @@
         "id": "ver-1741979193335-initial",
         "content": "",
         "createdAt": "2025-03-14T19:06:33.335Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
+    "id": "doc-1741998391398",
+    "name": "Copy of AoW 2",
+    "content": "# New Document 34\n\nStart writing here...\n\n#This is default template for composition\n\n# Copy of AoW 2\n\nCreated on March 14, 2025 at 8:26:31 PM\n\n\n\n## New Content\n\nStart writing here...\n",
+    "createdAt": "2025-03-15T00:26:31.398Z",
+    "updatedAt": "2025-03-15T00:26:31.398Z",
+    "versions": [
+      {
+        "id": "ver-1741998391398-initial",
+        "content": "",
+        "createdAt": "2025-03-15T00:26:31.398Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
+    "id": "doc-1741998483180",
+    "name": "Copy of AoW 3",
+    "content": "# New Document 34\n\nStart writing here...\n\n#This is default template for composition\n\n# Copy of AoW 3\n\nCreated on March 14, 2025 at 8:28:03 PM\n\n\n\n## New Content\n\nStart writing here...\n",
+    "createdAt": "2025-03-15T00:28:03.180Z",
+    "updatedAt": "2025-03-15T00:28:03.180Z",
+    "versions": [
+      {
+        "id": "ver-1741998483180-initial",
+        "content": "",
+        "createdAt": "2025-03-15T00:28:03.180Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
+    "id": "doc-1741999421301",
+    "name": "Copy of AoW",
+    "content": "\n\n# Copy of AoW\n\nCreated on March 14, 2025\n\n\n## Overview\n\nTest\n\n\nStart writing here...\n",
+    "createdAt": "2025-03-15T00:43:41.301Z",
+    "updatedAt": "2025-03-15T00:43:41.301Z",
+    "versions": [
+      {
+        "id": "ver-1741999421301-initial",
+        "content": "",
+        "createdAt": "2025-03-15T00:43:41.301Z",
         "message": "Initial version"
       }
     ],
@@ -83,6 +168,23 @@
         "id": "ver-1741967773236-initial",
         "content": "",
         "createdAt": "2025-03-14T15:56:13.236Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
+    "id": "doc-1741998797005",
+    "name": "Drones",
+    "content": "\n\n# Drones\n\n## Product Information\n\n**Name**: \n**Category**: Electronics\n**Price**: $12\n**In Stock**: Yes**Release Date**: March 14, 2025\n\n## Features\n\nNo features listed.\n\n## Available Colors\n\nNo color options available.\n\n## Description\n\nWrite your product description here...\n\n## Notes \n",
+    "createdAt": "2025-03-15T00:33:17.005Z",
+    "updatedAt": "2025-03-15T00:33:17.005Z",
+    "versions": [
+      {
+        "id": "ver-1741998797005-initial",
+        "content": "",
+        "createdAt": "2025-03-15T00:33:17.005Z",
         "message": "Initial version"
       }
     ],
@@ -291,7 +393,7 @@
     ]
   },
   {
-    "id": "doc-1741979620637-nb2agp0",
+    "id": "doc-1741999422389-8vynnq3",
     "name": "Home.md",
     "content": "# Home\n\nWelcome to my Obsidian vault! This is the starting point.\n\nFrom here, you can navigate to other notes.\n\nSee my [[Daily Routine]] or learn more about [[Project Alpha]].\n\nThis is a simple example to demonstrate backlinks.\n\n\n\n\n**Explanation:**\n\n*   **Backlinks:** In Obsidian, backlinks are links *to* a note.  So, if you open `Daily Routine.md`, you'll see backlinks from `Home.md` and potentially `Project Alpha.md` (depending on how Obsidian displays them - sometimes it's only direct links, other times it's all mentions).  Similarly, `Project Alpha.md` will show backlinks from `Home.md` and `Daily Routine.md`.  `Home.md` will not show any backlinks.\n\n*   **Link Syntax:** Obsidian uses `[[ ... ]]` to create internal links.  `[[Note Name]]` creates a link to a note named \"Note Name\".  `[[Note Name|Display Text]]` creates a link to a note named \"Note Name\" but displays \"Display Text\" in the link.  This allows you to make the link more readable in context.\n\n*   **File Names:**  The file names (`Home.md`, `Daily Routine.md`, `Project Alpha.md`) are crucial. Obsidian uses the file name (without the `.md` extension) as the default \"note name\" for linking purposes.\n\n*   **Creating the Files:** To use this example:\n    1.  Open your Obsidian vault.\n    2.  Create three new files named `Home.md`, `Daily Routine.md`, and `Project Alpha.md`.\n    3.  Copy and paste the content for each file into the corresponding Obsidian file.\n    4.  Obsidian should automatically detect and display the backlinks.  Look for a \"Backlinks\" pane or section within Obsidian.  You might need to enable it in the Obsidian settings (Core Plugins -> Backlinks).\n\n*   **Purpose of the Example:** This example demonstrates how linking different notes together creates a network of information.  Obsidian's backlink feature helps you see how different ideas and concepts are connected in your vault.\n\n**How to Use This:**\n\n1.  **Copy and Paste:**  Copy the content of each file into a corresponding `.md` file in your Obsidian vault.\n2.  **Open the Backlinks Pane:** In Obsidian, make sure the \"Backlinks\" core plugin is enabled. Then, open the Backlinks pane (usually found in the right sidebar).\n3.  **Navigate:** Open each file and observe the backlinks that appear in the Backlinks pane.\n\nThis simple example should give you a good starting point for understanding and using backlinks in Obsidian. You can expand on this by creating more notes and linking them together in different ways. Remember to experiment and see how backlinks can help you organize and connect your ideas.\n",
     "createdAt": "2025-03-12T00:37:31.538Z",
@@ -314,7 +416,7 @@
     "annotations": []
   },
   {
-    "id": "doc-1741979620637-fzheqjm",
+    "id": "doc-1741999422389-rkemore",
     "name": "foo",
     "content": "\n\n## Prompt\n\ngenerate a sample obsidian file with backlinks\n\n## Response\n\nOkay, here's a set of three Obsidian files designed to demonstrate backlinks. I'll provide the content for each file separately, along with explanations.\n\n**File 1:  `Home.md`**\n\n```markdown\n# Home\n\nWelcome to my Obsidian vault! This is the starting point.\n\nFrom here, you can navigate to other notes. \n\nSee my [[Daily Routine]] or learn more about [[Project Alpha]].\n\nThis is a simple example to demonstrate backlinks.\n\n```\n\n**File 2:  `Daily Routine.md`**\n\n```markdown\n# Daily Routine\n\nThis note describes my daily routine.\n\nIt's important to maintain a consistent [[Home|home]] base to build from.\n\nMy morning usually starts with coffee.\n\nI often refer back to [[Project Alpha]] to keep my priorities straight.\n\n```\n\n**File 3:  `Project Alpha.md`**\n\n```markdown\n# Project Alpha\n\nThis note is about Project Alpha.\n\nIt's referenced from my [[Home|Home page]] and also my [[Daily Routine]].\n\nKey tasks include:\n* Task 1\n* Task 2\n\nThis is a very important [[Home|home]] project.\n```\n\n**Explanation:**\n\n*   **Backlinks:** In Obsidian, backlinks are links *to* a note.  So, if you open `Daily Routine.md`, you'll see backlinks from `Home.md` and potentially `Project Alpha.md` (depending on how Obsidian displays them - sometimes it's only direct links, other times it's all mentions).  Similarly, `Project Alpha.md` will show backlinks from `Home.md` and `Daily Routine.md`.  `Home.md` will not show any backlinks.\n\n*   **Link Syntax:** Obsidian uses `[[ ... ]]` to create internal links.  `[[Note Name]]` creates a link to a note named \"Note Name\".  `[[Note Name|Display Text]]` creates a link to a note named \"Note Name\" but displays \"Display Text\" in the link.  This allows you to make the link more readable in context.\n\n*   **File Names:**  The file names (`Home.md`, `Daily Routine.md`, `Project Alpha.md`) are crucial. Obsidian uses the file name (without the `.md` extension) as the default \"note name\" for linking purposes.\n\n*   **Creating the Files:** To use this example:\n    1.  Open your Obsidian vault.\n    2.  Create three new files named `Home.md`, `Daily Routine.md`, and `Project Alpha.md`.\n    3.  Copy and paste the content for each file into the corresponding Obsidian file.\n    4.  Obsidian should automatically detect and display the backlinks.  Look for a \"Backlinks\" pane or section within Obsidian.  You might need to enable it in the Obsidian settings (Core Plugins -> Backlinks).\n\n*   **Purpose of the Example:** This example demonstrates how linking different notes together creates a network of information.  Obsidian's backlink feature helps you see how different ideas and concepts are connected in your vault.\n\n**How to Use This:**\n\n1.  **Copy and Paste:**  Copy the content of each file into a corresponding `.md` file in your Obsidian vault.\n2.  **Open the Backlinks Pane:** In Obsidian, make sure the \"Backlinks\" core plugin is enabled. Then, open the Backlinks pane (usually found in the right sidebar).\n3.  **Navigate:** Open each file and observe the backlinks that appear in the Backlinks pane.\n\nThis simple example should give you a good starting point for understanding and using backlinks in Obsidian. You can expand on this by creating more notes and linking them together in different ways. Remember to experiment and see how backlinks can help you organize and connect your ideas.\n",
     "createdAt": "2025-03-12T20:51:20.601Z",
@@ -371,16 +473,16 @@
     "annotations": []
   },
   {
-    "id": "doc-1741974303781",
+    "id": "doc-1741998450689",
     "name": "Test",
-    "content": "\n\n# Test\n\n**Project Description**: test\n**Status**: Not Started\n**Priority**: Low\n**Due Date**: March 14, 2025\n**Budget**: $111\n**Public**: No\n## Overview\n\ntest\n\n## Team Members\n\nNo team members assigned yet.\n\n## Tags\n\nNo tags assigned.\n\n## Tasks\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] Task 3\n\n## Notes \n",
-    "createdAt": "2025-03-14T17:45:03.781Z",
-    "updatedAt": "2025-03-14T17:45:03.781Z",
+    "content": "\n\n# Test\n\nCreated on March 14, 2025\n\n\n## Overview\n\n\n\n\nStart writing here...\n",
+    "createdAt": "2025-03-15T00:27:30.689Z",
+    "updatedAt": "2025-03-15T00:27:30.689Z",
     "versions": [
       {
-        "id": "ver-1741974303781-initial",
+        "id": "ver-1741998450689-initial",
         "content": "",
-        "createdAt": "2025-03-14T17:45:03.781Z",
+        "createdAt": "2025-03-15T00:27:30.689Z",
         "message": "Initial version"
       }
     ],
@@ -405,11 +507,45 @@
     "annotations": []
   },
   {
-    "id": "doc-1741979620638-j00wbnc",
+    "id": "doc-1741998336795",
+    "name": "ZTest",
+    "content": "\n\n#This is default template for composition\n\n# ZTest\n\nCreated on March 14, 2025 at 8:25:36 PM\n\n\n\n## New Content\n\nStart writing here...\n",
+    "createdAt": "2025-03-15T00:25:36.795Z",
+    "updatedAt": "2025-03-15T00:25:36.795Z",
+    "versions": [
+      {
+        "id": "ver-1741998336795-initial",
+        "content": "",
+        "createdAt": "2025-03-15T00:25:36.795Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
+    "id": "doc-1741992863081",
+    "name": "ZZZZZZ",
+    "content": "\n\n#This is default template for composition\n\n# ZZZZZZ\n\nCreated on March 14, 2025 at 6:54:22 PM\n\n## Context Documents\n\n- Art of War\n- \n\n\n## New Content\n\nxxxx\n",
+    "createdAt": "2025-03-14T22:54:23.081Z",
+    "updatedAt": "2025-03-14T22:54:23.081Z",
+    "versions": [
+      {
+        "id": "ver-1741992863081-initial",
+        "content": "",
+        "createdAt": "2025-03-14T22:54:23.081Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": []
+  },
+  {
+    "id": "doc-1741998337844-o56bq1r",
     "name": "New Document 34",
-    "content": "# New Document 34\n\nStart writing here...\n",
+    "content": "# New Document 34\n\nStart writing here...\n\n#This is default template for composition\n\n# {{ title }}\n\nCreated on {{ date | dateFormat('MMMM d, yyyy') }} at {{ time | timeFormat }}\n\n{% if contextDocuments.length > 0 %}\n## Context Documents\n\n{% for doc in contextDocuments %}\n- {{ doc.name }}\n- {{ doc.content }}\n{% endfor %}\n{% endif %}\n\n{% if chatMessages.length > 0 %}\n## Chat History\n\n{% for message in chatMessages %}\n### {{ message.role | capitalize }}\n\n{{ message.content }}\n\n{% endfor %}\n{% endif %}\n\n## New Content\n\n{% if description %}\n{{ description }}\n{% else %}\nStart writing here...\n{% endif %}\n",
     "createdAt": "2025-03-14T18:45:08.255Z",
-    "updatedAt": "2025-03-14T18:45:08.255Z",
+    "updatedAt": "2025-03-15T00:26:03.270Z",
     "versions": [
       {
         "id": "ver-1741977908255-initial",
@@ -424,9 +560,9 @@
   {
     "id": "doc-1741977908255",
     "name": "default",
-    "content": "\n{% set schema = {\n  \"fields\": {\n    \"description\": {\n      \"type\": \"string\",\n      \"description\": \"Brief description of the document\"\n    },\n    \"tags\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Document tags or categories\"\n    },\n    \"isImportant\": {\n      \"type\": \"boolean\",\n      \"default\": false,\n      \"description\": \"Mark as important document\"\n    }\n  }\n} %}\n\n# {{ title }}\n\nCreated on {{ date | dateFormat('MMMM d, yyyy') }} at {{ time | timeFormat }}\n\n{% if contextDocuments.length > 0 %}\n## Context Documents\n\n{% for doc in contextDocuments %}\n- {{ doc.name }}\n{% endfor %}\n{% endif %}\n\n{% if chatMessages.length > 0 %}\n## Chat History\n\n{% for message in chatMessages %}\n### {{ message.role | capitalize }}\n\n{{ message.content }}\n\n{% endfor %}\n{% endif %}\n\n## New Content\n\n{% if description %}\n{{ description }}\n{% else %}\nStart writing here...\n{% endif %}\n",
+    "content": "\n{% set schema = {\n  \"fields\": {\n    \"description\": {\n      \"type\": \"string\",\n      \"description\": \"Brief description of the document\"\n    },\n    \"tags\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Document tags or categories\"\n    },\n    \"isImportant\": {\n      \"type\": \"boolean\",\n      \"default\": false,\n      \"description\": \"Mark as important document\"\n    }\n  }\n} %}\n\n#This is default template for composition\n\n# {{ title }}\n\nCreated on {{ date | dateFormat('MMMM d, yyyy') }} at {{ time | timeFormat }}\n\n{% if contextDocuments.length > 0 %}\n## Context Documents\n\n{% for doc in contextDocuments %}\n- {{ doc.name }}\n- {{ doc.content }}\n{% endfor %}\n{% endif %}\n\n{% if chatMessages.length > 0 %}\n## Chat History\n\n{% for message in chatMessages %}\n### {{ message.role | capitalize }}\n\n{{ message.content }}\n\n{% endfor %}\n{% endif %}\n\n## New Content\n\n{% if description %}\n{{ description }}\n{% else %}\nStart writing here...\n{% endif %}\n",
     "createdAt": "2025-03-14T18:45:08.255Z",
-    "updatedAt": "2025-03-14T18:54:59.029Z",
+    "updatedAt": "2025-03-14T22:34:52.025Z",
     "versions": [
       {
         "id": "ver-1741977908255-initial",
@@ -439,16 +575,16 @@
     "annotations": []
   },
   {
-    "id": "doc-1741977233726",
-    "name": "Composition 1",
-    "content": "\n# Composition 1\n\nComposition with context documents.\nContext documents:\n- [[Welcome]]\n- [[default]]\n\n",
-    "createdAt": "2025-03-14T18:33:53.726Z",
-    "updatedAt": "2025-03-14T18:33:53.726Z",
+    "id": "doc-1741996956593",
+    "name": "Copy of AoW",
+    "content": "\n# Copy of AoW\n\nComposition with context documents.\nContext documents:\n- [[Art of War]]\n\n",
+    "createdAt": "2025-03-15T00:02:36.593Z",
+    "updatedAt": "2025-03-15T00:02:36.593Z",
     "versions": [
       {
-        "id": "ver-1741977233726-initial",
+        "id": "ver-1741996956593-initial",
         "content": "",
-        "createdAt": "2025-03-14T18:33:53.726Z",
+        "createdAt": "2025-03-15T00:02:36.593Z",
         "message": "Initial version"
       }
     ],
@@ -456,26 +592,20 @@
     "annotations": []
   },
   {
-    "id": "doc-1741979276836",
-    "name": "default",
-    "content": "\n",
-    "createdAt": "2025-03-14T19:07:56.836Z",
-    "updatedAt": "2025-03-14T19:13:25.363Z",
+    "id": "doc-1741992816961",
+    "name": "Test Composition",
+    "content": "\n# Test Composition\n\nComposition with context documents.\nContext documents:\n- [[Art of War]]\n\n",
+    "createdAt": "2025-03-14T22:53:36.961Z",
+    "updatedAt": "2025-03-14T22:53:36.961Z",
     "versions": [
       {
-        "id": "ver-1741979605363",
+        "id": "ver-1741992816961-initial",
         "content": "",
-        "createdAt": "2025-03-14T19:13:25.363Z",
-        "message": "Manual save on 3/14/2025, 3:13:25 PM"
-      },
-      {
-        "id": "ver-1741979276836-initial",
-        "content": "",
-        "createdAt": "2025-03-14T19:07:56.836Z",
+        "createdAt": "2025-03-14T22:53:36.961Z",
         "message": "Initial version"
       }
     ],
-    "folderId": null,
+    "folderId": "folder-1741903881037",
     "annotations": []
   },
   {
@@ -489,23 +619,6 @@
         "id": "ver-1741945169239-initial",
         "content": "",
         "createdAt": "2025-03-14T09:39:29.239Z",
-        "message": "Initial version"
-      }
-    ],
-    "folderId": null,
-    "annotations": []
-  },
-  {
-    "id": "doc-1741947770194",
-    "name": "doc with desc",
-    "content": "\n# doc with desc\n\nCreated on March 14th, 2025 at 6:22:50 AM\n\n## Overview\n\ndesc here\n\nStart writing here...\n",
-    "createdAt": "2025-03-14T10:22:50.194Z",
-    "updatedAt": "2025-03-14T10:22:50.194Z",
-    "versions": [
-      {
-        "id": "ver-1741947770194-initial",
-        "content": "",
-        "createdAt": "2025-03-14T10:22:50.194Z",
         "message": "Initial version"
       }
     ],
@@ -529,23 +642,6 @@
         "id": "ver-1741823087205-initial",
         "content": "",
         "createdAt": "2025-03-12T23:44:47.205Z",
-        "message": "Initial version"
-      }
-    ],
-    "folderId": null,
-    "annotations": []
-  },
-  {
-    "id": "doc-1741899812203",
-    "name": "new",
-    "content": "\n",
-    "createdAt": "2025-03-13T21:03:32.203Z",
-    "updatedAt": "2025-03-14T10:08:43.768Z",
-    "versions": [
-      {
-        "id": "ver-1741899812203-initial",
-        "content": "",
-        "createdAt": "2025-03-13T21:03:32.203Z",
         "message": "Initial version"
       }
     ],
@@ -587,11 +683,11 @@
     "annotations": []
   },
   {
-    "id": "doc-1741979620638-41lf7bv",
+    "id": "doc-1741999422390-z5xkg7o",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-14T19:13:40.638Z",
-    "updatedAt": "2025-03-14T19:13:40.638Z",
+    "createdAt": "2025-03-15T00:43:42.390Z",
+    "updatedAt": "2025-03-15T00:43:42.390Z",
     "versions": [],
     "folderId": "folder-1741944992902-o39tkyp",
     "annotations": []
@@ -607,41 +703,7 @@
     "annotations": []
   },
   {
-    "id": "doc-1741966489084",
-    "name": "test doc template",
-    "content": "\n\n# test doc template\n\n**Project Description**: Test\n**Status**: In Progress\n**Priority**: High\n**Due Date**: March 14, 2025\n**Budget**: $111\n**Public**: Yes\n## Overview\n\nTest\n\n## Team Members\n\nNo team members assigned yet.\n\n## Tags\n\nNo tags assigned.\n\n## Tasks\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] Task 3\n\n## Notes \n",
-    "createdAt": "2025-03-14T15:34:49.084Z",
-    "updatedAt": "2025-03-14T15:34:49.084Z",
-    "versions": [
-      {
-        "id": "ver-1741966489084-initial",
-        "content": "",
-        "createdAt": "2025-03-14T15:34:49.084Z",
-        "message": "Initial version"
-      }
-    ],
-    "folderId": null,
-    "annotations": []
-  },
-  {
-    "id": "doc-1741945431065",
-    "name": "test template two",
-    "content": "\n# test template two\n\nCreated on 2025-03-14T09:43:51.014Z\n\n## Overview\n\nStart writing here...\n",
-    "createdAt": "2025-03-14T09:43:51.065Z",
-    "updatedAt": "2025-03-14T10:08:40.543Z",
-    "versions": [
-      {
-        "id": "ver-1741945431065-initial",
-        "content": "",
-        "createdAt": "2025-03-14T09:43:51.065Z",
-        "message": "Initial version"
-      }
-    ],
-    "folderId": null,
-    "annotations": []
-  },
-  {
-    "id": "doc-1741979620638-tbyjzgz",
+    "id": "doc-1741979435363",
     "name": "default",
     "content": "\n\n# zz\n\nCreated on March 14, 2025\n\n\n## Overview\n\nzz\n\n\nStart writing here...\n",
     "createdAt": "2025-03-14T19:10:35.363Z",
@@ -658,7 +720,7 @@
     "annotations": []
   },
   {
-    "id": "doc-1741979620638-pm6fgxk",
+    "id": "doc-1741999422390-nerclry",
     "name": "default",
     "content": "\n\n# zz1\n\nCreated on March 14, 2025\n\n\n## Overview\n\n\n\n\nStart writing here...\n",
     "createdAt": "2025-03-14T19:07:16.569Z",
@@ -675,24 +737,7 @@
     "annotations": []
   },
   {
-    "id": "doc-1741979616528",
-    "name": "zzz",
-    "content": "\n\n# zzz\n\nCreated on March 14, 2025\n\n\n## Overview\n\n\n\n\nStart writing here...\n",
-    "createdAt": "2025-03-14T19:13:36.528Z",
-    "updatedAt": "2025-03-14T19:13:36.528Z",
-    "versions": [
-      {
-        "id": "ver-1741979616528-initial",
-        "content": "",
-        "createdAt": "2025-03-14T19:13:36.528Z",
-        "message": "Initial version"
-      }
-    ],
-    "folderId": null,
-    "annotations": []
-  },
-  {
-    "id": "doc-1741979620638-8hppcb0",
+    "id": "doc-1741999422390-ouixqlu",
     "name": "default",
     "content": "\n\n# zzzzzzzzz\n\nCreated on March 14, 2025\n\n\n## Overview\n\n\n\n\nStart writing here...\n",
     "createdAt": "2025-03-14T19:07:56.836Z",
