@@ -793,8 +793,16 @@ const MarkdownEditor = forwardRef<
     // Create a frontmatter object from document properties
     const frontmatterData: Record<string, any> = {
       id: document.id,
-      createdAt: document.createdAt.toISOString(),
-      updatedAt: document.updatedAt.toISOString()
+      createdAt: document.createdAt instanceof Date 
+        ? document.createdAt.toISOString() 
+        : typeof document.createdAt === 'string' 
+          ? document.createdAt 
+          : new Date().toISOString(),
+      updatedAt: document.updatedAt instanceof Date 
+        ? document.updatedAt.toISOString() 
+        : typeof document.updatedAt === 'string' 
+          ? document.updatedAt 
+          : new Date().toISOString()
     };
     
     // Add annotations if they exist
@@ -806,8 +814,16 @@ const MarkdownEditor = forwardRef<
         endOffset: anno.endOffset,
         content: anno.content,
         color: anno.color,
-        createdAt: anno.createdAt instanceof Date ? anno.createdAt.toISOString() : anno.createdAt,
-        updatedAt: anno.updatedAt instanceof Date ? anno.updatedAt.toISOString() : anno.updatedAt,
+        createdAt: anno.createdAt instanceof Date 
+          ? anno.createdAt.toISOString() 
+          : typeof anno.createdAt === 'string' 
+            ? anno.createdAt 
+            : new Date().toISOString(),
+        updatedAt: anno.updatedAt instanceof Date 
+          ? anno.updatedAt.toISOString() 
+          : typeof anno.updatedAt === 'string' 
+            ? anno.updatedAt 
+            : new Date().toISOString(),
         tags: anno.tags
       }));
     }
@@ -816,7 +832,11 @@ const MarkdownEditor = forwardRef<
     if (Array.isArray(document.versions) && document.versions.length > 0) {
       frontmatterData.versions = document.versions.map(v => ({
         id: v.id,
-        createdAt: v.createdAt instanceof Date ? v.createdAt.toISOString() : v.createdAt,
+        createdAt: v.createdAt instanceof Date 
+          ? v.createdAt.toISOString() 
+          : typeof v.createdAt === 'string' 
+            ? v.createdAt 
+            : new Date().toISOString(),
         message: v.message
       }));
     }
@@ -867,7 +887,7 @@ const MarkdownEditor = forwardRef<
           // Extract the YAML content between the --- markers
           const yamlContent = trimmedFrontmatter.replace(/^---\n/, '').replace(/\n---$/, '');
           // Parse the YAML content
-          const { data } = matter(`---\n${yamlContent}\n---\n`);
+          const { data } = matter(`---\n${yamlContent}\n---\n`, {});
           frontmatterData = data;
         }
         
@@ -895,9 +915,28 @@ const MarkdownEditor = forwardRef<
           updateData.versions = frontmatterData.versions.map((v: any) => ({
             id: v.id,
             content: '', // We don't store version content in the frontmatter
-            createdAt: new Date(v.createdAt),
+            createdAt: v.createdAt ? new Date(v.createdAt) : new Date(),
             message: v.message
           }));
+        }
+        
+        // Handle createdAt and updatedAt if they exist in frontmatter
+        if (frontmatterData.createdAt) {
+          try {
+            updateData.createdAt = new Date(frontmatterData.createdAt);
+          } catch (e) {
+            console.error("Error parsing createdAt date:", e);
+            // Keep the existing date if parsing fails
+          }
+        }
+        
+        if (frontmatterData.updatedAt) {
+          try {
+            updateData.updatedAt = new Date(frontmatterData.updatedAt);
+          } catch (e) {
+            console.error("Error parsing updatedAt date:", e);
+            // Keep the existing date if parsing fails
+          }
         }
         
         // Update the document with the new content and structured data
