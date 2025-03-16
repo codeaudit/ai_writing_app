@@ -23,6 +23,7 @@ import {
   DEFAULT_TEMPERATURE,
   DEFAULT_MAX_TOKENS
 } from './config';
+import { fuzzySearch } from './search-utils';
 
 export interface DocumentVersion {
   id: string;
@@ -737,15 +738,28 @@ export const useDocumentStore = create<DocumentStore>()(
       },
       
       searchAnnotations: (query) => {
+        if (!query.trim()) return [];
+        
         const state = get();
-        const results = state.documents.flatMap(doc => {
+        // Collect all annotations from all documents
+        const allAnnotations = state.documents.flatMap(doc => {
           // Ensure annotations is initialized as an array
           const docAnnotations = Array.isArray(doc.annotations) ? doc.annotations : [];
-          return docAnnotations.filter(anno =>
-            anno.content.toLowerCase().includes(query.toLowerCase())
-          );
+          // Add document ID and name to each annotation for reference
+          return docAnnotations.map(anno => ({
+            ...anno,
+            documentId: doc.id,
+            documentName: doc.name
+          }));
         });
-        return results;
+        
+        // Use fuzzy search on the annotations
+        return fuzzySearch(
+          allAnnotations,
+          query,
+          ['content', 'tags'],
+          { threshold: 0.3 }
+        );
       },
       
       // Composition operations

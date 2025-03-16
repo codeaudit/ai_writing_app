@@ -11,9 +11,20 @@ import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { AnnotationDialog } from "./annotation-dialog";
 import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
+import { X } from "lucide-react";
 
 interface AnnotationsNavigatorProps {
   onNavigateToAnnotation?: (documentId: string, annotation: Annotation) => void;
+}
+
+// Extended annotation type that includes document name
+interface AnnotationWithDocument extends Annotation {
+  documentName: string;
 }
 
 export default function AnnotationsNavigator({
@@ -45,18 +56,21 @@ export default function AnnotationsNavigator({
   
   // Filter annotations based on search query and selected tags
   useEffect(() => {
-    let filtered = allAnnotations;
+    let filtered: AnnotationWithDocument[] = [];
     
     // Filter by search query
     if (searchQuery) {
-      // Get search results and add document names
-      const searchResults = searchAnnotations(searchQuery);
-      filtered = searchResults.map(anno => {
-        const doc = documents.find(d => d.id === anno.documentId);
-        return {
+      // Get search results
+      const searchResults = searchAnnotations(searchQuery) as AnnotationWithDocument[];
+      filtered = searchResults;
+    } else {
+      // If no search query, get all annotations
+      filtered = documents.flatMap(doc => {
+        const docAnnotations = Array.isArray(doc.annotations) ? doc.annotations : [];
+        return docAnnotations.map(anno => ({
           ...anno,
-          documentName: doc?.name || 'Unknown Document'
-        };
+          documentName: doc.name
+        }));
       });
     }
     

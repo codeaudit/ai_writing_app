@@ -16,6 +16,7 @@ import { VaultIntegrityDialog } from "./vault-integrity-dialog";
 import { FilterDialog, FilterConfig } from "./filter-dialog";
 import { filterDocuments, shouldShowFolder, getDocumentPath, matchesPatterns } from "@/lib/filter-utils";
 import { loadFilterFromServer } from "@/lib/api-service";
+import { fuzzySearch } from "@/lib/search-utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -678,10 +679,10 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   const [filterConfig, setFilterConfig] = useState<FilterConfig>({ enabled: false, patterns: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Apply search filter
-  const searchFilteredDocuments = documents.filter(doc => 
-    doc.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Apply search filter with fuzzy search
+  const searchFilteredDocuments = searchQuery.trim() 
+    ? fuzzySearch(documents, searchQuery, ['name', 'content'], { threshold: 0.3 })
+    : documents;
   
   // Apply pattern filter if enabled
   const filteredDocuments = filterConfig.enabled
