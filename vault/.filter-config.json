@@ -1,7 +1,6 @@
 {
   "enabled": false,
   "patterns": [
-    "*.md",
     "!.obsidian/*",
     "!templates/**",
     "!composition_templates/**"

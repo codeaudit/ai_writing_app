@@ -11,32 +11,29 @@ annotations:
     documentId: doc-ui-test-recipe-collection
     startOffset: 1050
     endOffset: 1150
-    content: "Chef's Tip: For extra fluffy pancakes, let the batter rest for 15 minutes before cooking."
+    content: >-
+      Chef's Tip: For extra fluffy pancakes, let the batter rest for 15 minutes
+      before cooking.
     color: blue
     createdAt: '2025-03-15T19:08:10.000Z'
     updatedAt: '2025-03-15T19:08:10.000Z'
-    tags: ["tip", "cooking"]
+    tags:
+      - tip
+      - cooking
   - id: anno-recipe-variation-1
     documentId: doc-ui-test-recipe-collection
     startOffset: 3200
     endOffset: 3300
-    content: "Variation: Substitute chicken with firm tofu for a vegetarian option. Press and marinate the tofu overnight for best results."
+    content: >-
+      Variation: Substitute chicken with firm tofu for a vegetarian option.
+      Press and marinate the tofu overnight for best results.
     color: green
     createdAt: '2025-03-15T19:08:20.000Z'
-    updatedAt: '2025-03-15T19:08:20.000Z'
-    tags: ["variation", "vegetarian"]
-tags:
-  - recipes
-  - cooking
-  - food
-custom:
-  difficulty: Various
-  prep_time: Various
-  cuisine_types:
-    - American
-    - Italian
-    - Thai
-    - French
+    updatedAt: '2025-03-16T11:36:04.268Z'
+    tags:
+      - variation
+      - vegetarian
+      - cooking
 ---
 
 # Culinary Delights: A Recipe Collection

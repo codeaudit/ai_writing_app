@@ -116,19 +116,7 @@
       }
     ],
     "folderId": null,
-    "annotations": [
-      {
-        "id": "anno-1741917437223",
-        "documentId": "doc-1741819775054",
-        "startOffset": 742,
-        "endOffset": 1393,
-        "content": "q?",
-        "color": "blue",
-        "createdAt": "2025-03-14T01:57:17.223Z",
-        "updatedAt": "2025-03-14T01:57:17.223Z",
-        "tags": []
-      }
-    ]
+    "annotations": []
   },
   {
     "id": "doc-ui-test-formatting",
@@ -185,10 +173,11 @@
         "content": "Variation: Substitute chicken with firm tofu for a vegetarian option. Press and marinate the tofu overnight for best results.",
         "color": "green",
         "createdAt": "2025-03-15T19:08:20.000Z",
-        "updatedAt": "2025-03-15T19:08:20.000Z",
+        "updatedAt": "2025-03-16T11:36:04.268Z",
         "tags": [
           "variation",
-          "vegetarian"
+          "vegetarian",
+          "cooking"
         ]
       }
     ]
@@ -635,7 +624,7 @@
     ]
   },
   {
-    "id": "doc-1742110945065-nvjuovh",
+    "id": "doc-1742127358778-k8ioixd",
     "name": "New Document 33",
     "content": "# New Document 33\n\nStart writing here...\n",
     "createdAt": "2025-03-15T23:32:29.801Z",
@@ -1009,11 +998,11 @@
     "annotations": []
   },
   {
-    "id": "doc-1742110945076-5zmwi6m",
+    "id": "doc-1742127358780-mk6f5b2",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-16T07:42:25.076Z",
-    "updatedAt": "2025-03-16T07:42:25.076Z",
+    "createdAt": "2025-03-16T12:15:58.780Z",
+    "updatedAt": "2025-03-16T12:15:58.780Z",
     "versions": [],
     "folderId": "folder-1742072369191-8lgw70w",
     "annotations": []

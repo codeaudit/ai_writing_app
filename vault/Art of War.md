@@ -6,16 +6,7 @@ versions:
   - id: ver-1741819775054-initial
     createdAt: '2025-03-12T22:49:35.054Z'
     message: Initial version
-annotations:
-  - id: anno-1741917437223
-    documentId: doc-1741819775054
-    startOffset: 742
-    endOffset: 1393
-    content: q?
-    color: blue
-    createdAt: '2025-03-14T01:57:17.223Z'
-    updatedAt: '2025-03-14T01:57:17.223Z'
-    tags: []
+annotations: []
 ---
 Sun Tzu's *The Art of War* is not a manual of battlefield tactics in the modern sense, but rather a philosophical treatise on strategy and leadership applicable far beyond military conflict.  Its core principles revolve around achieving victory *before* battle even begins, emphasizing planning, deception, and understanding both oneself and the enemy.
 

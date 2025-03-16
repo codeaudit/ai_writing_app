@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHand
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
-import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo, BookmarkIcon, Search, Sparkles, Hash, ArrowRight, Play } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo, BookmarkIcon, Search, Sparkles, Hash, ArrowRight, Play, FileJson } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useDocumentStore, Annotation } from "@/lib/store";
+import { useDocumentStore, Annotation, Document } from "@/lib/store";
 import { OnMount, useMonaco, type Monaco, type EditorProps } from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 import { VersionHistory } from "./version-history";
@@ -20,6 +20,9 @@ import { TokenCounterDialog } from "./token-counter-dialog";
 import { CompositionComposer } from "./composition-composer";
 import matter from "gray-matter";
 import { TerminalView } from "./terminal-view";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 // Dynamically import components that might cause hydration issues
 const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.default), { ssr: false });
@@ -95,6 +98,11 @@ const MarkdownEditor = forwardRef<
 
   // Add state for showing/hiding the terminal
   const [showTerminal, setShowTerminal] = useState(false);
+
+  // Add state for frontmatter dialog
+  const [showFrontmatterDialog, setShowFrontmatterDialog] = useState(false);
+  const [frontmatterContent, setFrontmatterContent] = useState("");
+  const [documentContent, setDocumentContent] = useState("");
 
   // Add a toggle terminal function
   const toggleTerminal = useCallback(() => {
@@ -764,6 +772,154 @@ const MarkdownEditor = forwardRef<
     }
   };
 
+  // Function to extract frontmatter and content
+  const extractFrontmatterAndContent = useCallback((fullContent: string) => {
+    try {
+      // This function is now just a wrapper for reconstructFrontmatter
+      // for backward compatibility
+      if (!selectedDocument) {
+        return { frontmatter: '', content: fullContent };
+      }
+      return reconstructFrontmatter(selectedDocument);
+    } catch (error) {
+      console.error("Error extracting frontmatter:", error);
+      // If there's an error, assume there's no frontmatter
+      return { frontmatter: '', content: fullContent };
+    }
+  }, [selectedDocument]);
+
+  // Function to reconstruct frontmatter from document properties
+  const reconstructFrontmatter = useCallback((document: Document) => {
+    // Create a frontmatter object from document properties
+    const frontmatterData: Record<string, any> = {
+      id: document.id,
+      createdAt: document.createdAt.toISOString(),
+      updatedAt: document.updatedAt.toISOString()
+    };
+    
+    // Add annotations if they exist
+    if (Array.isArray(document.annotations) && document.annotations.length > 0) {
+      frontmatterData.annotations = document.annotations.map(anno => ({
+        id: anno.id,
+        documentId: anno.documentId,
+        startOffset: anno.startOffset,
+        endOffset: anno.endOffset,
+        content: anno.content,
+        color: anno.color,
+        createdAt: anno.createdAt instanceof Date ? anno.createdAt.toISOString() : anno.createdAt,
+        updatedAt: anno.updatedAt instanceof Date ? anno.updatedAt.toISOString() : anno.updatedAt,
+        tags: anno.tags
+      }));
+    }
+    
+    // Add versions if they exist
+    if (Array.isArray(document.versions) && document.versions.length > 0) {
+      frontmatterData.versions = document.versions.map(v => ({
+        id: v.id,
+        createdAt: v.createdAt instanceof Date ? v.createdAt.toISOString() : v.createdAt,
+        message: v.message
+      }));
+    }
+    
+    // Convert to YAML format
+    let frontmatter = '---\n';
+    Object.entries(frontmatterData).forEach(([key, value]) => {
+      if (typeof value === 'object' && value !== null) {
+        frontmatter += `${key}: ${JSON.stringify(value, null, 2)
+          .split('\n')
+          .map((line, i) => i === 0 ? line : '  ' + line)
+          .join('\n')}\n`;
+      } else {
+        frontmatter += `${key}: ${value}\n`;
+      }
+    });
+    frontmatter += '---';
+    
+    return { frontmatter, content: document.content };
+  }, []);
+
+  // Function to handle opening the frontmatter dialog
+  const handleOpenFrontmatterDialog = useCallback(() => {
+    if (selectedDocument) {
+      console.log("Opening frontmatter dialog for document:", selectedDocument.name);
+      console.log("Document content:", selectedDocument.content.substring(0, 200) + "...");
+      
+      const { frontmatter, content } = extractFrontmatterAndContent(selectedDocument.content);
+      
+      console.log("Extracted frontmatter:", frontmatter);
+      console.log("Extracted content:", content.substring(0, 200) + "...");
+      
+      setFrontmatterContent(frontmatter);
+      setDocumentContent(content);
+      setShowFrontmatterDialog(true);
+    }
+  }, [selectedDocument, extractFrontmatterAndContent]);
+  
+  // Function to save frontmatter changes
+  const handleSaveFrontmatter = useCallback(() => {
+    if (selectedDocumentId && selectedDocument) {
+      try {
+        // Parse the frontmatter content to extract structured data
+        const trimmedFrontmatter = frontmatterContent.trim();
+        let frontmatterData: Record<string, any> = {};
+        
+        if (trimmedFrontmatter) {
+          // Extract the YAML content between the --- markers
+          const yamlContent = trimmedFrontmatter.replace(/^---\n/, '').replace(/\n---$/, '');
+          // Parse the YAML content
+          const { data } = matter(`---\n${yamlContent}\n---\n`);
+          frontmatterData = data;
+        }
+        
+        // Create an update object with the parsed frontmatter data
+        const updateData: Partial<Document> = {
+          content: documentContent // Update the content without frontmatter
+        };
+        
+        // Update specific properties from frontmatter if they exist
+        if (frontmatterData.annotations) {
+          updateData.annotations = frontmatterData.annotations.map((anno: any) => ({
+            id: anno.id,
+            documentId: anno.documentId || selectedDocument.id,
+            startOffset: anno.startOffset,
+            endOffset: anno.endOffset,
+            content: anno.content || '',
+            color: anno.color || 'yellow',
+            createdAt: anno.createdAt ? new Date(anno.createdAt) : new Date(),
+            updatedAt: anno.updatedAt ? new Date(anno.updatedAt) : new Date(),
+            tags: Array.isArray(anno.tags) ? anno.tags : []
+          }));
+        }
+        
+        if (frontmatterData.versions) {
+          updateData.versions = frontmatterData.versions.map((v: any) => ({
+            id: v.id,
+            content: '', // We don't store version content in the frontmatter
+            createdAt: new Date(v.createdAt),
+            message: v.message
+          }));
+        }
+        
+        // Update the document with the new content and structured data
+        updateDocument(selectedDocumentId, updateData, true);
+        setContent(documentContent); // Update the editor content
+        setShowFrontmatterDialog(false);
+        
+        toast({
+          title: "Frontmatter updated",
+          description: "Document frontmatter has been updated successfully.",
+        });
+      } catch (error) {
+        console.error("Error parsing frontmatter:", error);
+        toast({
+          title: "Error updating frontmatter",
+          description: "There was an error parsing the frontmatter. Please check the format and try again.",
+          variant: "destructive"
+        });
+      }
+    }
+  }, [selectedDocumentId, selectedDocument, frontmatterContent, documentContent, updateDocument]);
+
   // Render a loading state or empty state during SSR to prevent hydration errors
   if (!isClient) {
     return (
@@ -996,6 +1152,14 @@ const MarkdownEditor = forwardRef<
               <Play className="h-4 w-4" />
             </Button>
           </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleOpenFrontmatterDialog} 
+            title="View/Edit Frontmatter"
+          >
+            <FileJson className="h-4 w-4" />
+          </Button>
         </div>
         
         <div className="flex items-center gap-2">
@@ -1139,6 +1303,44 @@ const MarkdownEditor = forwardRef<
           height="200px"
         />
       )}
+
+      {/* Add Frontmatter Dialog */}
+      <Dialog open={showFrontmatterDialog} onOpenChange={setShowFrontmatterDialog}>
+        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Edit Document Frontmatter</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-4 py-4 flex-grow overflow-hidden">
+            <div className="flex flex-col h-full overflow-hidden">
+              <Label htmlFor="frontmatter" className="mb-2">Frontmatter (YAML format)</Label>
+              <Textarea
+                id="frontmatter"
+                value={frontmatterContent}
+                onChange={(e) => setFrontmatterContent(e.target.value)}
+                className="font-mono text-sm h-40 resize-none"
+                placeholder="---
+title: Document Title
+date: 2023-06-15
+tags: [tag1, tag2]
+---"
+              />
+              
+              <Label htmlFor="content" className="mb-2 mt-4">Document Content</Label>
+              <Textarea
+                id="content"
+                value={documentContent}
+                onChange={(e) => setDocumentContent(e.target.value)}
+                className="font-mono text-sm flex-grow resize-none"
+                placeholder="Document content goes here..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFrontmatterDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveFrontmatter}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });
