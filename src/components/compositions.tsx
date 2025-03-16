@@ -152,10 +152,10 @@ export default function Compositions() {
       
       console.log("Extracted messages:", messages);
       
+      // Get the contextDocuments directly from the composition object
+      console.log("Context documents from composition:", composition.contextDocuments);
+      
       // Verify that all context documents exist in the current documents
-      // This code filters the composition's context documents to only include those that exist in the current documents array.
-      // It checks each context document to see if there's a matching document ID in the current documents.
-      // If a document doesn't exist, it logs a warning and excludes it from the valid context documents.
       const validContextDocuments = composition.contextDocuments.filter(doc => {
         const exists = documents.some(d => d.id === doc.id);
         if (!exists) {

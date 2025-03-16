@@ -283,10 +283,12 @@ const sanitizeName = (name: string): string => {
   return name.replace(/[/\\?%*:|"<>]/g, '-');
 };
 
-// Convert a document to a Markdown file with YAML frontmatter
-const documentToMarkdown = (document: Document): string => {
+// Convert a Document to a Markdown string with YAML frontmatter
+export const documentToMarkdown = (document: Document): string => {
+  // Create frontmatter object
   const frontmatter = {
     id: document.id,
+    name: document.name,
     createdAt: document.createdAt.toISOString(),
     updatedAt: document.updatedAt.toISOString(),
     versions: document.versions.map(v => ({
@@ -305,7 +307,14 @@ const documentToMarkdown = (document: Document): string => {
       createdAt: anno.createdAt instanceof Date ? anno.createdAt.toISOString() : new Date(anno.createdAt).toISOString(),
       updatedAt: anno.updatedAt instanceof Date ? anno.updatedAt.toISOString() : new Date(anno.updatedAt).toISOString(),
       tags: anno.tags
-    })) : []
+    })) : [],
+    // Add contextDocuments to frontmatter if they exist
+    ...(Array.isArray(document.contextDocuments) && document.contextDocuments.length > 0 ? {
+      contextDocuments: document.contextDocuments.map(doc => ({
+        id: doc.id,
+        name: doc.name
+      }))
+    } : {})
   };
   
   return matter.stringify(document.content, frontmatter);
@@ -392,6 +401,10 @@ const markdownToDocument = (filePath: string, relativePath: string): Document =>
       createdAt: anno.createdAt ? new Date(anno.createdAt) : new Date(),
       updatedAt: anno.updatedAt ? new Date(anno.updatedAt) : new Date(),
       tags: Array.isArray(anno.tags) ? anno.tags : []
+    })) : [],
+    contextDocuments: Array.isArray(data.contextDocuments) ? data.contextDocuments.map((contextDoc: any) => ({
+      id: contextDoc.id,
+      name: contextDoc.name
     })) : []
   };
   
@@ -568,6 +581,10 @@ export const loadDocuments = (): Document[] => {
               createdAt: anno.createdAt ? new Date(anno.createdAt) : new Date(),
               updatedAt: anno.updatedAt ? new Date(anno.updatedAt) : new Date(),
               tags: Array.isArray(anno.tags) ? anno.tags : []
+            })) : [],
+            contextDocuments: Array.isArray(data.contextDocuments) ? data.contextDocuments.map((contextDoc: any) => ({
+              id: contextDoc.id,
+              name: contextDoc.name
             })) : []
           };
           

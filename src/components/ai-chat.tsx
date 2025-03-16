@@ -577,19 +577,10 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       
       // Add custom intro if provided, otherwise use default
       if (customIntro) {
-        content += `${customIntro}\n`;
+        content += `${customIntro}\n\n`;
       } else if (contextDocs.length > 0 && chatMessages.length === 0) {
         // If there are only context documents but no messages, add a default intro
-        content += `Composition with context documents.\n`;
-      }
-      
-      // Add context documents as markdown links
-      if (contextDocs.length > 0) {
-        content += "Context documents:\n";
-        contextDocs.forEach(doc => {
-          content += `- [[${doc.name}]]\n`;
-        });
-        content += "\n";
+        content += `Composition created with context documents.\n\n`;
       }
       
       // Add chat messages if they exist

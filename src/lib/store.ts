@@ -64,6 +64,7 @@ export interface Document {
   versions: DocumentVersion[];
   folderId: string | null; // Add folder reference
   annotations: Annotation[]; // Add annotations array
+  contextDocuments?: Array<{id: string; name: string; content?: string}>; // Add contextDocuments for compositions
 }
 
 export interface Folder {
@@ -208,6 +209,22 @@ export const useDocumentStore = create<DocumentStore>()(
       addDocument: async (name, content, folderId = null) => {
         set({ error: null });
         const timestamp = new Date();
+        
+        // Check if the content has frontmatter with contextDocuments
+        let contextDocuments;
+        const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+        if (frontmatterMatch) {
+          const frontmatter = frontmatterMatch[1];
+          const contextDocumentsMatch = frontmatter.match(/contextDocuments:\s*(.*)/);
+          if (contextDocumentsMatch) {
+            try {
+              contextDocuments = JSON.parse(contextDocumentsMatch[1].trim());
+            } catch (e) {
+              console.error('Error parsing contextDocuments from frontmatter:', e);
+            }
+          }
+        }
+        
         const newDocument: Document = {
           id: `doc-${timestamp.getTime()}`,
           name,
@@ -217,6 +234,7 @@ export const useDocumentStore = create<DocumentStore>()(
           versions: [],
           folderId,
           annotations: [],
+          ...(contextDocuments && { contextDocuments }),
         };
         
         // Create an initial version
@@ -266,11 +284,29 @@ export const useDocumentStore = create<DocumentStore>()(
           versions = [newVersion, ...versions];
         }
         
+        // Check if the content has frontmatter with contextDocuments
+        let contextDocuments = documentToUpdate.contextDocuments;
+        if (data.content) {
+          const frontmatterMatch = data.content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+          if (frontmatterMatch) {
+            const frontmatter = frontmatterMatch[1];
+            const contextDocumentsMatch = frontmatter.match(/contextDocuments:\s*(.*)/);
+            if (contextDocumentsMatch) {
+              try {
+                contextDocuments = JSON.parse(contextDocumentsMatch[1].trim());
+              } catch (e) {
+                console.error('Error parsing contextDocuments from frontmatter:', e);
+              }
+            }
+          }
+        }
+        
         const updatedDoc = { 
           ...documentToUpdate, 
           ...data, 
           updatedAt: new Date(),
-          versions: versions
+          versions: versions,
+          ...(contextDocuments && { contextDocuments }),
         };
         
         // Update local state immediately
@@ -966,6 +1002,28 @@ ${updatedComposition.content}`;
             try {
               console.log(`Processing document: ${doc.name} (ID: ${doc.id})`);
               
+              // Use the document's contextDocuments property if it exists
+              if (doc.contextDocuments && Array.isArray(doc.contextDocuments) && doc.contextDocuments.length > 0) {
+                console.log(`Using document's contextDocuments property for ${doc.name}`);
+                
+                const composition = {
+                  id: doc.id,
+                  name: doc.name,
+                  content: doc.content.replace(/^---[\s\S]*?---\n/, '').trim(), // Remove frontmatter from content
+                  contextDocuments: doc.contextDocuments,
+                  createdAt: doc.createdAt,
+                  updatedAt: doc.updatedAt
+                };
+                
+                console.log(`Added composition from document property: ${composition.name} (ID: ${composition.id})`);
+                console.log(`Context documents:`, composition.contextDocuments);
+                compositions.push(composition);
+                continue;
+              }
+              
+              // If no contextDocuments property, try to parse from frontmatter
+              console.log(`No contextDocuments property found for ${doc.name}, parsing from frontmatter`);
+              
               // Parse the frontmatter
               const content = doc.content;
               const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -973,56 +1031,27 @@ ${updatedComposition.content}`;
               if (frontmatterMatch) {
                 const [_, frontmatter, markdownContent] = frontmatterMatch;
                 
-                // Extract metadata
-                const titleMatch = frontmatter.match(/title:\s*(.*)/);
-                const dateMatch = frontmatter.match(/date:\s*(.*)/);
-                const idMatch = frontmatter.match(/id:\s*(.*)/);
-                const contextDocumentsMatch = frontmatter.match(/contextDocuments:\s*(.*)/);
+                // Use gray-matter to parse the frontmatter properly
+                const matter = await import('gray-matter');
+                const { data } = matter.default(`---\n${frontmatter}\n---\n`);
                 
-                if (titleMatch && dateMatch) {
-                  const title = titleMatch[1].trim();
-                  const date = new Date(dateMatch[1].trim());
-                  let contextDocuments: Array<{id: string; name: string}> = [];
-                  
-                  if (contextDocumentsMatch) {
-                    try {
-                      contextDocuments = JSON.parse(contextDocumentsMatch[1].trim());
-                    } catch (e) {
-                      console.error('Error parsing contextDocuments:', e);
-                    }
-                  }
-                  
-                  // Use the stored ID if available, otherwise generate a new unique ID
-                  const compositionId = idMatch ? idMatch[1].trim() : generateUniqueId('comp');
-                  
-                  const composition = {
-                    id: compositionId,
-                    name: title,
-                    content: markdownContent.trim(),
-                    contextDocuments,
-                    createdAt: date,
-                    updatedAt: date
-                  };
-                  
-                  console.log(`Added composition: ${composition.name} (ID: ${composition.id})`);
-                  compositions.push(composition);
-                } else {
-                  // If no title or date in frontmatter, create a composition with document name
-                  console.log(`Document ${doc.name} has frontmatter but missing title or date, using document properties`);
-                  
-                  // Ensure we have a valid Date object for createdAt and updatedAt
-                  const createdAt = doc.createdAt instanceof Date ? doc.createdAt : new Date();
-                  const updatedAt = doc.updatedAt instanceof Date ? doc.updatedAt : new Date();
-                  
-                  compositions.push({
-                    id: generateUniqueId('comp'),
-                    name: doc.name,
-                    content: markdownContent.trim(),
-                    contextDocuments: [],
-                    createdAt: createdAt,
-                    updatedAt: updatedAt
-                  });
-                }
+                const title = data.title || doc.name;
+                const date = data.date ? new Date(data.date) : doc.createdAt;
+                const compositionId = data.id || doc.id;
+                const contextDocuments = Array.isArray(data.contextDocuments) ? data.contextDocuments : [];
+                
+                const composition = {
+                  id: compositionId,
+                  name: title,
+                  content: markdownContent.trim(),
+                  contextDocuments,
+                  createdAt: date,
+                  updatedAt: date
+                };
+                
+                console.log(`Added composition from frontmatter: ${composition.name} (ID: ${composition.id})`);
+                console.log(`Context documents:`, composition.contextDocuments);
+                compositions.push(composition);
               } else {
                 // If no frontmatter, create a composition with document name and content
                 console.log(`Document ${doc.name} has no frontmatter, using document properties`);
@@ -1032,7 +1061,7 @@ ${updatedComposition.content}`;
                 const updatedAt = doc.updatedAt instanceof Date ? doc.updatedAt : new Date();
                 
                 compositions.push({
-                  id: generateUniqueId('comp'),
+                  id: doc.id,
                   name: doc.name,
                   content: doc.content,
                   contextDocuments: [],

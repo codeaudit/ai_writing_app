@@ -841,6 +841,14 @@ const MarkdownEditor = forwardRef<
       }));
     }
     
+    // Add contextDocuments if they exist
+    if (Array.isArray(document.contextDocuments) && document.contextDocuments.length > 0) {
+      frontmatterData.contextDocuments = document.contextDocuments.map(doc => ({
+        id: doc.id,
+        name: doc.name
+      }));
+    }
+    
     // Convert to YAML format
     let frontmatter = '---\n';
     Object.entries(frontmatterData).forEach(([key, value]) => {
