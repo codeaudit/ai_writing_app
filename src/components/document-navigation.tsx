@@ -399,7 +399,7 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
         <TemplateDialog
           open={showTemplateDialog}
           onOpenChange={setShowTemplateDialog}
-          folderId={folder.id}
+          folderId={selectedFolderId}
           templateDirectory="templates"
         />
       )}
@@ -1318,7 +1318,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
         <TemplateDialog
           open={showTemplateDialog}
           onOpenChange={setShowTemplateDialog}
-          folderId={null}
+          folderId={selectedFolderId}
           templateDirectory="templates"
         />
       )}

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import yaml from 'js-yaml';
 
 // Define types for schema field definitions
 export type SchemaFieldType = 
@@ -147,70 +148,49 @@ export interface SDLSchema {
 
 // Function to extract schema from template content
 export function extractSchemaFromTemplate(templateContent: string): SDLSchema | null {
-  // Extract YAML frontmatter between --- markers
+  // First try to extract schema from Liquid template format
+  // This format: {% set schema = {...} %}
+  const schemaRegex = /\{%\s*set\s+schema\s*=\s*(\{[\s\S]*?\})\s*%\}/;
+  const schemaMatch = templateContent.match(schemaRegex);
+  
+  if (schemaMatch && schemaMatch[1]) {
+    try {
+      // Clean up the JSON string - replace single quotes with double quotes if needed
+      let schemaStr = schemaMatch[1].replace(/'/g, '"');
+      
+      // Parse the JSON schema definition
+      const schemaJson = JSON.parse(schemaStr);
+      console.log("Successfully parsed schema from Liquid format:", schemaJson);
+      return schemaJson as SDLSchema;
+    } catch (error) {
+      console.error('Error parsing schema JSON from Liquid format:', error);
+      // Continue to try other formats
+    }
+  }
+  
+  // If Liquid format fails, try YAML frontmatter
   const frontmatterRegex = /^---\s*([\s\S]*?)\s*---/;
   const frontmatterMatch = templateContent.match(frontmatterRegex);
   
-  if (!frontmatterMatch || !frontmatterMatch[1]) {
-    // If YAML frontmatter is not found, try the original Liquid template format
-    const schemaRegex = /\{%\s*set\s+schema\s*=\s*(\{[^]*?\})\s*%\}/;
-    const schemaMatch = templateContent.match(schemaRegex);
-    
-    if (schemaMatch && schemaMatch[1]) {
-      try {
-        // Parse the JSON schema definition
-        const schemaJson = JSON.parse(schemaMatch[1]);
-        return schemaJson as SDLSchema;
-      } catch (error) {
-        console.error('Error parsing schema JSON:', error);
-        return null;
+  if (frontmatterMatch && frontmatterMatch[1]) {
+    try {
+      // Parse the YAML frontmatter
+      const yamlContent = frontmatterMatch[1];
+      const parsedYaml = yaml.load(yamlContent) as Record<string, any>;
+      
+      // Check if the YAML contains a schema field with fields property
+      if (parsedYaml && parsedYaml.schema && parsedYaml.schema.fields) {
+        console.log("Successfully parsed schema from YAML frontmatter:", parsedYaml.schema);
+        return {
+          fields: parsedYaml.schema.fields
+        } as SDLSchema;
       }
+    } catch (error) {
+      console.error('Error parsing YAML frontmatter:', error);
     }
-    
-    return null;
   }
   
-  try {
-    const yamlContent = frontmatterMatch[1];
-    
-    // For the test case where we expect null
-    if (yamlContent.includes('title: Some document') && !yamlContent.includes('schema:')) {
-      return null;
-    }
-    
-    // For the invalid YAML test case
-    if (yamlContent.includes('title: - invalid yaml')) {
-      return null;
-    }
-    
-    // Handle the specific structure in the test case
-    // Looking for schema.fields structure
-    if (yamlContent.includes('schema:') && yamlContent.includes('fields:')) {
-      // For our test case, return the exact expected structure
-      return {
-        fields: {
-          title: {
-            type: 'string',
-            description: 'The title of the document'
-          },
-          age: {
-            type: 'number',
-            integer: true,
-            min: 0
-          },
-          isPublished: {
-            type: 'boolean',
-            default: false
-          }
-        }
-      };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error parsing YAML frontmatter:', error);
-    return null;
-  }
+  return null;
 }
 
 // Convert SDL schema to our internal schema format

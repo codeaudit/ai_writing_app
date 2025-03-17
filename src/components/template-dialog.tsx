@@ -568,8 +568,12 @@ export function TemplateDialog({
       const processData = await processResponse.json();
       const content = processData.content;
       
-      // Always create composition documents in the root of the vault
-      const newDocId = await addDocument(documentName, content, null);
+      // Use the provided folder ID instead of always creating in root
+      // If we're creating from a composition template but want to respect the folder selection
+      const targetFolderId = folderId;
+      
+      // Create the document
+      const newDocId = await addDocument(documentName, content, targetFolderId);
       
       // Close the dialog
       onOpenChange(false);
