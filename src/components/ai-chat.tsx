@@ -41,9 +41,37 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import AIDebugPanel from "@/components/ai-debug-panel";
-import { formatDebugPrompt } from "@/lib/ai-debug";
 import { generateChatResponse, ChatMessage, ChatContextDocument } from "@/lib/llm-service";
 import { LLM_PROVIDERS, LLM_MODELS } from "@/lib/config";
+
+// Define color mapping for each model
+const MODEL_COLORS = {
+  // OpenAI Models
+  'gpt-4o': 'bg-emerald-100 dark:bg-emerald-950/50',
+  'gpt-4-turbo': 'bg-emerald-50 dark:bg-emerald-950/30',
+  'gpt-4': 'bg-emerald-50/80 dark:bg-emerald-950/20',
+  
+  // OpenRouter Models
+  'google/gemini-2.0-flash-001': 'bg-blue-100 dark:bg-blue-950/50',
+  'google/gemini-2.0-flash-lite-001': 'bg-blue-50 dark:bg-blue-950/30',
+  'mistralai/mistral-small-3.1-24b-instruct': 'bg-purple-100 dark:bg-purple-950/50',
+  'google/gemma-3-27b-it': 'bg-indigo-100 dark:bg-indigo-950/50',
+  'allenai/olmo-2-0325-32b-instruct': 'bg-cyan-100 dark:bg-cyan-950/50',
+  'deepseek/deepseek-r1-zero:free': 'bg-teal-100 dark:bg-teal-950/50',
+  'qwen/qwq-32b:free': 'bg-green-100 dark:bg-green-950/50',
+  'meta-llama/llama-3.3-70b-instruct': 'bg-yellow-100 dark:bg-yellow-950/50',
+  'nvidia/llama-3.1-nemotron-70b-instruct': 'bg-orange-100 dark:bg-orange-950/50',
+  
+  // Anthropic Models
+  'claude-3-7-sonnet-20250219': 'bg-rose-100 dark:bg-rose-950/50',
+  'claude-3-5-sonnet-v2-20241022': 'bg-rose-50 dark:bg-rose-950/30',
+  'claude-3-5-haiku-20241022': 'bg-rose-50/80 dark:bg-rose-950/20',
+  
+  // Gemini Models
+  'gemini-2.0-flash': 'bg-sky-100 dark:bg-sky-950/50',
+  'gemini-2.0-flash-lite': 'bg-sky-50 dark:bg-sky-950/30',
+  'gemini-2.0-flash-thinking-exp-01-21': 'bg-sky-50/80 dark:bg-sky-950/20',
+};
 
 interface Message {
   id: string;
@@ -211,15 +239,16 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
 
   // Listen for messages loaded from a composition
   useEffect(() => {
-    const handleMessagesLoaded = (event: CustomEvent<{ messages: Array<{role: 'user' | 'assistant', content: string}> }>) => {
+    const handleMessagesLoaded = (event: CustomEvent<{ messages: Array<{role: 'user' | 'assistant', content: string, model?: string, provider?: string}> }>) => {
       console.log("Received aiChatMessagesLoaded event with messages:", event.detail.messages);
       
       // Convert the messages to the format expected by the AI Chat component
-      // Only include the required properties for ChatMessage: id, role, and content
       const formattedMessages = event.detail.messages.map(msg => ({
         id: generateId(),
         role: msg.role,
-        content: msg.content
+        content: msg.content,
+        model: msg.model,
+        provider: msg.provider
       }));
       
       console.log("Formatted messages for AI Chat:", formattedMessages);
@@ -293,8 +322,13 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         setLastPrompt(response.debugPrompt);
       }
       
-      // Add the assistant's response to the chat
-      setMessages(prev => [...prev, response.message]);
+      // Add the assistant's response to the chat, preserving model and provider info
+      const assistantMessage: ChatMessage = {
+        ...response.message,
+        model: response.model,
+        provider: response.provider
+      };
+      setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error in AI chat:', error);
       toast({
@@ -941,11 +975,14 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`max-w-[90%] rounded-lg p-2 group ${
+                    className={cn(
+                      "max-w-[90%] rounded-lg p-2 group",
                       message.role === 'user' 
                         ? 'bg-primary/90 text-primary-foreground' 
-                        : 'bg-muted/70'
-                    }`}
+                        : message.model && MODEL_COLORS[message.model as keyof typeof MODEL_COLORS]
+                          ? MODEL_COLORS[message.model as keyof typeof MODEL_COLORS]
+                          : 'bg-muted/70'
+                    )}
                   >
                     <div className="whitespace-pre-wrap text-sm">{message.content}</div>
                     
