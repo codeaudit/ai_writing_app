@@ -13,7 +13,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742145529628-ks5xm8k",
+    "folderId": "folder-1742223595450-x9ftcis",
     "annotations": [
       {
         "id": "anno-multilingual-1",
@@ -46,7 +46,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742145529628-ks5xm8k",
+    "folderId": "folder-1742223595450-x9ftcis",
     "annotations": [
       {
         "id": "anno-dynamic-1",
@@ -79,7 +79,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742145529628-ks5xm8k",
+    "folderId": "folder-1742223595450-x9ftcis",
     "annotations": [],
     "contextDocuments": []
   },
@@ -97,7 +97,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742145529628-ks5xm8k",
+    "folderId": "folder-1742223595450-x9ftcis",
     "annotations": [],
     "contextDocuments": []
   },
@@ -115,7 +115,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742145529628-ks5xm8k",
+    "folderId": "folder-1742223595450-x9ftcis",
     "annotations": [],
     "contextDocuments": []
   },
@@ -133,7 +133,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742145529628-ks5xm8k",
+    "folderId": "folder-1742223595450-x9ftcis",
     "annotations": [],
     "contextDocuments": []
   },
@@ -151,7 +151,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742145529628-e3x4fek",
+    "folderId": "folder-1742223595457-ve2uxnz",
     "annotations": [],
     "contextDocuments": []
   },
@@ -169,7 +169,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742145529628-e3x4fek",
+    "folderId": "folder-1742223595457-ve2uxnz",
     "annotations": [],
     "contextDocuments": []
   },
@@ -187,7 +187,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742145529628-i9v03uk",
+    "folderId": "folder-1742223595460-y8f90ox",
     "annotations": [],
     "contextDocuments": [
       {
@@ -210,7 +210,7 @@
         "message": "Manual save on 3/14/2025, 5:44:55 AM"
       }
     ],
-    "folderId": "folder-1742145529628-ljbshwp",
+    "folderId": "folder-1742223595461-gusdwkz",
     "annotations": [],
     "contextDocuments": []
   },
@@ -228,18 +228,18 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742145529628-ljbshwp",
+    "folderId": "folder-1742223595461-gusdwkz",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1742223171492-9phvbzl",
+    "id": "doc-1742322245711-8nhgh0x",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-17T14:52:51.492Z",
-    "updatedAt": "2025-03-17T14:52:51.492Z",
+    "createdAt": "2025-03-18T18:24:05.712Z",
+    "updatedAt": "2025-03-18T18:24:05.712Z",
     "versions": [],
-    "folderId": "folder-1742145529628-ljbshwp",
+    "folderId": "folder-1742223595461-gusdwkz",
     "annotations": [],
     "contextDocuments": []
   },
@@ -250,7 +250,7 @@
     "createdAt": "2025-03-14T15:27:10.134Z",
     "updatedAt": "2025-03-14T15:33:56.372Z",
     "versions": [],
-    "folderId": "folder-1742145529628-ljbshwp",
+    "folderId": "folder-1742223595461-gusdwkz",
     "annotations": [],
     "contextDocuments": []
   }

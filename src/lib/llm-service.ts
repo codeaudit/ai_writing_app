@@ -10,11 +10,24 @@ import { createCacheMiddleware } from './ai-middleware';
 import { kv } from '@vercel/kv';
 import { cookies } from 'next/headers';
 import { formatDebugPrompt, logAIDebug } from '@/lib/ai-debug';
+import { OpenAI } from 'openai';
+import { LanguageModelV1ObjectGenerationMode } from 'ai';
 
 // Import environment variables directly
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+
+// Create OpenRouter client
+const openRouterClient = new OpenAI({
+  apiKey: OPENROUTER_API_KEY,
+  baseURL: 'https://openrouter.ai/api/v1',
+  defaultHeaders: {
+    'HTTP-Referer': 'https://github.com/yourusername/writing_app',
+    'X-Title': 'Writing App'
+  }
+});
 
 interface LLMRequestOptions {
   prompt: string;
@@ -105,6 +118,67 @@ export async function generateTextServerAction(options: LLMRequestOptions): Prom
         // Set the API key for Google
         process.env.GOOGLE_GENERATIVE_AI_API_KEY = GOOGLE_API_KEY;
         baseModel = google(modelName as any);
+        break;
+      case 'openrouter':
+        // Use OpenRouter client directly
+        baseModel = {
+          provider: 'openrouter',
+          specificationVersion: 'v1' as const,
+          modelId: modelName,
+          defaultObjectGenerationMode: 'text' as LanguageModelV1ObjectGenerationMode,
+          async doGenerate(options: any) {
+            const { prompt, temperature = 0.7, maxTokens = 1000 } = options;
+            const messages = typeof prompt === 'string' 
+              ? [{ role: 'user', content: prompt }]
+              : prompt.map((msg: any) => ({
+                  role: msg.role,
+                  content: Array.isArray(msg.content) 
+                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
+                    : msg.content
+                }));
+
+            const response = await openRouterClient.chat.completions.create({
+              model: modelName,
+              messages,
+              temperature,
+              max_tokens: maxTokens,
+            });
+
+            return {
+              text: response.choices[0]?.message?.content ?? '',
+              model: modelName,
+              provider: 'openrouter',
+              finishReason: response.choices[0]?.finish_reason ?? 'stop',
+              usage: {
+                promptTokens: response.usage?.prompt_tokens ?? 0,
+                completionTokens: response.usage?.completion_tokens ?? 0
+              }
+            };
+          },
+          async doStream(options: any) {
+            const { prompt, temperature = 0.7, maxTokens = 1000 } = options;
+            const messages = typeof prompt === 'string' 
+              ? [{ role: 'user', content: prompt }]
+              : prompt.map((msg: any) => ({
+                  role: msg.role,
+                  content: Array.isArray(msg.content) 
+                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
+                    : msg.content
+                }));
+
+            const stream = await openRouterClient.chat.completions.create({
+              model: modelName,
+              messages,
+              temperature,
+              max_tokens: maxTokens,
+              stream: true
+            });
+
+            return {
+              stream: stream.toReadableStream()
+            };
+          }
+        };
         break;
       case 'openai':
       default:
@@ -287,6 +361,67 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
         // Set the API key for Google
         process.env.GOOGLE_GENERATIVE_AI_API_KEY = GOOGLE_API_KEY;
         baseModel = google(modelName as any);
+        break;
+      case 'openrouter':
+        // Use OpenRouter client directly
+        baseModel = {
+          provider: 'openrouter',
+          specificationVersion: 'v1' as const,
+          modelId: modelName,
+          defaultObjectGenerationMode: 'text' as LanguageModelV1ObjectGenerationMode,
+          async doGenerate(options: any) {
+            const { prompt, temperature = 0.7, maxTokens = 1000 } = options;
+            const messages = typeof prompt === 'string' 
+              ? [{ role: 'user', content: prompt }]
+              : prompt.map((msg: any) => ({
+                  role: msg.role,
+                  content: Array.isArray(msg.content) 
+                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
+                    : msg.content
+                }));
+
+            const response = await openRouterClient.chat.completions.create({
+              model: modelName,
+              messages,
+              temperature,
+              max_tokens: maxTokens,
+            });
+
+            return {
+              text: response.choices[0]?.message?.content ?? '',
+              model: modelName,
+              provider: 'openrouter',
+              finishReason: response.choices[0]?.finish_reason ?? 'stop',
+              usage: {
+                promptTokens: response.usage?.prompt_tokens ?? 0,
+                completionTokens: response.usage?.completion_tokens ?? 0
+              }
+            };
+          },
+          async doStream(options: any) {
+            const { prompt, temperature = 0.7, maxTokens = 1000 } = options;
+            const messages = typeof prompt === 'string' 
+              ? [{ role: 'user', content: prompt }]
+              : prompt.map((msg: any) => ({
+                  role: msg.role,
+                  content: Array.isArray(msg.content) 
+                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
+                    : msg.content
+                }));
+
+            const stream = await openRouterClient.chat.completions.create({
+              model: modelName,
+              messages,
+              temperature,
+              max_tokens: maxTokens,
+              stream: true
+            });
+
+            return {
+              stream: stream.toReadableStream()
+            };
+          }
+        };
         break;
       case 'openai':
       default:
