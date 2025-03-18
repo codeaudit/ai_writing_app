@@ -36,6 +36,13 @@ export const LLM_MODELS = {
     { value: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash' },
     { value: 'google/gemini-2.0-flash-lite-001', label: 'Gemini 2.0 Flash Lite' },
     { value: 'google/learnlm-1.5-pro-experimental:free', label: 'LearnLM' },
+    { value: 'mistralai/mistral-small-3.1-24b-instruct', label: 'mistral 3.1 24b' },
+    { value: 'google/gemma-3-27b-it', label: 'Gemma 3 27b' },
+    { value: 'allenai/olmo-2-0325-32b-instruct', label: 'olmo 2 32b' },
+    { value: 'deepseek/deepseek-r1-zero:free', label: 'deepseek-r1 zero' },
+    { value: 'qwen/qwq-32b:free', label: 'qwq 32b' },
+    { value: 'meta-llama/llama-3.3-70b-instruct', label: 'llama 3.3 70b' },
+    { value: 'nvidia/llama-3.1-nemotron-70b-instruct', label: 'nemotron 70b'}
   ],  
   anthropic: [
     { value: 'claude-3-7-sonnet-20250219', label: 'Claude 3.7 Sonnet' },

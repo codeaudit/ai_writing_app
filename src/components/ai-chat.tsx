@@ -43,6 +43,7 @@ import {
 import AIDebugPanel from "@/components/ai-debug-panel";
 import { formatDebugPrompt } from "@/lib/ai-debug";
 import { generateChatResponse, ChatMessage, ChatContextDocument } from "@/lib/llm-service";
+import { LLM_PROVIDERS, LLM_MODELS } from "@/lib/config";
 
 interface Message {
   id: string;
@@ -65,9 +66,21 @@ interface AIChatProps {
   onToggleExpand?: () => void;
 }
 
+interface ModelOption {
+  value: string;
+  label: string;
+}
+
+type ProviderValue = 'openai' | 'openrouter' | 'anthropic' | 'gemini';
+
+interface ProviderOption {
+  value: ProviderValue;
+  label: string;
+}
+
 export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIChatProps) {
   const { documents } = useDocumentStore();
-  const { config } = useLLMStore();
+  const { config, updateConfig } = useLLMStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -695,13 +708,39 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
             isExpanded ? "" : "ml-auto" // Push to right when not expanded
           )}>
             {/* Display the current model */}
-            <Badge 
-              variant="outline" 
-              className="mr-2 text-xs bg-primary/5"
-              title="Current AI model"
-            >
-              {config.provider || 'openai'}:{config.model || 'gpt-4o'}
-            </Badge>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Badge 
+                  variant="outline" 
+                  className="mr-2 text-xs bg-primary/5 cursor-pointer hover:bg-primary/10"
+                  title="Select AI model"
+                >
+                  {LLM_MODELS[config.provider as keyof typeof LLM_MODELS].find((m: ModelOption) => m.value === config.model)?.label || config.model}
+                </Badge>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {(LLM_PROVIDERS as ProviderOption[]).map((provider: ProviderOption) => (
+                  <div key={provider.value}>
+                    <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1">
+                      {provider.label}
+                    </DropdownMenuLabel>
+                    {LLM_MODELS[provider.value].map((model: ModelOption) => (
+                      <DropdownMenuItem 
+                        key={model.value}
+                        onClick={() => updateConfig({ 
+                          provider: provider.value, 
+                          model: model.value 
+                        })}
+                        className="text-xs py-1"
+                      >
+                        {model.label}
+                      </DropdownMenuItem>
+                    ))}
+                    {provider.value !== 'openrouter' && <DropdownMenuSeparator className="my-1" />}
+                  </div>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             <Button 
               variant="ghost" 
