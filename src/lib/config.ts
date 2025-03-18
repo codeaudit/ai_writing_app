@@ -39,7 +39,8 @@ export const LLM_MODELS = {
     { value: 'mistralai/mistral-small-3.1-24b-instruct', label: 'mistral 3.1 24b' },
     { value: 'google/gemma-3-27b-it', label: 'Gemma 3 27b' },
     { value: 'allenai/olmo-2-0325-32b-instruct', label: 'olmo 2 32b' },
-    { value: 'deepseek/deepseek-r1-zero:free', label: 'deepseek-r1 zero' },
+    { value: 'deepseek/deepseek-r1:free', label: 'deepseek-r1 free' },
+    { value: 'deepseek/deepseek-r1', label: 'deepseek-r1' },
     { value: 'qwen/qwq-32b:free', label: 'qwq 32b' },
     { value: 'meta-llama/llama-3.3-70b-instruct', label: 'llama 3.3 70b' },
     { value: 'nvidia/llama-3.1-nemotron-70b-instruct', label: 'nemotron 70b'}

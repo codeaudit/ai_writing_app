@@ -8,10 +8,19 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, RefreshCw, Check, X, FileText, Trash2 } from "lucide-react";
+import { Send, RefreshCw, Check, X, FileText, Trash2, ChevronDown } from "lucide-react";
 import { useLLMStore, useDocumentStore } from "@/lib/store";
 import { generateText } from "@/lib/llm-service";
 import { toast } from "@/components/ui/use-toast";
+import { LLM_PROVIDERS, LLM_MODELS } from "@/lib/config";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +48,16 @@ interface ContextFile {
   name: string;
 }
 
+interface ProviderOption {
+  value: keyof typeof LLM_MODELS;
+  label: string;
+}
+
+interface ModelOption {
+  value: string;
+  label: string;
+}
+
 export function LLMDialog({ isOpen, onClose, selectedText, position, editor, selection }: LLMDialogProps) {
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
@@ -47,7 +66,7 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [editorLeftPosition, setEditorLeftPosition] = useState<number>(0);
   const [contextFiles, setContextFiles] = useState<ContextFile[]>([]);
-  const { config } = useLLMStore();
+  const { config, updateConfig } = useLLMStore();
   const { documents } = useDocumentStore();
   
   // Store the range of the inserted text for later reference
@@ -339,6 +358,15 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
     }
   };
 
+  // Add a helper function to get the model label
+  const getModelLabel = (modelValue: string) => {
+    for (const provider of LLM_PROVIDERS) {
+      const model = LLM_MODELS[provider.value].find(m => m.value === modelValue);
+      if (model) return model.label;
+    }
+    return modelValue;
+  };
+
   return (
     <>
       <Popover open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -359,7 +387,43 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
           sideOffset={10}
         >
           <div className="space-y-4">
-            <div className="text-sm font-medium">AI Assistant</div>
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">AI Assistant</div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                  >
+                    {getModelLabel(config.model)}
+                    <ChevronDown className="ml-1 h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {(LLM_PROVIDERS as ProviderOption[]).map((provider: ProviderOption) => (
+                    <div key={provider.value}>
+                      <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1">
+                        {provider.label}
+                      </DropdownMenuLabel>
+                      {LLM_MODELS[provider.value].map((model: ModelOption) => (
+                        <DropdownMenuItem 
+                          key={model.value}
+                          onClick={() => updateConfig({ 
+                            provider: provider.value, 
+                            model: model.value 
+                          })}
+                          className="text-xs py-1"
+                        >
+                          {model.label}
+                        </DropdownMenuItem>
+                      ))}
+                      {provider.value !== 'openrouter' && <DropdownMenuSeparator className="my-0.5" />}
+                    </div>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             
             {contextFiles.length > 0 && (
               <div className="space-y-2">

@@ -1,7 +1,8 @@
 ---
 id: doc-ui-test-multilingual
+name: 12-Multilingual-Content
 createdAt: '2025-03-15T19:15:00.000Z'
-updatedAt: '2025-03-15T19:15:00.000Z'
+updatedAt: '2025-03-18T21:06:43.128Z'
 versions:
   - id: ver-ui-test-multilingual-initial
     createdAt: '2025-03-15T19:15:00.000Z'
@@ -11,16 +12,15 @@ annotations:
     documentId: doc-ui-test-multilingual
     startOffset: 500
     endOffset: 600
-    content: "This tests how the UI handles annotations on text in different languages and scripts."
+    content: >-
+      This tests how the UI handles annotations on text in different languages
+      and scripts.
     color: green
     createdAt: '2025-03-15T19:15:10.000Z'
     updatedAt: '2025-03-15T19:15:10.000Z'
-    tags: ["multilingual", "test"]
-tags:
-  - multilingual
-  - languages
-  - internationalization
-  - i18n
+    tags:
+      - multilingual
+      - test
 ---
 
 # Multilingual Content Test

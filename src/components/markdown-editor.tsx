@@ -1213,15 +1213,6 @@ const MarkdownEditor = forwardRef<
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={createNewVersion}
-            title="Create a snapshot of the current document"
-          >
-            <History className="h-4 w-4 mr-2" />
-            Create Version
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
             onClick={handleSave}
             disabled={isSaving || content === selectedDocument.content}
             title="Save (Ctrl+S)"
