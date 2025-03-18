@@ -24,6 +24,7 @@ import {
   DEFAULT_MAX_TOKENS
 } from './config';
 import { fuzzySearch } from './search-utils';
+import { ChatMessage } from './llm-service';
 
 export interface DocumentVersion {
   id: string;
@@ -1214,6 +1215,28 @@ export const useLLMStore = create<LLMStore>()(
     }),
     {
       name: 'llm-store',
+    }
+  )
+);
+
+interface AIChatStore {
+  messages: ChatMessage[];
+  setMessages: (messages: ChatMessage[]) => void;
+  addMessage: (message: ChatMessage) => void;
+  clearMessages: () => void;
+}
+
+export const useAIChatStore = create<AIChatStore>()(
+  persist(
+    (set) => ({
+      messages: [],
+      setMessages: (messages) => set({ messages }),
+      addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
+      clearMessages: () => set({ messages: [] }),
+    }),
+    {
+      name: 'ai-chat-storage',
+      storage: createJSONStorage(() => localStorage),
     }
   )
 );

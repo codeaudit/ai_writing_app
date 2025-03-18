@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sparkles, Send, User, Bot, AtSign, X, FileText, ChevronDown, ChevronUp, Eraser, ArrowLeft, Bug, Copy, Check, RefreshCw, Maximize2, Minimize2, Save } from 'lucide-react';
-import { useDocumentStore, useLLMStore } from "@/lib/store";
+import { useDocumentStore, useLLMStore, useAIChatStore } from "@/lib/store";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -73,15 +73,6 @@ const MODEL_COLORS = {
   'gemini-2.0-flash-thinking-exp-01-21': 'bg-sky-50/80 dark:bg-sky-950/20',
 };
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-  model?: string;
-  provider?: string;
-}
-
 interface ContextDocument {
   id: string;
   name: string;
@@ -109,6 +100,7 @@ interface ProviderOption {
 export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIChatProps) {
   const { documents } = useDocumentStore();
   const { config, updateConfig } = useLLMStore();
+  const { messages, setMessages, addMessage, clearMessages } = useAIChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -117,7 +109,6 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     useLLMStore.getState().saveToCookies();
   }, []);
   
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState<string | null>(null);
@@ -282,6 +273,26 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Load messages from localStorage when component mounts
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('aiChatMessages');
+    if (savedMessages) {
+      try {
+        const parsedMessages = JSON.parse(savedMessages) as ChatMessage[];
+        console.log('Loading messages from localStorage:', parsedMessages);
+        setMessages(parsedMessages);
+      } catch (error) {
+        console.error('Error loading chat messages:', error);
+      }
+    }
+  }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    console.log('Saving messages to localStorage:', messages);
+    localStorage.setItem('aiChatMessages', JSON.stringify(messages));
+  }, [messages]);
+
   const generateId = () => `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -297,7 +308,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     };
     
     // Add user message to the chat
-    setMessages(prev => [...prev, userMessage]);
+    addMessage(userMessage);
     
     // Clear input
     setInput("");
@@ -311,7 +322,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         messages: [...messages, userMessage],
         contextDocuments: contextDocuments.map(doc => ({
           id: doc.id,
-          title: doc.name, // Map name to title for the server action
+          title: doc.name,
           content: doc.content
         })),
         stream: false
@@ -324,18 +335,20 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       
       // Add the assistant's response to the chat, preserving model and provider info
       const assistantMessage: ChatMessage = {
-        ...response.message,
+        id: generateId(),
+        role: 'assistant',
+        content: response.message.content,
         model: response.model,
         provider: response.provider
       };
-      setMessages(prev => [...prev, assistantMessage]);
+      addMessage(assistantMessage);
     } catch (error) {
       console.error('Error in AI chat:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to generate response",
         variant: "destructive",
-        duration: 5000, // Auto-dismiss after 5 seconds for errors
+        duration: 5000,
       });
     } finally {
       setIsLoading(false);
@@ -588,8 +601,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
 
   // Add a function to handle clearing the chat
   const handleClearChat = () => {
-    // Reset local messages to an empty array
-    setMessages([]);
+    // Clear messages from the store
+    clearMessages();
     
     // Clear input field
     setInput("");
@@ -601,7 +614,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     toast({
       title: "Chat cleared",
       description: "Your conversation has been reset.",
-      duration: 3000, // Auto-dismiss after 3 seconds
+      duration: 3000,
     });
     
     // Close confirmation dialog
@@ -728,7 +741,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       "w-full h-full flex flex-col border rounded-lg overflow-hidden shadow-md transition-all duration-200",
       isExpanded ? "fixed inset-4 z-50" : "relative"
     )}>
-      <CardHeader className="px-4 py-2 border-b">
+      <CardHeader className="px-3 py-1.5 border-b">
         <div className="flex items-center justify-between">
           
           {isExpanded && (
@@ -738,7 +751,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
           )}
           
           <div className={cn(
-            "flex items-center gap-1",
+            "flex items-center gap-0.5",
             isExpanded ? "" : "ml-auto" // Push to right when not expanded
           )}>
             {/* Display the current model */}
@@ -746,7 +759,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
               <DropdownMenuTrigger asChild>
                 <Badge 
                   variant="outline" 
-                  className="mr-2 text-xs bg-primary/5 cursor-pointer hover:bg-primary/10"
+                  className="mr-1 text-xs bg-primary/5 cursor-pointer hover:bg-primary/10"
                   title="Select AI model"
                 >
                   {LLM_MODELS[config.provider as keyof typeof LLM_MODELS].find((m: ModelOption) => m.value === config.model)?.label || config.model}
@@ -770,7 +783,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                         {model.label}
                       </DropdownMenuItem>
                     ))}
-                    {provider.value !== 'openrouter' && <DropdownMenuSeparator className="my-1" />}
+                    {provider.value !== 'openrouter' && <DropdownMenuSeparator className="my-0.5" />}
                   </div>
                 ))}
               </DropdownMenuContent>
@@ -779,11 +792,11 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
             <Button 
               variant="ghost" 
               size="sm"
-              className="h-8 px-2 text-muted-foreground"
+              className="h-7 w-7 p-0 text-muted-foreground"
               title="Save as composition"
               onClick={() => setShowSaveCompositionDialog(true)}
             >
-              <Save className="h-4 w-4" />
+              <Save className="h-3.5 w-3.5" />
             </Button>
             
             <DropdownMenu open={isContextMenuOpen} onOpenChange={setIsContextMenuOpen}>
@@ -791,10 +804,10 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-8 px-2"
+                  className="h-7 w-7 p-0"
                   title="Add document to context"
                 >
-                  <AtSign className="h-4 w-4" />
+                  <AtSign className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -807,13 +820,13 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                         key={doc.id}
                         onClick={() => handleAddContextDocument(doc)}
                         disabled={contextDocuments.some(d => d.id === doc.id)}
-                        className="flex items-center justify-between"
+                        className="flex items-center justify-between py-1.5"
                       >
-                        <span className="truncate">{doc.name}</span>
+                        <span className="truncate text-xs">{doc.name}</span>
                       </DropdownMenuItem>
                     ))
                   ) : (
-                    <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                    <div className="px-2 py-3 text-center text-xs text-muted-foreground">
                       No documents found
                     </div>
                   )}
@@ -826,10 +839,10 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  className="h-8 px-2 text-muted-foreground"
+                  className="h-7 w-7 p-0 text-muted-foreground"
                   title="Show debug information"
                 >
-                  <Bug className="h-4 w-4" />
+                  <Bug className="h-3.5 w-3.5" />
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-4xl max-h-[80vh]">
@@ -858,25 +871,25 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
             <Button 
               variant="ghost" 
               size="sm"
-              className="h-8 px-2 text-muted-foreground"
+              className="h-7 w-7 p-0 text-muted-foreground"
               title="Clear chat history"
               onClick={() => setShowClearConfirmation(true)}
             >
-              <Eraser className="h-4 w-4" />
+              <Eraser className="h-3.5 w-3.5" />
             </Button>
             
             {onToggleExpand && (
               <Button 
                 variant="ghost" 
                 size="sm"
-                className="h-8 px-2 text-muted-foreground"
+                className="h-7 w-7 p-0 text-muted-foreground"
                 title={isExpanded ? "Exit full screen" : "Expand to full screen"}
                 onClick={onToggleExpand}
               >
                 {isExpanded ? (
-                  <Minimize2 className="h-4 w-4" />
+                  <Minimize2 className="h-3.5 w-3.5" />
                 ) : (
-                  <Maximize2 className="h-4 w-4" />
+                  <Maximize2 className="h-3.5 w-3.5" />
                 )}
               </Button>
             )}
@@ -907,14 +920,14 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       
       {/* Context documents list - simplified */}
       {contextDocuments.length > 0 && (
-        <div className="flex flex-wrap gap-1 mx-4 mt-1 p-1 bg-muted/30 rounded-md">
-          <div className="flex justify-between w-full mb-1">
+        <div className="flex flex-wrap gap-1 mx-3 mt-0.5 p-1 bg-muted/30 rounded-md">
+          <div className="flex justify-between w-full mb-0.5">
             <span className="text-xs text-muted-foreground">Context documents:</span>
-            <div className="flex gap-1">
+            <div className="flex gap-0.5">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 px-2 py-0 text-xs text-muted-foreground hover:text-destructive"
+                className="h-4 px-1.5 py-0 text-xs text-muted-foreground hover:text-destructive"
                 onClick={handleClearAllContextDocuments}
               >
                 Clear All
@@ -922,15 +935,15 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
             </div>
           </div>
           {contextDocuments.map(doc => (
-            <Badge key={doc.id} variant="secondary" className="flex items-center gap-1 pl-2 text-xs">
+            <Badge key={doc.id} variant="secondary" className="flex items-center gap-0.5 pl-1.5 text-xs">
               {doc.name}
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-3 w-3 ml-1 rounded-full"
+                className="h-2.5 w-2.5 ml-0.5 rounded-full"
                 onClick={() => handleRemoveContextDocument(doc.id)}
               >
-                <X className="h-2 w-2" />
+                <X className="h-1.5 w-1.5" />
               </Button>
             </Badge>
           ))}
@@ -939,12 +952,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       
       <CardContent className="flex-1 p-0 overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="p-4 space-y-4">
+          <div className="p-3 space-y-3">
             {messages.length === 0 ? (
-              <div className="text-center text-muted-foreground py-6">
-                <Sparkles className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Ask me anything about your document(s)</p>
-                <div className="mt-3 grid grid-cols-1 gap-2 mx-auto max-w-md">
+              <div className="text-center text-muted-foreground py-4">
+                <Sparkles className="h-5 w-5 mx-auto mb-1.5 opacity-50" />
+                <p className="text-xs">Ask me anything about your document(s)</p>
+                <div className="mt-2 grid grid-cols-1 gap-1.5 mx-auto max-w-md">
                   <SuggestionButton 
                     text="Summarize this document" 
                     onClick={() => {
@@ -984,31 +997,31 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                           : 'bg-muted/70'
                     )}
                   >
-                    <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                    <div className="whitespace-pre-wrap text-xs">{message.content}</div>
                     
                     {message.role === 'assistant' && (
-                      <div className="mt-2 pt-1 border-t border-border flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="mt-1.5 pt-0.5 border-t border-border flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-5 w-5"
                           onClick={() => handleInsertResponse(message.content)}
                           title="Add to document"
                         >
-                          <ArrowLeft className="h-3 w-3" />
+                          <ArrowLeft className="h-2.5 w-2.5" />
                         </Button>
                         
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-5 w-5"
                           onClick={() => handleCopyToClipboard(message.content, `msg-${index}`)}
                           title="Copy to clipboard"
                         >
                           {isCopied === `msg-${index}` ? (
-                            <Check className="h-3 w-3" />
+                            <Check className="h-2.5 w-2.5" />
                           ) : (
-                            <Copy className="h-3 w-3" />
+                            <Copy className="h-2.5 w-2.5" />
                           )}
                         </Button>
                       </div>
@@ -1020,8 +1033,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
             
             {isLoading && (
               <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-lg p-2 bg-muted/70 flex items-center text-sm">
-                  <RefreshCw className="h-3 w-3 animate-spin mr-2" />
+                <div className="max-w-[80%] rounded-lg p-2 bg-muted/70 flex items-center text-xs">
+                  <RefreshCw className="h-2.5 w-2.5 animate-spin mr-1.5" />
                   Thinking...
                 </div>
               </div>
@@ -1032,8 +1045,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         </ScrollArea>
       </CardContent>
       
-      <CardFooter className="p-3 pt-2 border-t">
-        <div className="flex gap-2 w-full relative">
+      <CardFooter className="p-2 pt-1.5 border-t">
+        <div className="flex gap-1.5 w-full relative">
           <div className="flex-1 relative">
             <Textarea
               ref={textareaRef}
@@ -1042,10 +1055,10 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onFocus={handleFocus}
-              className="min-h-[50px] flex-1 resize-none text-sm"
+              className="min-h-[40px] flex-1 resize-none text-xs"
               disabled={isLoading}
             />
-            <div className="absolute right-2 bottom-2 text-xs text-muted-foreground bg-background px-1 rounded opacity-50">
+            <div className="absolute right-1.5 bottom-1.5 text-[10px] text-muted-foreground bg-background px-0.5 rounded opacity-50">
               <span className="font-bold">@</span> <span>to add documents</span>
             </div>
           </div>
@@ -1053,11 +1066,11 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
             type="submit" 
             size="icon" 
             variant="ghost"
-            className="h-[50px] w-[50px] rounded-full bg-primary/10 hover:bg-primary/20"
+            className="h-[40px] w-[40px] rounded-full bg-primary/10 hover:bg-primary/20"
             onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
             disabled={isLoading || !input.trim()}
           >
-            <Send className="h-4 w-4 text-primary" />
+            <Send className="h-3.5 w-3.5 text-primary" />
           </Button>
           
           {/* Autocomplete dropdown - simplified */}
