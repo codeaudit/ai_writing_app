@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useContext, useEffect } from "react";
+import { useState, useRef, useCallback, useContext, useEffect, createContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,13 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { Document } from "@/lib/store";
 import { CompositionComposer } from "./composition-composer";
+
+// Create a context for the DocumentNavigation props
+interface DocumentNavigationContextProps {
+  onCompareDocuments?: (doc1Id: string, doc2Id: string) => void;
+}
+
+const DocumentNavigationContext = createContext<DocumentNavigationContextProps>({});
 
 interface DocumentNavigationProps {
   onCompareDocuments?: (doc1Id: string, doc2Id: string) => void;
@@ -428,10 +435,14 @@ function DocumentItem({ document, level, filteredDocuments }: DocumentItemProps)
     deleteMultipleDocuments,
     selectDocument,
     toggleComparisonDocument,
+    clearComparisonDocuments,
     moveDocument,
     folders,
     documents,
   } = useDocumentStore();
+
+  // Get access to onCompareDocuments from the parent component
+  const { onCompareDocuments } = useContext(DocumentNavigationContext);
 
   const handleRename = () => {
     if (newName.trim() && newName !== document.name) {
@@ -546,6 +557,44 @@ function DocumentItem({ document, level, filteredDocuments }: DocumentItemProps)
               }}
             >
               Compose
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                // If this document is already selected, compare it with the other selected document
+                if (comparisonDocumentIds.includes(document.id) && comparisonDocumentIds.length === 2 && onCompareDocuments) {
+                  // Find the other document ID that's not this one
+                  const otherDocId = comparisonDocumentIds.find(id => id !== document.id);
+                  if (otherDocId) {
+                    onCompareDocuments(document.id, otherDocId);
+                    // Clear selection after comparing
+                    clearComparisonDocuments();
+                    toast({
+                      title: "Comparing documents",
+                      description: "Showing differences between the selected documents in the editor.",
+                    });
+                  }
+                } else {
+                  // Otherwise, add/remove this document to/from comparison
+                  toggleComparisonDocument(document.id);
+                  
+                  // Get current state after toggle
+                  const isSelected = !comparisonDocumentIds.includes(document.id);
+                  const selectedCount = isSelected ? comparisonDocumentIds.length + 1 : comparisonDocumentIds.length - 1;
+                  
+                  toast({
+                    title: isSelected ? "Document added to comparison" : "Document removed from comparison",
+                    description: selectedCount === 2 && isSelected 
+                      ? "You have 2 documents selected. Click the Compare button to compare them." 
+                      : `You have ${selectedCount} document${selectedCount !== 1 ? 's' : ''} selected for comparison.`,
+                  });
+                }
+              }}
+            >
+              {comparisonDocumentIds.includes(document.id) && comparisonDocumentIds.length === 2 
+                ? "Compare with Selected" 
+                : comparisonDocumentIds.includes(document.id) 
+                  ? "Remove from Compare" 
+                  : "Add to Compare"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuSub>
@@ -1085,258 +1134,284 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   );
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1">
-          <h2 className="text-sm font-medium">Documents</h2>
-          <Button
-            variant="ghost" 
-            size="icon" 
-            onClick={() => {
-              // Reset folder selection to ensure document is created at root level
-              setNewItemName("");
-              setIsCreatingDocument(true);
-            }}
-            title="Create new document"
-            className="h-6 w-6"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setShowTemplateDialog(true)}
-            title="Create from template"
-            className="h-6 w-6"
-          >
-            <FileText className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setIsCreatingFolder(true)}
-            title="Create new folder"
-            className="h-6 w-6"
-          >
-            <FolderPlus className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant={comparisonMode ? "secondary" : "outline"}
-            size="sm"
-            onClick={toggleComparisonMode}
-            className={cn("h-6 w-6 p-0", comparisonMode && "bg-primary text-primary-foreground")}
-            title={comparisonMode ? "Cancel selection mode" : "Enter selection mode"}
-          >
-            <GitCompare className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="h-6 w-6 p-0"
-            title="Refresh documents from file system"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </Button>
-          <Button
-            variant={filterConfig.enabled ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setShowFilterDialog(true)}
-            className="h-6 w-6 p-0"
-            title={filterConfig.enabled ? "Filter is active - click to modify" : "Set up document filters"}
-          >
-            <Filter className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-      
-      {(isCreatingDocument || isCreatingFolder) && (
-        <div className="flex gap-1 mb-2">
-          <Input
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            placeholder={isCreatingDocument ? "Document name..." : "Folder name..."}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                isCreatingDocument ? createNewDocument() : handleCreateFolder();
-              }
-              if (e.key === 'Escape') {
-                setIsCreatingDocument(false);
-                setIsCreatingFolder(false);
+    <DocumentNavigationContext.Provider value={{ onCompareDocuments }}>
+      <div className="h-full flex flex-col">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1">
+            <h2 className="text-sm font-medium">Documents</h2>
+            <Button
+              variant="ghost" 
+              size="icon" 
+              onClick={() => {
+                // Reset folder selection to ensure document is created at root level
                 setNewItemName("");
-              }
-            }}
-            className="h-6 text-xs"
-            autoFocus
-          />
-          <Button
-            size="sm"
-            onClick={isCreatingDocument ? createNewDocument : handleCreateFolder}
-            className="h-6 text-xs px-2"
-          >
-            Create
-          </Button>
-        </div>
-      )}
-      
-      <Input
-        placeholder="Search documents..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="mb-2 h-6 text-xs"
-      />
-      
-      {comparisonMode && (
-        <div className="mb-2 p-1.5 bg-muted/50 rounded-sm">
-          <div className="text-xs font-medium mb-1">
-            Selection Mode: 
-            <span className="ml-1 font-bold">
-              ({comparisonDocumentIds.length} selected)
-            </span>
+                setIsCreatingDocument(true);
+              }}
+              title="Create new document"
+              className="h-6 w-6"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setShowTemplateDialog(true)}
+              title="Create from template"
+              className="h-6 w-6"
+            >
+              <FileText className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setIsCreatingFolder(true)}
+              title="Create new folder"
+              className="h-6 w-6"
+            >
+              <FolderPlus className="h-3.5 w-3.5" />
+            </Button>
           </div>
-          {comparisonDocumentIds.length > 0 ? (
-            <div className="flex gap-2">
-              <Button 
-                variant="default" 
-                className="flex-1 h-6 text-xs"
-                onClick={() => setShowTokenCounterDialog(true)}
-              >
-                Compose Selected
-              </Button>
-              <Button 
-                variant="destructive" 
-                className="h-6 text-xs"
-                onClick={() => setShowMultiDeleteConfirm(true)}
-              >
-                Delete Selected
-              </Button>
-            </div>
-          ) : (
-            <div className="text-xs text-muted-foreground">
-              Select documents to compose
-            </div>
-          )}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (comparisonDocumentIds.length === 2 && onCompareDocuments) {
+                  // When exactly 2 documents are selected, use compare function
+                  onCompareDocuments(comparisonDocumentIds[0], comparisonDocumentIds[1]);
+                  
+                  // Clear selection after comparing
+                  clearComparisonDocuments();
+                  setComparisonMode(false);
+                  
+                  toast({
+                    title: "Comparing documents",
+                    description: "Showing differences between the selected documents in the editor.",
+                  });
+                } else if (comparisonDocumentIds.length >= 2) {
+                  // If we have more than 2 documents selected, show them in a composition dialog
+                  setShowTokenCounterDialog(true);
+                } else {
+                  toast({
+                    title: "Select documents first",
+                    description: "Please select exactly 2 documents to compare.",
+                    variant: "destructive"
+                  });
+                }
+              }}
+              disabled={comparisonDocumentIds.length < 2}
+              className="h-6 w-6 p-0"
+              title="Compare selected documents"
+            >
+              <GitCompare className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="h-6 w-6 p-0"
+              title="Refresh documents from file system"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button
+              variant={filterConfig.enabled ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setShowFilterDialog(true)}
+              className="h-6 w-6 p-0"
+              title={filterConfig.enabled ? "Filter is active - click to modify" : "Set up document filters"}
+            >
+              <Filter className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
-      )}
-      
-      <div className="space-y-0.5 overflow-auto flex-1 pr-1">
-        {visibleRootFolders.map((folder) => (
-          <FolderItem
-            key={folder.id}
-            folder={folder}
-            level={0}
-            comparisonMode={comparisonMode}
-            filteredDocuments={filteredDocuments}
-            searchQuery={searchQuery}
-            filterConfig={filterConfig}
-          />
-        ))}
         
-        {rootDocuments.map((doc) => (
-          <DocumentItem
-            key={doc.id}
-            document={doc}
-            level={0}
-            filteredDocuments={filteredDocuments}
-          />
-        ))}
-      </div>
-      
-      <div className="mt-2 border-t pt-2 flex flex-col gap-2">
-        <div className="flex justify-between">
+        {(isCreatingDocument || isCreatingFolder) && (
+          <div className="flex gap-1 mb-2">
+            <Input
+              value={newItemName}
+              onChange={(e) => setNewItemName(e.target.value)}
+              placeholder={isCreatingDocument ? "Document name..." : "Folder name..."}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  isCreatingDocument ? createNewDocument() : handleCreateFolder();
+                }
+                if (e.key === 'Escape') {
+                  setIsCreatingDocument(false);
+                  setIsCreatingFolder(false);
+                  setNewItemName("");
+                }
+              }}
+              className="h-6 text-xs"
+              autoFocus
+            />
+            <Button
+              size="sm"
+              onClick={isCreatingDocument ? createNewDocument : handleCreateFolder}
+              className="h-6 text-xs px-2"
+            >
+              Create
+            </Button>
+          </div>
+        )}
+        
+        <Input
+          placeholder="Search documents..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="mb-2 h-6 text-xs"
+        />
+        
+        {comparisonMode && (
+          <div className="mb-2 p-1.5 bg-muted/50 rounded-sm">
+            <div className="text-xs font-medium mb-1">
+              Selection Mode: 
+              <span className="ml-1 font-bold">
+                ({comparisonDocumentIds.length} selected)
+              </span>
+            </div>
+            {comparisonDocumentIds.length > 0 ? (
+              <div className="flex gap-2">
+                <Button 
+                  variant="default" 
+                  className="flex-1 h-6 text-xs"
+                  onClick={() => setShowTokenCounterDialog(true)}
+                >
+                  Compose Selected
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  className="h-6 text-xs"
+                  onClick={() => setShowMultiDeleteConfirm(true)}
+                >
+                  Delete Selected
+                </Button>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">
+                Select documents to compose
+              </div>
+            )}
+          </div>
+        )}
+        
+        <div className="space-y-0.5 overflow-auto flex-1 pr-1">
+          {visibleRootFolders.map((folder) => (
+            <FolderItem
+              key={folder.id}
+              folder={folder}
+              level={0}
+              comparisonMode={comparisonMode}
+              filteredDocuments={filteredDocuments}
+              searchQuery={searchQuery}
+              filterConfig={filterConfig}
+            />
+          ))}
+          
+          {rootDocuments.map((doc) => (
+            <DocumentItem
+              key={doc.id}
+              document={doc}
+              level={0}
+              filteredDocuments={filteredDocuments}
+            />
+          ))}
+        </div>
+        
+        <div className="mt-2 border-t pt-2 flex flex-col gap-2">
+          <div className="flex justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 mr-1 h-6 text-xs"
+            >
+              <Upload className="h-3 w-3 mr-1" />
+              Import
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImportDocuments}
+              accept=".md,.markdown,.txt,.zip"
+              multiple
+              className="hidden"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleExportDocuments}
+              className="flex-1 h-6 text-xs"
+            >
+              <Download className="h-3 w-3 mr-1" />
+              Export
+            </Button>
+          </div>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 mr-1 h-6 text-xs"
+            onClick={() => setShowIntegrityDialog(true)}
+            className="h-6 text-xs w-full"
           >
-            <Upload className="h-3 w-3 mr-1" />
-            Import
-          </Button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImportDocuments}
-            accept=".md,.markdown,.txt,.zip"
-            multiple
-            className="hidden"
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleExportDocuments}
-            className="flex-1 h-6 text-xs"
-          >
-            <Download className="h-3 w-3 mr-1" />
-            Export
+            <Shield className="h-3 w-3 mr-1" />
+            Check Vault Integrity
           </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowIntegrityDialog(true)}
-          className="h-6 text-xs w-full"
-        >
-          <Shield className="h-3 w-3 mr-1" />
-          Check Vault Integrity
-        </Button>
+        
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+              <DialogDescription>
+                {itemToDelete?.type === 'folder' 
+                  ? "Are you sure you want to delete this folder? All documents inside will be moved to the root level."
+                  : "Are you sure you want to delete this document? This action cannot be undone."}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmDelete}>
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {showTokenCounterDialog && (
+          <CompositionComposer
+            isOpen={showTokenCounterDialog}
+            onClose={() => setShowTokenCounterDialog(false)}
+            documents={selectedDocuments}
+          />
+        )}
+
+        {showTemplateDialog && (
+          <TemplateDialog
+            open={showTemplateDialog}
+            onOpenChange={setShowTemplateDialog}
+            folderId={selectedFolderId}
+            templateDirectory="templates"
+          />
+        )}
+
+        <VaultIntegrityDialog
+          open={showIntegrityDialog}
+          onOpenChange={setShowIntegrityDialog}
+          onComplete={() => {
+            // Reload documents and folders after integrity check
+            useDocumentStore.getState().loadData();
+          }}
+        />
+
+        <FilterDialog
+          open={showFilterDialog}
+          onOpenChange={setShowFilterDialog}
+          onFilterChange={handleFilterChange}
+        />
       </div>
-      
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              {itemToDelete?.type === 'folder' 
-                ? "Are you sure you want to delete this folder? All documents inside will be moved to the root level."
-                : "Are you sure you want to delete this document? This action cannot be undone."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {showTokenCounterDialog && (
-        <CompositionComposer
-          isOpen={showTokenCounterDialog}
-          onClose={() => setShowTokenCounterDialog(false)}
-          documents={selectedDocuments}
-        />
-      )}
-
-      {showTemplateDialog && (
-        <TemplateDialog
-          open={showTemplateDialog}
-          onOpenChange={setShowTemplateDialog}
-          folderId={selectedFolderId}
-          templateDirectory="templates"
-        />
-      )}
-
-      <VaultIntegrityDialog
-        open={showIntegrityDialog}
-        onOpenChange={setShowIntegrityDialog}
-        onComplete={() => {
-          // Reload documents and folders after integrity check
-          useDocumentStore.getState().loadData();
-        }}
-      />
-
-      <FilterDialog
-        open={showFilterDialog}
-        onOpenChange={setShowFilterDialog}
-        onFilterChange={handleFilterChange}
-      />
-    </div>
+    </DocumentNavigationContext.Provider>
   );
 } 
