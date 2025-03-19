@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import ConfigInitializer from "@/components/config-initializer";
+import ElectronProvider from '@/components/electron-provider';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,9 +27,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ConfigInitializer />
-          {children}
-          <Toaster />
+          <ElectronProvider>
+            <ConfigInitializer />
+            {children}
+            <Toaster />
+          </ElectronProvider>
         </ThemeProvider>
       </body>
     </html>
