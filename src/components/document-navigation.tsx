@@ -735,26 +735,22 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   });
 
   const createNewDocument = () => {
-    // Determine the appropriate folder ID for the new document
-    let targetFolderId: string | null = null;
-    
-    // If a folder is selected, use that folder's ID
-    if (selectedFolderId) {
-      targetFolderId = selectedFolderId;
-    } 
-    // If a document is selected, use its parent folder ID
-    else if (selectedDocumentId) {
-      const selectedDoc = documents.find(doc => doc.id === selectedDocumentId);
-      if (selectedDoc) {
-        targetFolderId = selectedDoc.folderId;
-      }
+    if (!newItemName.trim()) {
+      setIsCreatingDocument(false);
+      return;
     }
-    
+
+    // For top-level "+" button, always create at root level
+    // We'll force null folderId for new documents created from the top bar
     const newDocId = addDocument(
-      `New Document ${documents.length + 1}`, 
-      `# New Document ${documents.length + 1}\n\nStart writing here...`,
-      targetFolderId
+      newItemName.trim() || `New Document ${documents.length + 1}`, 
+      `# ${newItemName.trim() || `New Document ${documents.length + 1}`}\n\nStart writing here...`,
+      null // Always create at root level
     );
+    
+    // Clear the input and hide it
+    setNewItemName("");
+    setIsCreatingDocument(false);
     
     // Update URL to reflect the newly created document
     if (newDocId) {
@@ -1096,7 +1092,11 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           <Button
             variant="ghost" 
             size="icon" 
-            onClick={() => setIsCreatingDocument(true)}
+            onClick={() => {
+              // Reset folder selection to ensure document is created at root level
+              setNewItemName("");
+              setIsCreatingDocument(true);
+            }}
             title="Create new document"
             className="h-6 w-6"
           >

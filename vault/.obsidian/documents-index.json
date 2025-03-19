@@ -13,7 +13,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595450-x9ftcis",
+    "folderId": "folder-1742346055866-k6ddp67",
     "annotations": [
       {
         "id": "anno-multilingual-1",
@@ -46,7 +46,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595450-x9ftcis",
+    "folderId": "folder-1742346055866-k6ddp67",
     "annotations": [
       {
         "id": "anno-dynamic-1",
@@ -79,7 +79,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595450-x9ftcis",
+    "folderId": "folder-1742346055866-k6ddp67",
     "annotations": [],
     "contextDocuments": []
   },
@@ -97,7 +97,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595450-x9ftcis",
+    "folderId": "folder-1742346055866-k6ddp67",
     "annotations": [],
     "contextDocuments": []
   },
@@ -115,7 +115,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595450-x9ftcis",
+    "folderId": "folder-1742346055866-k6ddp67",
     "annotations": [],
     "contextDocuments": []
   },
@@ -133,7 +133,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595450-x9ftcis",
+    "folderId": "folder-1742346055866-k6ddp67",
     "annotations": [],
     "contextDocuments": []
   },
@@ -151,7 +151,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595457-ve2uxnz",
+    "folderId": "folder-1742346055866-xwcn75p",
     "annotations": [],
     "contextDocuments": []
   },
@@ -169,7 +169,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595457-ve2uxnz",
+    "folderId": "folder-1742346055866-xwcn75p",
     "annotations": [],
     "contextDocuments": []
   },
@@ -187,7 +187,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595460-y8f90ox",
+    "folderId": "folder-1742346055866-pkn7w42",
     "annotations": [],
     "contextDocuments": [
       {
@@ -195,24 +195,6 @@
         "name": "15-Composition-Templates-Test"
       }
     ]
-  },
-  {
-    "id": "doc-1742344585098-8quimur",
-    "name": "New Document 14",
-    "content": "# New Document 14\n\nStart writing here...\n",
-    "createdAt": "2025-03-19T00:10:01.030Z",
-    "updatedAt": "2025-03-19T00:10:01.030Z",
-    "versions": [
-      {
-        "id": "ver-1742343001030-initial",
-        "content": "",
-        "createdAt": "2025-03-19T00:10:01.030Z",
-        "message": "Initial version"
-      }
-    ],
-    "folderId": "folder-1742223595461-gusdwkz",
-    "annotations": [],
-    "contextDocuments": []
   },
   {
     "id": "doc-1742343001044",
@@ -228,7 +210,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
@@ -246,7 +228,7 @@
         "message": "Manual save on 3/14/2025, 5:44:55 AM"
       }
     ],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
@@ -264,7 +246,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
@@ -282,7 +264,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
@@ -300,7 +282,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
@@ -318,18 +300,18 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1742344585100-g0fd77k",
+    "id": "doc-1742346276767-odjq55d",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-19T00:36:25.100Z",
-    "updatedAt": "2025-03-19T00:36:25.100Z",
+    "createdAt": "2025-03-19T01:04:36.767Z",
+    "updatedAt": "2025-03-19T01:04:36.767Z",
     "versions": [],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
@@ -340,12 +322,12 @@
     "createdAt": "2025-03-14T15:27:10.134Z",
     "updatedAt": "2025-03-14T15:33:56.372Z",
     "versions": [],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1742344585100-xxcpmvl",
+    "id": "doc-1742343001030",
     "name": "prompt_template",
     "content": "# Prompt template\n\ntranslate this to English: '''\n{{selectedText}}\n'''\n\n\n",
     "createdAt": "2025-03-19T00:10:01.030Z",
@@ -358,7 +340,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
@@ -376,7 +358,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
@@ -394,7 +376,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
@@ -412,12 +394,12 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1742343001030",
+    "id": "doc-1742346276767-zmzlkeo",
     "name": "translate",
     "content": "# Prompt template\n\ntranslate this to English: '''\n{{selectedText}}\n'''\n\n\n",
     "createdAt": "2025-03-19T00:10:01.030Z",
@@ -430,7 +412,7 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1742223595461-gusdwkz",
+    "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
   }
