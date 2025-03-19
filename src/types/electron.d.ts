@@ -25,6 +25,21 @@ interface ExportDocumentData {
   name?: string;
 }
 
+interface TemplateData {
+  name: string;
+  path: string;
+}
+
+interface TemplateContentResponse {
+  content: string;
+  error?: string;
+}
+
+interface TemplateProcessResponse {
+  content: string;
+  error?: string;
+}
+
 interface ElectronVersions {
   electron: string;
   chrome: string;
@@ -37,6 +52,11 @@ interface ElectronAPI {
   openFolder: () => Promise<FolderData | null>;
   saveFile: (data: SaveFileData) => Promise<{ path: string; name: string } | null>;
   exportDocument: (data: ExportDocumentData) => Promise<{ path: string; name: string } | null>;
+  
+  // Template operations
+  getTemplates: () => Promise<TemplateData[]>;
+  getTemplateContent: (name: string) => Promise<TemplateContentResponse>;
+  processTemplate: (name: string, variables: Record<string, string>) => Promise<TemplateProcessResponse>;
   
   // App version
   getVersion: () => ElectronVersions;

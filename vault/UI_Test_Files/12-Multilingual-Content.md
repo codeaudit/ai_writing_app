@@ -2,7 +2,7 @@
 id: doc-ui-test-multilingual
 name: 12-Multilingual-Content
 createdAt: '2025-03-15T19:15:00.000Z'
-updatedAt: '2025-03-19T00:36:25.006Z'
+updatedAt: '2025-03-19T12:26:31.359Z'
 versions:
   - id: ver-ui-test-multilingual-initial
     createdAt: '2025-03-15T19:15:00.000Z'

@@ -9,6 +9,11 @@ contextBridge.exposeInMainWorld('electron', {
   saveFile: (data) => ipcRenderer.invoke('save-file-dialog', data),
   exportDocument: (data) => ipcRenderer.invoke('export-document', data),
   
+  // Template operations
+  getTemplates: () => ipcRenderer.invoke('get-templates'),
+  getTemplateContent: (name) => ipcRenderer.invoke('get-template-content', name),
+  processTemplate: (name, variables) => ipcRenderer.invoke('process-template', { name, variables }),
+  
   // App version
   getVersion: () => process.versions,
   

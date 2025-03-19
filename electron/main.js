@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const isDev = require('electron-is-dev');
 const Store = require('electron-store');
+const matter = require('gray-matter');
 
 // Initialize the store for app settings
 const store = new Store();
@@ -12,6 +13,158 @@ let mainWindow;
 
 // Set the environment variable for next.config.js
 process.env.ELECTRON = 'true';
+
+// Define the templates directory path
+const TEMPLATES_DIR = path.join(app.getPath('userData'), 'templates');
+
+// Create templates directory if it doesn't exist
+function ensureTemplatesDirectory() {
+  if (!fs.existsSync(TEMPLATES_DIR)) {
+    fs.mkdirSync(TEMPLATES_DIR, { recursive: true });
+    
+    // Create default templates
+    createDefaultTemplates();
+  }
+}
+
+// Create some default templates
+function createDefaultTemplates() {
+  // General template
+  const generalTemplate = `---
+id: template-general
+name: General
+createdAt: "${new Date().toISOString()}"
+updatedAt: "${new Date().toISOString()}"
+---
+# General Query
+
+{{selectedText}}
+
+Please provide a detailed analysis of the above text.
+`;
+
+  // Code explanation template
+  const codeTemplate = `---
+id: template-code
+name: Code Explanation
+createdAt: "${new Date().toISOString()}"
+updatedAt: "${new Date().toISOString()}"
+---
+# Code Explanation
+
+\`\`\`
+{{selectedText}}
+\`\`\`
+
+Please explain what this code does, how it works, and any potential improvements.
+`;
+
+  // Summary template
+  const summaryTemplate = `---
+id: template-summary
+name: Summary
+createdAt: "${new Date().toISOString()}"
+updatedAt: "${new Date().toISOString()}"
+---
+# Summary Request
+
+{{selectedText}}
+
+Please provide a concise summary of the above text, highlighting the main points.
+`;
+
+  // Rewrite template
+  const rewriteTemplate = `---
+id: template-rewrite
+name: Rewrite
+createdAt: "${new Date().toISOString()}"
+updatedAt: "${new Date().toISOString()}"
+---
+# Rewrite Request
+
+{{selectedText}}
+
+Please rewrite the above text to improve clarity and readability while maintaining the original meaning.
+`;
+
+  // Write templates to the directory
+  fs.writeFileSync(path.join(TEMPLATES_DIR, 'general.md'), generalTemplate);
+  fs.writeFileSync(path.join(TEMPLATES_DIR, 'code.md'), codeTemplate);
+  fs.writeFileSync(path.join(TEMPLATES_DIR, 'summary.md'), summaryTemplate);
+  fs.writeFileSync(path.join(TEMPLATES_DIR, 'rewrite.md'), rewriteTemplate);
+}
+
+// Get all available templates
+function getTemplates() {
+  try {
+    if (!fs.existsSync(TEMPLATES_DIR)) {
+      ensureTemplatesDirectory();
+    }
+    
+    const templateFiles = fs.readdirSync(TEMPLATES_DIR)
+      .filter(file => file.endsWith('.md'))
+      .map(file => {
+        const filePath = path.join(TEMPLATES_DIR, file);
+        
+        try {
+          // Try to parse frontmatter for the name
+          const content = fs.readFileSync(filePath, 'utf8');
+          const { data } = matter(content);
+          
+          return {
+            name: data.name || file.replace(/\.md$/, ''),
+            path: filePath
+          };
+        } catch (error) {
+          // Fallback to just the filename if parsing fails
+          return {
+            name: file.replace(/\.md$/, ''),
+            path: filePath
+          };
+        }
+      });
+    
+    return templateFiles;
+  } catch (error) {
+    console.error('Error getting templates:', error);
+    return [];
+  }
+}
+
+// Get the content of a specific template
+function getTemplateContent(templateName) {
+  try {
+    const templatePath = path.join(TEMPLATES_DIR, `${templateName}.md`);
+    
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`Template not found: ${templateName}`);
+    }
+    
+    return fs.readFileSync(templatePath, 'utf8');
+  } catch (error) {
+    console.error(`Error getting template content for ${templateName}:`, error);
+    throw error;
+  }
+}
+
+// Process a template with variables
+function processTemplate(templateName, variables) {
+  try {
+    const content = getTemplateContent(templateName);
+    
+    // Simple variable replacement
+    let processedContent = content;
+    for (const [key, value] of Object.entries(variables)) {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      processedContent = processedContent.replace(regex, value);
+    }
+    
+    return processedContent;
+  } catch (error) {
+    console.error(`Error processing template ${templateName}:`, error);
+    throw error;
+  }
+}
 
 function createWindow() {
   // Create the browser window
@@ -59,6 +212,9 @@ function createWindow() {
 
   // Create application menu
   createMenu();
+
+  // Ensure templates directory exists
+  ensureTemplatesDirectory();
 }
 
 function createMenu() {
@@ -381,6 +537,31 @@ ipcMain.handle('export-document', async (event, { content, format, name }) => {
   } catch (error) {
     console.error(`Error exporting as ${format}:`, error);
     return null;
+  }
+});
+
+// IPC handlers for template operations
+ipcMain.handle('get-templates', async () => {
+  return getTemplates();
+});
+
+ipcMain.handle('get-template-content', async (event, templateName) => {
+  try {
+    const content = getTemplateContent(templateName);
+    return { content };
+  } catch (error) {
+    console.error(`Error in get-template-content for ${templateName}:`, error);
+    return { error: error.message };
+  }
+});
+
+ipcMain.handle('process-template', async (event, { name, variables }) => {
+  try {
+    const content = processTemplate(name, variables);
+    return { content };
+  } catch (error) {
+    console.error(`Error in process-template for ${name}:`, error);
+    return { error: error.message };
   }
 });
 

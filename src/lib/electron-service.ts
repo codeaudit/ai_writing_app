@@ -150,4 +150,63 @@ export const setupMenuListeners = (
   return () => {
     cleanupFunctions.forEach(cleanup => cleanup());
   };
+};
+
+/**
+ * Get all available templates
+ */
+export const getElectronTemplates = async (): Promise<TemplateData[]> => {
+  if (!isElectron()) {
+    return [];
+  }
+
+  try {
+    return await window.electron.getTemplates();
+  } catch (error) {
+    console.error('Error getting templates from Electron:', error);
+    return [];
+  }
+};
+
+/**
+ * Get the content of a template
+ */
+export const getElectronTemplateContent = async (templateName: string): Promise<string> => {
+  if (!isElectron()) {
+    return '';
+  }
+
+  try {
+    const response = await window.electron.getTemplateContent(templateName);
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    return response.content;
+  } catch (error) {
+    console.error(`Error getting template content from Electron for ${templateName}:`, error);
+    return '';
+  }
+};
+
+/**
+ * Process a template with variables
+ */
+export const processElectronTemplate = async (
+  templateName: string,
+  variables: Record<string, string>
+): Promise<string> => {
+  if (!isElectron()) {
+    return '';
+  }
+
+  try {
+    const response = await window.electron.processTemplate(templateName, variables);
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    return response.content;
+  } catch (error) {
+    console.error(`Error processing template in Electron for ${templateName}:`, error);
+    return '';
+  }
 }; 

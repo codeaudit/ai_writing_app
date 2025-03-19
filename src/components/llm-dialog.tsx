@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchTemplates, processTemplate } from "@/lib/api-service";
+import { isElectron, getElectronTemplates, processElectronTemplate } from "@/lib/electron-service";
 
 interface LLMDialogProps {
   isOpen: boolean;
@@ -174,7 +175,17 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
   const loadTemplates = async () => {
     setIsLoadingTemplates(true);
     try {
-      const templateList = await fetchTemplates();
+      let templateList;
+      
+      // Check if running in Electron
+      if (isElectron()) {
+        // Use Electron's template functions
+        templateList = await getElectronTemplates();
+      } else {
+        // Use web API for templates
+        templateList = await fetchTemplates();
+      }
+      
       setTemplates(templateList);
       
       // Keep the blank selection as default
@@ -235,7 +246,13 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
           }
           
           // Process the template with variables
-          finalPrompt = await processTemplate(selectedTemplate, variables);
+          if (isElectron()) {
+            // Use Electron's template processing
+            finalPrompt = await processElectronTemplate(selectedTemplate, variables);
+          } else {
+            // Use web API for template processing
+            finalPrompt = await processTemplate(selectedTemplate, variables);
+          }
         } catch (error) {
           console.error('Error processing template:', error);
           toast({
