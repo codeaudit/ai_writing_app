@@ -33,6 +33,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { editor as monacoEditor } from "monaco-editor";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { fetchTemplates } from "@/lib/api-service";
 
 interface LLMDialogProps {
   isOpen: boolean;
@@ -58,6 +66,11 @@ interface ModelOption {
   label: string;
 }
 
+interface TemplateItem {
+  name: string;
+  path: string;
+}
+
 export function LLMDialog({ isOpen, onClose, selectedText, position, editor, selection }: LLMDialogProps) {
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
@@ -66,6 +79,11 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [editorLeftPosition, setEditorLeftPosition] = useState<number>(0);
   const [contextFiles, setContextFiles] = useState<ContextFile[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [templateValid, setTemplateValid] = useState<boolean>(false);
+  const [templateError, setTemplateError] = useState<string>("");
+  const [templates, setTemplates] = useState<TemplateItem[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const { config, updateConfig } = useLLMStore();
   const { documents } = useDocumentStore();
   
@@ -140,6 +158,33 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
       setEditorLeftPosition(editorRect.left);
     }
   }, [editor]);
+
+  // Load templates from API when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      loadTemplates();
+    }
+  }, [isOpen]);
+
+  // Function to load templates from API
+  const loadTemplates = async () => {
+    setIsLoadingTemplates(true);
+    try {
+      const templateList = await fetchTemplates();
+      setTemplates(templateList);
+      
+      // Keep the blank selection as default
+      setSelectedTemplate("none");
+      setTemplateValid(true);
+      setPrompt("");
+    } catch (error) {
+      console.error("Error loading templates:", error);
+      setTemplateError("Failed to load templates");
+      setTemplates([]);
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!prompt.trim()) return;
@@ -361,10 +406,32 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
   // Add a helper function to get the model label
   const getModelLabel = (modelValue: string) => {
     for (const provider of LLM_PROVIDERS) {
-      const model = LLM_MODELS[provider.value].find(m => m.value === modelValue);
+      const model = LLM_MODELS[provider.value as keyof typeof LLM_MODELS]
+        .find(m => m.value === modelValue);
       if (model) return model.label;
     }
     return modelValue;
+  };
+
+  // This function is for the template dropdown in the LLM dialog
+  const handleTemplateSelection = (templateId: string) => {
+    // Set the selected template
+    setSelectedTemplate(templateId);
+    setTemplateValid(true);
+    setTemplateError("");
+    
+    // If blank option selected, clear the prompt
+    if (templateId === "none") {
+      setPrompt("");
+      return;
+    }
+    
+    // Find the template in the templates array
+    const template = templates.find((t) => t.name === templateId);
+    if (template) {
+      // Update the prompt based on template name (simplified version)
+      setPrompt(`Can you help with: ${template.name}?`);
+    }
   };
 
   return (
@@ -387,8 +454,33 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
           sideOffset={10}
         >
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">AI Assistant</div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="relative">
+                <Select
+                  value={selectedTemplate}
+                  onValueChange={handleTemplateSelection}
+                  disabled={templates.length === 0 || isLoading || isLoadingTemplates}
+                >
+                  <SelectTrigger 
+                    className="h-7 px-2 text-xs"
+                  >
+                    <SelectValue placeholder={isLoadingTemplates ? "Loading templates..." : "Select template"} />
+                  </SelectTrigger>
+                  <SelectContent align="start" className="w-48">
+                    <SelectItem value="none" className="text-xs py-1 text-muted-foreground italic">
+                      No template
+                    </SelectItem>
+                    {templates.map((template) => (
+                      <SelectItem key={template.name} value={template.name} className="text-xs py-1">
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {templateError && (
+                  <p className="text-xs text-red-500 absolute -bottom-4">{templateError}</p>
+                )}
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
