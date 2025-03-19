@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Popover,
   PopoverContent,
@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchTemplates } from "@/lib/api-service";
+import { fetchTemplates, processTemplate } from "@/lib/api-service";
 
 interface LLMDialogProps {
   isOpen: boolean;
@@ -100,6 +100,10 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
 
   // Store decorations IDs for removal later
   const [decorations, setDecorations] = useState<string[]>([]);
+
+  // Create refs for focus management
+  const inputRef = useRef<HTMLInputElement>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
 
   // Load context files from localStorage when dialog opens
   useEffect(() => {
@@ -186,36 +190,86 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
     }
   };
 
+  // Focus the input field when the dialog opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      // Short timeout to ensure the dialog is fully rendered before focusing
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   const handleSubmit = async () => {
-    if (!prompt.trim()) return;
+    // Allow empty prompt if a template is selected
+    if (!prompt.trim() && (selectedTemplate === "none" || !selectedTemplate)) return;
     
     setIsLoading(true);
     setResponse("");
     
     try {
-      // Create a prompt that includes the selected text and context files
-      let fullPrompt = `Selected Text: ${selectedText}\n\n`;
+      let finalPrompt = prompt;
       
-      // Add context files if available
-      if (contextFiles.length > 0) {
-        fullPrompt += "Context Files:\n";
-        
-        // Find the actual document content for each context file
-        for (const contextFile of contextFiles) {
-          const document = documents.find(doc => doc.id === contextFile.id);
-          if (document) {
-            fullPrompt += `--- ${document.name} ---\n${document.content}\n\n`;
+      // If a template is selected (and it's not the "none" option), process it first
+      if (selectedTemplate && selectedTemplate !== "none") {
+        try {
+          // Prepare context variables for the template
+          const variables: Record<string, string> = {
+            selectedText: selectedText,
+            userPrompt: prompt
+          };
+          
+          // Add context files to variables if available
+          if (contextFiles.length > 0) {
+            let contextFilesContent = "";
+            
+            // Find the actual document content for each context file
+            for (const contextFile of contextFiles) {
+              const document = documents.find(doc => doc.id === contextFile.id);
+              if (document) {
+                contextFilesContent += `--- ${document.name} ---\n${document.content}\n\n`;
+              }
+            }
+            
+            variables.contextFiles = contextFilesContent;
           }
+          
+          // Process the template with variables
+          finalPrompt = await processTemplate(selectedTemplate, variables);
+        } catch (error) {
+          console.error('Error processing template:', error);
+          toast({
+            title: "Template Error",
+            description: "Failed to process template. Using raw prompt instead.",
+            variant: "destructive"
+          });
+          // Continue with the original prompt on error
+        }
+      } else {
+        // Create a prompt that includes the selected text and context files
+        finalPrompt = `Selected Text: ${selectedText}\n\n`;
+        
+        // Add context files if available
+        if (contextFiles.length > 0) {
+          finalPrompt += "Context Files:\n";
+          
+          // Find the actual document content for each context file
+          for (const contextFile of contextFiles) {
+            const document = documents.find(doc => doc.id === contextFile.id);
+            if (document) {
+              finalPrompt += `--- ${document.name} ---\n${document.content}\n\n`;
+            }
+          }
+          
+          finalPrompt += "\n";
         }
         
-        fullPrompt += "\n";
+        finalPrompt += `User Query: ${prompt}\n\nPlease provide a helpful response based on the selected text, context files, and user query.`;
       }
       
-      fullPrompt += `User Query: ${prompt}\n\nPlease provide a helpful response based on the selected text, context files, and user query.`;
-      
-      // Call the server action
+      // Call the server action with the final prompt
       const result = await generateText({ 
-        prompt: fullPrompt,
+        prompt: finalPrompt,
         stream: false // We don't support streaming in the dialog yet
       });
       
@@ -396,12 +450,26 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  // Handle key down events for the prompt input
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
   };
+
+  // Function to handle key down events for the entire dialog
+  const handleDialogKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Prevent the popover from closing when tabbing
+    if (e.key === "Tab") {
+      e.stopPropagation();
+    }
+    
+    // Close the dialog when pressing escape
+    if (e.key === "Escape") {
+      onClose();
+    }
+  }, [onClose]);
 
   // Add a helper function to get the model label
   const getModelLabel = (modelValue: string) => {
@@ -428,10 +496,6 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
     
     // Find the template in the templates array
     const template = templates.find((t) => t.name === templateId);
-    if (template) {
-      // Update the prompt based on template name (simplified version)
-      setPrompt(`Can you help with: ${template.name}?`);
-    }
   };
 
   return (
@@ -452,6 +516,7 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
           side="bottom" 
           align="start"
           sideOffset={10}
+          onKeyDown={handleDialogKeyDown}
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-2">
@@ -463,6 +528,7 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
                 >
                   <SelectTrigger 
                     className="h-7 px-2 text-xs"
+                    tabIndex={2}
                   >
                     <SelectValue placeholder={isLoadingTemplates ? "Loading templates..." : "Select template"} />
                   </SelectTrigger>
@@ -487,6 +553,7 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
                     variant="ghost" 
                     size="sm"
                     className="h-7 px-2 text-xs"
+                    tabIndex={3}
                   >
                     {getModelLabel(config.model)}
                     <ChevronDown className="ml-1 h-3 w-3" />
@@ -549,16 +616,20 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
             
             <div className="flex items-center space-x-2">
               <Input
+                ref={inputRef}
                 placeholder="Ask a question..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onKeyDown={handleInputKeyDown}
                 className="flex-1"
+                tabIndex={1}
               />
               <Button 
+                ref={submitButtonRef}
                 size="icon" 
                 onClick={handleSubmit} 
-                disabled={isLoading || !prompt.trim()}
+                disabled={isLoading || (!prompt.trim() && (selectedTemplate === "none" || !selectedTemplate))}
+                tabIndex={4}
               >
                 {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>

@@ -2,7 +2,7 @@
 id: doc-ui-test-multilingual
 name: 12-Multilingual-Content
 createdAt: '2025-03-15T19:15:00.000Z'
-updatedAt: '2025-03-19T00:01:37.174Z'
+updatedAt: '2025-03-19T00:27:57.649Z'
 versions:
   - id: ver-ui-test-multilingual-initial
     createdAt: '2025-03-15T19:15:00.000Z'
@@ -36,6 +36,26 @@ The quick brown fox jumps over the lazy dog. All human beings are born free and 
 ### French (Français)
 
 Le vif renard brun saute par-dessus le chien paresseux. Tous les êtres humains naissent libres et égaux en dignité et en droits. Ils sont doués de raison et de conscience et doivent agir les uns envers les autres dans un esprit de fraternité.
+
+
+Okay, I understand. Please specify the language you want the text translated into. For example, you could say:
+
+"Translate this into **English**:"
+
+Once you tell me the target language, I will translate the provided French text.
+
+
+Okay, here's the translation of the selected text, broken down for clarity:
+
+**French:**
+
+*   Le vif renard brun saute par-dessus le chien paresseux.
+*   Tous les êtres humains naissent libres et égaux en dignité et en droits. Ils sont doués de raison et de conscience et doivent agir les uns envers les autres dans un esprit de fraternité.
+
+**English Translation:**
+
+*   The quick brown fox jumps over the lazy dog.
+*   All human beings are born free and equal in dignity and rights. They are endowed with reason and conscience and should act towards one another in a spirit of brotherhood.
 
 ### Spanish (Español)
 
