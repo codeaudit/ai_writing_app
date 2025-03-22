@@ -19,6 +19,7 @@ import {
   FileText, 
   Maximize2, 
   Minimize2, 
+  Pencil,
   RefreshCw,
   Save,
   Send,
@@ -1425,7 +1426,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                             onClick={() => handleEditMessage(enhancedMessage)}
                             title="Edit prompt"
                           >
-                            <Eraser className="h-2.5 w-2.5" />
+                            <Pencil className="h-2.5 w-2.5" />
                           </Button>
                         </div>
                       )}
