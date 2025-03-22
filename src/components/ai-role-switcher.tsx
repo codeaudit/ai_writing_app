@@ -8,6 +8,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { cn } from '@/lib/utils';
 
 interface RoleInfo {
   icon: React.ReactNode;
@@ -15,7 +16,11 @@ interface RoleInfo {
   description: string;
 }
 
-export function AIRoleSwitcher() {
+interface AIRoleSwitcherProps {
+  className?: string;
+}
+
+export function AIRoleSwitcher({ className }: AIRoleSwitcherProps) {
   const { config, updateConfig } = useLLMStore();
   const [availableRoles, setAvailableRoles] = useState<AIRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,7 +104,7 @@ export function AIRoleSwitcher() {
   
   if (isLoading) {
     return (
-      <div className="mb-2 border rounded-lg p-2">
+      <div className={cn("border rounded-lg", className)}>
         <div className="flex items-center justify-center h-7">
           <div className="animate-spin h-3 w-3 border-b-2 border-primary rounded-full"></div>
         </div>
@@ -107,18 +112,27 @@ export function AIRoleSwitcher() {
     );
   }
   
+  // Use a more compact layout when className is provided
+  const isCompact = !!className;
+  
   return (
-    <div className="mb-2 border rounded-lg p-2">
+    <div className={cn(
+      isCompact ? "border-0" : "mb-2 border rounded-lg p-2",
+      className
+    )}>
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground mr-2">AI Role:</span>
+        {!isCompact && <span className="text-xs text-muted-foreground mr-2">AI Role:</span>}
         <Select
           value={activeRole}
           onValueChange={(value) => updateConfig({ aiRole: value })}
         >
-          <SelectTrigger className="h-7 px-2 py-0 text-xs min-w-32">
+          <SelectTrigger className={cn(
+            "text-xs",
+            isCompact ? "h-full w-full px-1 py-0 min-w-0" : "h-7 px-2 py-0 min-w-32"
+          )}>
             <div className="flex items-center">
               {getRoleIcon(activeRole)}
-              <span className="ml-1">{getRoleLabel(activeRole)}</span>
+              <span className="ml-1 truncate">{getRoleLabel(activeRole)}</span>
             </div>
           </SelectTrigger>
           <SelectContent>

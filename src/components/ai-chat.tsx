@@ -189,6 +189,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   const [contextDocuments, setContextDocuments] = useState<ContextDocument[]>([]);
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const [composerContextFiles, setComposerContextFiles] = useState<Array<{id: string; name: string}>>([]);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   
   // Debug messages for development
   useEffect(() => {
@@ -692,6 +693,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
 
   // Add a focus event handler for the textarea
   const handleFocus = () => {
+    // Set focus state to true
+    setIsInputFocused(true);
+    
     // Check if the input already contains an @ symbol
     const lastAtIndex = input.lastIndexOf('@');
     if (lastAtIndex !== -1 && (lastAtIndex === 0 || /\s/.test(input[lastAtIndex - 1]))) {
@@ -710,6 +714,16 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         setSelectedAutocompleteIndex(0);
       }
     }
+  };
+  
+  // Add a blur event handler for the textarea
+  const handleBlur = () => {
+    // Add a small delay to ensure other interactions (like clicking autocomplete) complete first
+    setTimeout(() => {
+      if (!showAutocomplete) {
+        setIsInputFocused(false);
+      }
+    }, 100);
   };
 
   // Add a function to handle clearing the chat
@@ -1513,8 +1527,11 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         </ScrollArea>
       </CardContent>
       
-      <CardFooter className="p-2 pt-1.5 border-t">
-        <div className="flex gap-1.5 w-full relative">
+      <CardFooter className={cn(
+        "p-2 pt-1.5 border-t flex-shrink-0 transition-all duration-200",
+        isInputFocused ? "pb-3" : ""
+      )}>
+        <div className="flex items-start gap-1.5 w-full relative">
           <div className="flex-1 relative">
             <Textarea
               ref={textareaRef}
@@ -1523,53 +1540,80 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onFocus={handleFocus}
-              className="min-h-[40px] flex-1 resize-none text-xs"
+              onBlur={handleBlur}
+              className={cn(
+                "flex-1 resize-y text-xs px-2 py-1.5 pr-12 transition-all duration-200",
+                isInputFocused 
+                  ? "min-h-[80px] max-h-[300px] border-primary/50" 
+                  : "min-h-[40px] max-h-[200px]"
+              )}
               disabled={isLoading}
             />
-            <div className="absolute right-1.5 bottom-1.5 text-[10px] text-muted-foreground bg-background px-0.5 rounded opacity-50">
+            <div className={cn(
+              "absolute right-1.5 bottom-1.5 text-[10px] text-muted-foreground bg-background px-0.5 rounded transition-opacity",
+              isInputFocused ? "opacity-70" : "opacity-50"
+            )}>
               <span className="font-bold">@</span> <span>to add documents</span>
             </div>
+            <div className={cn(
+              "absolute right-1 bottom-1 w-3 h-3 cursor-ns-resize transition-opacity",
+              isInputFocused ? "opacity-60 hover:opacity-100" : "opacity-30 hover:opacity-100"
+            )}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" transform="rotate(45 8 8)"/>
+              </svg>
+            </div>
           </div>
-          <Button 
-            type="submit" 
-            size="icon" 
-            variant="ghost"
-            className="h-[40px] w-[40px] rounded-full bg-primary/10 hover:bg-primary/20"
-            onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
-            disabled={isLoading || !input.trim()}
-          >
-            <Send className="h-3.5 w-3.5 text-primary" />
-          </Button>
-          
-          {/* Autocomplete dropdown - simplified */}
-          {showAutocomplete && filteredDocuments.length > 0 && (
-            <div 
-              className="absolute z-50 bg-background border rounded-md shadow-md w-64 max-h-60 overflow-y-auto"
-              style={{ 
-                top: '-5px',
-                left: '0',
-                transform: 'translateY(-100%)'
-              }}
+          <div className="flex flex-col gap-1 items-end shrink-0">
+            <div className={cn(
+              "transition-all duration-200",
+              isInputFocused ? "w-[90px]" : "w-[80px]"
+            )}>
+              <AIRoleSwitcher 
+                className={cn(
+                  "text-[10px] rounded-sm bg-muted/30 hover:bg-muted/50 transition-all duration-200",
+                  isInputFocused ? "h-[24px]" : "h-[20px]"
+                )}
+              />
+            </div>
+            <Button 
+              type="submit" 
+              size="icon" 
+              variant="ghost"
+              className={cn(
+                "rounded-sm bg-primary/10 hover:bg-primary/20 transition-all duration-200",
+                isInputFocused ? "h-[24px] w-[24px]" : "h-[20px] w-[20px]"
+              )}
+              onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
+              disabled={isLoading || !input.trim()}
             >
-              <div className="p-1 border-b bg-muted/50 flex items-center justify-between">
-                <span className="text-xs font-medium">Add document to context</span>
-              </div>
+              <Send className={cn(
+                "text-primary transition-all duration-200",
+                isInputFocused ? "h-3.5 w-3.5" : "h-3 w-3"
+              )} />
+            </Button>
+          </div>
+          
+          {/* Autocomplete dropdown */}
+          {showAutocomplete && (
+            <div className="absolute bottom-full left-0 mb-1 bg-popover border rounded-md shadow-md w-full max-h-[200px] overflow-auto z-50">
               <div className="p-1">
-                {filteredDocuments.map((doc, index) => (
-                  <div
-                    key={doc.id}
-                    className={cn(
-                      "px-2 py-1 text-xs cursor-pointer rounded hover:bg-accent",
-                      selectedAutocompleteIndex === index && "bg-accent"
-                    )}
-                    onClick={() => selectAutocompleteDocument(doc)}
-                  >
-                    <div className="flex items-center">
-                      <FileText className="h-3 w-3 mr-2 text-muted-foreground" />
-                      <span className="truncate">{doc.name}</span>
+                <div className="text-xs font-bold mb-1">Documents</div>
+                {filteredDocuments.length > 0 ? (
+                  filteredDocuments.map((doc, index) => (
+                    <div
+                      key={doc.id}
+                      className={`px-2 py-1 text-xs cursor-pointer hover:bg-muted rounded ${
+                        index === selectedAutocompleteIndex ? "bg-accent" : ""
+                      }`}
+                      onClick={() => selectAutocompleteDocument(doc)}
+                    >
+                      {doc.name}
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="px-2 py-1 text-xs text-muted-foreground">No documents found</div>
+                )}
               </div>
             </div>
           )}
@@ -1641,11 +1685,6 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Add AIRoleSwitcher here */}
-      <div className="px-3 pt-3">
-        <AIRoleSwitcher />
-      </div>
     </Card>
   );
 }
