@@ -12,7 +12,6 @@ import {
   Bot,
   Bug, 
   Check,
-  CheckCircle,
   ChevronDown,
   ChevronUp,
   Copy, 
@@ -20,12 +19,10 @@ import {
   FileText, 
   Maximize2, 
   Minimize2, 
-  Plane,
   RefreshCw,
   Save,
   Send,
   Sparkles, 
-  User, 
   X 
 } from 'lucide-react';
 import { useDocumentStore, useLLMStore, useAIChatStore } from "@/lib/store";
@@ -135,6 +132,32 @@ interface ProviderOption {
   label: string;
 }
 
+// Define the enhanced version of the ChatMessage type
+interface EnhancedChatMessage extends ChatMessage {
+  // New structure with separate content fields
+  systemContent?: string;
+  userContent?: string;
+  assistantContent?: string;
+}
+
+// Helper function to get content for display based on role
+const getDisplayContent = (message: EnhancedChatMessage): string => {
+  if (message.systemContent && message.role === 'system' as any) {
+    return message.systemContent;
+  } else if (message.userContent && message.role === 'user') {
+    return message.userContent;
+  } else if (message.assistantContent && message.role === 'assistant') {
+    return message.assistantContent;
+  }
+  // Fallback to the original content for backward compatibility
+  return message.content;
+};
+
+// Type guard to check if a message has a specific role
+const hasRole = (message: EnhancedChatMessage, role: string): boolean => {
+  return message.role === role;
+};
+
 export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIChatProps) {
   const { documents } = useDocumentStore();
   const { config, updateConfig } = useLLMStore();
@@ -155,7 +178,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   const [composerContextFiles, setComposerContextFiles] = useState<Array<{id: string; name: string}>>([]);
   
   // For message history - ensure empty objects are initialized
-  const [messageHistory, setMessageHistory] = useState<Record<string, ChatMessage[]>>({});
+  const [messageHistory, setMessageHistory] = useState<Record<string, EnhancedChatMessage[]>>({});
   const [activeResponseVersion, setActiveResponseVersion] = useState<Record<string, number>>({});
   
   // Debug messages for development
@@ -329,7 +352,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     const savedMessages = localStorage.getItem('aiChatMessages');
     if (savedMessages) {
       try {
-        const parsedMessages = JSON.parse(savedMessages) as ChatMessage[];
+        const parsedMessages = JSON.parse(savedMessages) as EnhancedChatMessage[];
         console.log('Loading messages from localStorage:', parsedMessages);
         setMessages(parsedMessages);
       } catch (error) {
@@ -351,11 +374,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     
     if (!input.trim() || isLoading) return;
     
-    // Create a new user message
-    const userMessage: ChatMessage = {
+    // Create a new user message with the updated structure
+    const userMessage: EnhancedChatMessage = {
       id: generateId(),
       role: 'user',
-      content: input
+      content: input, // Keep for backward compatibility
+      userContent: input, // New structure
     };
     
     // Add user message to the chat
@@ -370,7 +394,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     try {
       // Call the server action with all messages for context
       const response = await generateChatResponse({
-        messages: [...messages, userMessage],
+        messages: [...messages, userMessage] as ChatMessage[],
         contextDocuments: contextDocuments.map(doc => ({
           id: doc.id,
           title: doc.name,
@@ -379,20 +403,56 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         stream: false
       });
       
-      // Set the debug prompt from the response
-      if (response.debugPrompt) {
+      // Check if response and debugPrompt exist before using them
+      if (response && response.debugPrompt) {
         setLastPrompt(response.debugPrompt);
       }
       
-      // Add the assistant's response to the chat, preserving model and provider info
-      const assistantMessage: ChatMessage = {
-        id: generateId(),
-        role: 'assistant',
-        content: response.message.content,
-        model: response.model,
-        provider: response.provider
-      };
-      addMessage(assistantMessage);
+      // Make sure response and response.message exist before creating assistantMessage
+      if (response && response.message) {
+        // Add the assistant's response to the chat with updated structure
+        const assistantMessage: EnhancedChatMessage = {
+          id: generateId(),
+          role: 'assistant',
+          content: response.message.content, // Keep for backward compatibility
+          assistantContent: response.message.content, // New structure
+          model: response.model,
+          provider: response.provider
+        };
+        
+        // Update message history with the new assistant message
+        if (userMessage.id) {
+          // Only track history if the user message has an ID
+          setMessageHistory(prev => {
+            const updatedHistory = {...prev};
+            const msgId = userMessage.id as string; // Safe assertion since we checked above
+            
+            // Always ensure we have the most recent message pair at the start of the array
+            // We can have different cases:
+            if (!updatedHistory[msgId]) {
+              // Case 1: No history yet - create a new entry with message and response
+              updatedHistory[msgId] = [userMessage, assistantMessage];
+              console.log("Created new complete history entry with message and response:", updatedHistory[msgId]);
+            } else if (updatedHistory[msgId].length % 2 === 1) {
+              // Case 2: We only have a message stored - add the message and response
+              updatedHistory[msgId] = [userMessage, assistantMessage, ...updatedHistory[msgId]];
+              console.log("Added message and response to history:", updatedHistory[msgId]);
+            } else {
+              // Case 3: We already have complete pairs - add the new pair at the beginning
+              updatedHistory[msgId] = [userMessage, assistantMessage, ...updatedHistory[msgId]];
+              console.log("Added new message pair to existing history:", updatedHistory[msgId]);
+            }
+            
+            return updatedHistory;
+          });
+        }
+        
+        // Add the message to the chat
+        addMessage(assistantMessage as ChatMessage);
+      } else {
+        // Handle case where response or response.message is undefined
+        throw new Error("Received invalid response from AI service");
+      }
     } catch (error) {
       console.error('Error in AI chat:', error);
       toast({
@@ -655,10 +715,11 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   };
 
   // Function to start editing a user message
-  const handleEditMessage = (message: ChatMessage) => {
+  const handleEditMessage = (message: EnhancedChatMessage) => {
     if (message.id) {
       setEditingMessageId(message.id);
-      setEditedPrompt(message.content);
+      // Use userContent if available, otherwise fall back to content
+      setEditedPrompt(message.userContent || message.content);
     }
   };
 
@@ -684,41 +745,28 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     const hasAssistantResponse = nextMessageIndex < messages.length && 
                                messages[nextMessageIndex].role === 'assistant';
     
+    // Keep the original messages for history
+    const originalMessage = messages[messageIndex] as EnhancedChatMessage;
+    let originalAssistantMessage: EnhancedChatMessage | undefined;
+    
+    if (hasAssistantResponse) {
+      originalAssistantMessage = messages[nextMessageIndex] as EnhancedChatMessage;
+      console.log("Original assistant message:", originalAssistantMessage);
+    }
+    
     // Create updated message with edited content
-    const originalMessage = messages[messageIndex];
-    const updatedMessage = {...originalMessage, content: editedPrompt};
+    const updatedMessage = {
+      ...originalMessage, 
+      content: editedPrompt,
+      userContent: editedPrompt
+    } as EnhancedChatMessage;
     
     console.log("Original message:", originalMessage);
     console.log("Updated message:", updatedMessage);
     
-    // Store the original message pair in history
-    if (hasAssistantResponse) {
-      const originalAssistantMessage = messages[nextMessageIndex];
-      
-      console.log("Original assistant message:", originalAssistantMessage);
-      console.log("Current message history:", messageHistory[messageId]);
-      
-      // Update the message history - Create a new array if it doesn't exist
-      setMessageHistory(prev => {
-        const updatedHistory = {...prev};
-        if (!updatedHistory[messageId]) {
-          updatedHistory[messageId] = [originalMessage, originalAssistantMessage];
-          console.log("Created new history entry:", updatedHistory[messageId]);
-        } else {
-          // Add to the beginning of the array to make newer versions appear first
-          updatedHistory[messageId] = [originalMessage, originalAssistantMessage, ...updatedHistory[messageId]];
-          console.log("Added to existing history:", updatedHistory[messageId]);
-        }
-        return updatedHistory;
-      });
-      
-      // Reset active version counter to 0 (most recent)
-      setActiveResponseVersion(prev => ({...prev, [messageId]: 0}));
-    }
-    
     // Update the user message in the messages list
     const updatedMessages = [...messages];
-    updatedMessages[messageIndex] = updatedMessage;
+    updatedMessages[messageIndex] = updatedMessage as ChatMessage;
     
     // If there was an assistant response, remove it (will be regenerated)
     if (hasAssistantResponse) {
@@ -732,48 +780,92 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     setEditingMessageId(null);
     setEditedPrompt("");
     
-    // Generate new response if there was an assistant response
-    if (hasAssistantResponse) {
-      // Set loading state
-      setIsLoading(true);
+    // Generate new response
+    // Set loading state
+    setIsLoading(true);
+    
+    try {
+      // Call the server action with all messages up to and including the edited message
+      const response = await generateChatResponse({
+        messages: updatedMessages,
+        contextDocuments: contextDocuments.map(doc => ({
+          id: doc.id,
+          title: doc.name,
+          content: doc.content
+        })),
+        stream: false
+      });
       
-      try {
-        // Call the server action with all messages up to and including the edited message
-        const response = await generateChatResponse({
-          messages: updatedMessages,
-          contextDocuments: contextDocuments.map(doc => ({
-            id: doc.id,
-            title: doc.name,
-            content: doc.content
-          })),
-          stream: false
-        });
-        
-        // Set the debug prompt from the response
-        if (response.debugPrompt) {
-          setLastPrompt(response.debugPrompt);
-        }
-        
-        // Add the assistant's response to the chat
-        const assistantMessage: ChatMessage = {
+      // Check if response and debugPrompt exist before using them
+      if (response && response.debugPrompt) {
+        setLastPrompt(response.debugPrompt);
+      }
+      
+      // Make sure response and response.message exist before creating assistantMessage
+      if (response && response.message) {
+        // Add the assistant's response to the chat with updated structure
+        const assistantMessage: EnhancedChatMessage = {
           id: generateId(),
           role: 'assistant',
-          content: response.message.content,
+          content: response.message.content, // Keep for backward compatibility
+          assistantContent: response.message.content, // New structure
           model: response.model,
           provider: response.provider
         };
-        addMessage(assistantMessage);
-      } catch (error) {
-        console.error('Error in AI chat:', error);
-        toast({
-          title: "Error",
-          description: error instanceof Error ? error.message : "Failed to generate response",
-          variant: "destructive",
-          duration: 5000,
+        
+        // NOW update the message history with both the original and new messages
+        // This is the only place where we update message history in this function
+        setMessageHistory(prev => {
+          const updatedHistory = {...prev};
+          
+          // First, check if we had a previous assistant response
+          if (originalAssistantMessage) {
+            // We had an existing message pair - add both the original and new pairs
+            if (!updatedHistory[messageId]) {
+              // First time editing this message, initialize with the original pair first
+              updatedHistory[messageId] = [originalMessage, originalAssistantMessage];
+              console.log("Created history entry with original and edited messages:", updatedHistory[messageId]);
+            } else {
+              // Not the first regeneration - just add the original pair, as it might not be there yet
+              const containsOriginalMessage = updatedHistory[messageId].some(
+                msg => msg.id === originalMessage.id && msg.content === originalMessage.content
+              );
+              
+              if (!containsOriginalMessage) {
+                // Only add the original message pair if it's not already in the history
+                updatedHistory[messageId] = [...updatedHistory[messageId], originalMessage, originalAssistantMessage];
+                console.log("Added original message pair to history:", updatedHistory[messageId]);
+              }
+            }
+          }
+          
+          // Then, add the new edited message and response at the beginning
+          // This ensures the most recent is always first, no matter what
+          updatedHistory[messageId] = [updatedMessage, assistantMessage, ...updatedHistory[messageId]];
+          console.log("Added new message pair to history:", updatedHistory[messageId]);
+          
+          return updatedHistory;
         });
-      } finally {
-        setIsLoading(false);
+        
+        // Reset active version counter to 0 (most recent)
+        setActiveResponseVersion(prev => ({...prev, [messageId]: 0}));
+        
+        // Add the message to the chat
+        addMessage(assistantMessage as ChatMessage);
+      } else {
+        // Handle case where response or response.message is undefined
+        throw new Error("Received invalid response from AI service");
       }
+    } catch (error) {
+      console.error('Error in AI chat:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate response",
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -871,7 +963,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   const createAndSaveComposition = async (
     name: string, 
     contextDocs: ContextDocument[], 
-    chatMessages: ChatMessage[],
+    chatMessages: EnhancedChatMessage[],
     customIntro?: string
   ) => {
     try {
@@ -972,7 +1064,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     const success = await createAndSaveComposition(
       compositionName,
       currentContextDocs,
-      messages
+      messages as EnhancedChatMessage[]
     );
     
     if (success) {
@@ -980,6 +1072,25 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       setCompositionName("");
       setShowSaveCompositionDialog(false);
     }
+  };
+
+  // Add a button to insert a system message for demonstration
+  const addSystemMessage = () => {
+    const systemMessage: EnhancedChatMessage = {
+      id: generateId(),
+      role: 'system' as 'user' | 'assistant', // Type assertion to work with the API
+      content: "I'll help you analyze and improve your documents. You can ask me to summarize, edit, or give feedback on your writing.",
+      systemContent: "I'll help you analyze and improve your documents. You can ask me to summarize, edit, or give feedback on your writing."
+    };
+    
+    // Insert the system message at the beginning of the messages array
+    setMessages([systemMessage as ChatMessage, ...messages]);
+    
+    toast({
+      title: "System message added",
+      description: "A system message has been added to the conversation.",
+      duration: 3000,
+    });
   };
 
   return (
@@ -1160,6 +1271,16 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="h-7 w-7 p-0 text-muted-foreground"
+              title="Add system message"
+              onClick={addSystemMessage}
+            >
+              <Bot className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -1228,155 +1349,174 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 </div>
               </div>
             ) : (
-              messages.map((message, index) => (
-                <div 
-                  key={message.id || index} 
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
+              messages.map((message, index) => {
+                // Cast the message to EnhancedChatMessage to access the new fields
+                const enhancedMessage = message as EnhancedChatMessage;
+                return (
                   <div 
-                    className={cn(
-                      "max-w-[90%] rounded-lg p-2 group",
-                      message.role === 'user' 
-                        ? 'bg-muted text-foreground' 
-                        : message.model && MODEL_COLORS[message.model as keyof typeof MODEL_COLORS]
-                          ? MODEL_COLORS[message.model as keyof typeof MODEL_COLORS]
-                          : 'bg-muted/70'
-                    )}
+                    key={message.id || index} 
+                    className={`flex ${
+                      hasRole(message as EnhancedChatMessage, 'user') 
+                        ? 'justify-end' 
+                        : hasRole(message as EnhancedChatMessage, 'system') 
+                          ? 'justify-center' 
+                          : 'justify-start'
+                    }`}
                   >
-                    {/* Editing mode for user messages */}
-                    {message.role === 'user' && editingMessageId === message.id ? (
-                      <div className="space-y-2">
-                        <Textarea
-                          value={editedPrompt}
-                          onChange={(e) => setEditedPrompt(e.target.value)}
-                          className="min-h-[60px] text-xs bg-background text-foreground"
-                          autoFocus
-                        />
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleCancelEdit}
-                            className="h-7 text-xs"
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => handleSaveEdit(message.id)}
-                            className="h-7 text-xs"
-                            disabled={!editedPrompt.trim()}
-                          >
-                            Regenerate
-                          </Button>
+                    <div 
+                      className={cn(
+                        "max-w-[90%] rounded-lg p-2 group",
+                        hasRole(message as EnhancedChatMessage, 'user')
+                          ? 'bg-muted text-foreground'
+                          : hasRole(message as EnhancedChatMessage, 'system')
+                          ? 'bg-primary/10 text-foreground'
+                          : message.model && MODEL_COLORS[message.model as keyof typeof MODEL_COLORS]
+                            ? MODEL_COLORS[message.model as keyof typeof MODEL_COLORS]
+                            : 'bg-muted/70'
+                      )}
+                    >
+                      {/* Display role badge for system messages */}
+                      {hasRole(message as EnhancedChatMessage, 'system') && (
+                        <Badge variant="outline" className="mb-1 text-[10px] bg-primary/10">System</Badge>
+                      )}
+                      
+                      {/* Editing mode for user messages */}
+                      {hasRole(message as EnhancedChatMessage, 'user') && editingMessageId === message.id ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editedPrompt}
+                            onChange={(e) => setEditedPrompt(e.target.value)}
+                            className="min-h-[60px] text-xs bg-background text-foreground"
+                            autoFocus
+                          />
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleCancelEdit}
+                              className="h-7 text-xs"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleSaveEdit(message.id)}
+                              className="h-7 text-xs"
+                              disabled={!editedPrompt.trim()}
+                            >
+                              Regenerate
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="whitespace-pre-wrap text-xs">{message.content}</div>
-                    )}
-                    
-                    {/* Show buttons for user messages when not editing */}
-                    {message.role === 'user' && editingMessageId !== message.id && (
-                      <div className="mt-1.5 pt-0.5 border-t border-border flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5"
-                          onClick={() => handleEditMessage(message)}
-                          title="Edit prompt"
-                        >
-                          <Eraser className="h-2.5 w-2.5" />
-                        </Button>
-                      </div>
-                    )}
-                    
-                    {/* Show buttons for assistant messages */}
-                    {message.role === 'assistant' && (
-                      <div className="mt-1.5 pt-0.5 border-t border-border flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                        {/* Version navigation buttons */}
-                        {(() => {
-                          // Safe access to previous message and its history
-                          const prevMessage = index > 0 ? messages[index-1] : null;
-                          const prevMessageId = prevMessage?.id || '';
-                          const msgHistory = prevMessageId ? messageHistory[prevMessageId] : null;
-                          const hasHistory = !!msgHistory && msgHistory.length > 0;
-                          
-                          if (!hasHistory) return null;
-                          
-                          const historyPairs = Math.floor(msgHistory.length / 2); // Ensure integer division
-                          
-                          // Only show if we have at least 2 versions (otherwise navigation makes no sense)
-                          if (historyPairs <= 1) return null;
-                          
-                          const currentVersion = activeResponseVersion[prevMessageId] || 0;
-                          const hasOlderVersions = currentVersion < historyPairs - 1;
-                          const hasNewerVersions = currentVersion > 0;
-                          
-                          console.log(`Version navigation: ${currentVersion}/${historyPairs}, older: ${hasOlderVersions}, newer: ${hasNewerVersions}`);
-                          
-                          return (
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5"
-                                onClick={() => handleNavigateHistory(prevMessageId, 'prev')}
-                                title="View older version"
-                                disabled={!hasOlderVersions}
-                              >
-                                <ChevronUp className="h-2.5 w-2.5" />
-                              </Button>
-                              
-                              <span className="text-[10px] text-muted-foreground">
-                                v{historyPairs - currentVersion}/{historyPairs}
-                              </span>
-                              
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5"
-                                onClick={() => handleNavigateHistory(prevMessageId, 'next')}
-                                title="View newer version"
-                                disabled={!hasNewerVersions}
-                              >
-                                <ChevronDown className="h-2.5 w-2.5" />
-                              </Button>
-                            </div>
-                          );
-                        })()}
-                        
-                        {/* Existing action buttons */}
-                        <div className="flex items-center ml-auto">
+                      ) : (
+                        <div className="whitespace-pre-wrap text-xs">
+                          {getDisplayContent(enhancedMessage)}
+                        </div>
+                      )}
+                      
+                      {/* Show buttons for user messages when not editing */}
+                      {hasRole(message as EnhancedChatMessage, 'user') && editingMessageId !== message.id && (
+                        <div className="mt-1.5 pt-0.5 border-t border-border flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-5 w-5"
-                            onClick={() => handleInsertResponse(message.content)}
-                            title="Add to document"
+                            onClick={() => handleEditMessage(enhancedMessage)}
+                            title="Edit prompt"
                           >
-                            <ArrowLeft className="h-2.5 w-2.5" />
-                          </Button>
-                          
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5"
-                            onClick={() => handleCopyToClipboard(message.content, `msg-${index}`)}
-                            title="Copy to clipboard"
-                          >
-                            {isCopied === `msg-${index}` ? (
-                              <Check className="h-2.5 w-2.5" />
-                            ) : (
-                              <Copy className="h-2.5 w-2.5" />
-                            )}
+                            <Eraser className="h-2.5 w-2.5" />
                           </Button>
                         </div>
-                      </div>
-                    )}
+                      )}
+                      
+                      {/* Show buttons for assistant messages */}
+                      {hasRole(message as EnhancedChatMessage, 'assistant') && (
+                        <div className="mt-1.5 pt-0.5 border-t border-border flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* Version navigation buttons */}
+                          {(() => {
+                            // Safe access to previous message and its history
+                            const prevMessage = index > 0 ? messages[index-1] as EnhancedChatMessage : null;
+                            const prevMessageId = prevMessage?.id || '';
+                            const msgHistory = prevMessageId ? messageHistory[prevMessageId] : null;
+                            const hasHistory = !!msgHistory && msgHistory.length > 0;
+                            
+                            if (!hasHistory) return null;
+                            
+                            const historyPairs = Math.floor(msgHistory.length / 2); // Ensure integer division
+                            
+                            // Only show if we have at least 2 versions (otherwise navigation makes no sense)
+                            if (historyPairs <= 1) return null;
+                            
+                            const currentVersion = activeResponseVersion[prevMessageId] || 0;
+                            const hasOlderVersions = currentVersion < historyPairs - 1;
+                            const hasNewerVersions = currentVersion > 0;
+                            
+                            console.log(`Version navigation: ${currentVersion}/${historyPairs}, older: ${hasOlderVersions}, newer: ${hasNewerVersions}`);
+                            
+                            return (
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5"
+                                  onClick={() => handleNavigateHistory(prevMessageId, 'prev')}
+                                  title="View older version"
+                                  disabled={!hasOlderVersions}
+                                >
+                                  <ChevronUp className="h-2.5 w-2.5" />
+                                </Button>
+                                
+                                <span className="text-[10px] text-muted-foreground">
+                                  v{historyPairs - currentVersion}/{historyPairs}
+                                </span>
+                                
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5"
+                                  onClick={() => handleNavigateHistory(prevMessageId, 'next')}
+                                  title="View newer version"
+                                  disabled={!hasNewerVersions}
+                                >
+                                  <ChevronDown className="h-2.5 w-2.5" />
+                                </Button>
+                              </div>
+                            );
+                          })()}
+                          
+                          {/* Existing action buttons */}
+                          <div className="flex items-center ml-auto">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5"
+                              onClick={() => handleInsertResponse(getDisplayContent(enhancedMessage))}
+                              title="Add to document"
+                            >
+                              <ArrowLeft className="h-2.5 w-2.5" />
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5"
+                              onClick={() => handleCopyToClipboard(getDisplayContent(enhancedMessage), `msg-${index}`)}
+                              title="Copy to clipboard"
+                            >
+                              {isCopied === `msg-${index}` ? (
+                                <Check className="h-2.5 w-2.5" />
+                              ) : (
+                                <Copy className="h-2.5 w-2.5" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
             
             {isLoading && (
