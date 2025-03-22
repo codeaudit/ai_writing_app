@@ -2,9 +2,9 @@
   {
     "id": "doc-1742385873474",
     "name": "New Document 26",
-    "content": "# New Document 26\n\nStart writing here...\n",
+    "content": "Okay, to give you a helpful description of \"Chapter 4,\" I need a little more context.  Tell me:\n\n1.  **What is the name of the book, document, or project the chapter belongs to?**\n2.  **What is the subject matter of the overall work?**\n\nFor example, you could say:\n\n*   \"Describe Chapter 4 of *Pride and Prejudice* by Jane Austen.\"\n*   \"Describe Chapter 4 of a book about the history of Rome.\"\n*   \"Describe Chapter 4 of my architectural thesis about sustainable housing.\"\n\nOnce I have this information, I can provide a much more specific and useful description.\n",
     "createdAt": "2025-03-19T12:04:33.474Z",
-    "updatedAt": "2025-03-19T12:04:33.474Z",
+    "updatedAt": "2025-03-22T01:37:05.790Z",
     "versions": [
       {
         "id": "ver-1742385873474-initial",
@@ -292,6 +292,42 @@
     "contextDocuments": []
   },
   {
+    "id": "doc-1742607463219-xovllmi",
+    "name": "add_evidence",
+    "content": "# Add Supporting Evidence Template\n\nStrengthen the following text by adding relevant supporting evidence, examples, statistics, or expert opinions:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. The original text with supporting evidence or examples integrated naturally\n2. A mix of different types of evidence (statistics, research findings, case studies, expert quotes)\n3. Citations or sources for the evidence when appropriate\n4. Clear connections between the evidence and the claims being supported\n5. Proper transitions to introduce the supporting material\n6. A brief explanation of how the evidence strengthens the overall argument ",
+    "createdAt": "2025-03-19T01:03:01.030Z",
+    "updatedAt": "2025-03-19T01:03:01.030Z",
+    "versions": [
+      {
+        "id": "ver-1742343001044-initial",
+        "content": "",
+        "createdAt": "2025-03-19T01:03:01.030Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1742346055866-pvb3iin",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1742343001050",
+    "name": "add_sensory_details",
+    "content": "# Add Sensory Details and Imagery Template\n\nEnhance the following text by adding vivid sensory details, imagery, and descriptive elements:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A revised version that incorporates rich sensory details (sight, sound, smell, taste, touch)\n2. Evocative imagery that helps readers visualize the scene or subject\n3. Specific and concrete details that replace vague or general descriptions\n4. Figurative language (similes, metaphors, personification) where appropriate\n5. A balance of sensory elements without overwhelming the original meaning\n6. An explanation of how the added details enhance the reader's emotional connection and understanding ",
+    "createdAt": "2025-03-19T01:03:01.030Z",
+    "updatedAt": "2025-03-19T01:03:01.030Z",
+    "versions": [
+      {
+        "id": "ver-1742343001050-initial",
+        "content": "",
+        "createdAt": "2025-03-19T01:03:01.030Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1742346055866-pvb3iin",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
     "id": "doc-1742343001044",
     "name": "analysis",
     "content": "# Text Analysis Template\n\nAnalyze the following text in depth, examining its content, structure, style, and implications:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A comprehensive analysis covering:\n   - Main themes and ideas\n   - Tone and style\n   - Structure and organization\n   - Language use and rhetorical devices\n   - Underlying assumptions or biases\n   - Strengths and weaknesses\n2. Critical evaluation of the arguments or claims made\n3. Contextual factors that influence the text\n4. Potential interpretations or perspectives\n5. Key insights and implications ",
@@ -302,6 +338,24 @@
         "id": "ver-1742343001044-initial",
         "content": "",
         "createdAt": "2025-03-19T01:04:01.030Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1742346055866-pvb3iin",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1742343001048",
+    "name": "check_logical_consistency",
+    "content": "# Check Logical Consistency Template\n\nAnalyze the following text for logical consistency, identify any gaps in reasoning, and suggest improvements:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. An analysis of the logical structure and flow of the argument\n2. Identification of any inconsistencies, contradictions, or logical fallacies\n3. Gaps in reasoning or missing steps in the logical progression\n4. Unstated assumptions that may weaken the argument\n5. Suggestions to address each identified issue while preserving the original intent\n6. A revised version with improved logical consistency and more robust reasoning ",
+    "createdAt": "2025-03-19T01:03:01.030Z",
+    "updatedAt": "2025-03-19T01:03:01.030Z",
+    "versions": [
+      {
+        "id": "ver-1742343001048-initial",
+        "content": "",
+        "createdAt": "2025-03-19T01:03:01.030Z",
         "message": "Initial version"
       }
     ],
@@ -364,6 +418,42 @@
     "contextDocuments": []
   },
   {
+    "id": "doc-1742343001047",
+    "name": "generate_counterarguments",
+    "content": "# Generate Counterarguments Template\n\nIdentify and address potential counterarguments to strengthen the following text:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A list of the main arguments or claims being made in the text\n2. Thoughtful counterarguments or opposing viewpoints to each main point\n3. Respectful and fair representations of alternative perspectives\n4. Suggested responses to address each counterargument effectively\n5. Revisions that incorporate these counterpoints and responses into the original text\n6. An explanation of how acknowledging counterarguments strengthens the overall persuasiveness ",
+    "createdAt": "2025-03-19T01:03:01.030Z",
+    "updatedAt": "2025-03-19T01:03:01.030Z",
+    "versions": [
+      {
+        "id": "ver-1742343001047-initial",
+        "content": "",
+        "createdAt": "2025-03-19T01:03:01.030Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1742346055866-pvb3iin",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1742607463220-8pphfie",
+    "name": "improve_flow",
+    "content": "# Improve Paragraph Transitions and Flow Template\n\nEnhance the following text by improving transitions between paragraphs and creating a smoother flow of ideas:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A revised version with improved transitions between paragraphs and sentences\n2. Natural connections between ideas that guide the reader through the text\n3. Consistent progression of thought that builds logically from beginning to end\n4. Elimination of any abrupt shifts or disconnected sections\n5. Appropriate transition words and phrases where needed (e.g., \"furthermore,\" \"in contrast,\" \"consequently\")\n6. A brief explanation of how the improved flow enhances readability and coherence ",
+    "createdAt": "2025-03-19T01:03:01.030Z",
+    "updatedAt": "2025-03-19T01:03:01.030Z",
+    "versions": [
+      {
+        "id": "ver-1742343001045-initial",
+        "content": "",
+        "createdAt": "2025-03-19T01:03:01.030Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1742346055866-pvb3iin",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
     "id": "doc-1742343001034",
     "name": "optimize",
     "content": "# Performance Optimization Template\n\nAnalyze and optimize the following code for better performance:\n\n```\n{{selectedText}}\n```\n\nPlease provide:\n1. Performance analysis of the current code\n2. Identified bottlenecks and computational inefficiencies\n3. Optimized version of the code\n4. Expected performance improvements\n5. Time and space complexity analysis (before and after)\n6. Any tradeoffs between readability and performance ",
@@ -400,11 +490,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742601910259-mlb5xip",
+    "id": "doc-1742607463220-9ybrhqb",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-22T00:05:10.259Z",
-    "updatedAt": "2025-03-22T00:05:10.259Z",
+    "createdAt": "2025-03-22T01:37:43.220Z",
+    "updatedAt": "2025-03-22T01:37:43.220Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -440,6 +530,24 @@
     "contextDocuments": []
   },
   {
+    "id": "doc-1742343001049",
+    "name": "restructure_organization",
+    "content": "# Restructure for Better Organization Template\n\nReorganize the following text to improve its structure, coherence, and overall organization:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. An analysis of the current organizational structure and its limitations\n2. A suggested new structure with a clear logical progression of ideas\n3. The reorganized text with appropriate headings, subheadings, or sections if applicable\n4. Improved topic sentences that clearly communicate the main idea of each paragraph\n5. Better grouping of related ideas and separation of distinct concepts\n6. An explanation of how the new structure enhances clarity and comprehension for readers ",
+    "createdAt": "2025-03-19T01:03:01.030Z",
+    "updatedAt": "2025-03-19T01:03:01.030Z",
+    "versions": [
+      {
+        "id": "ver-1742343001049-initial",
+        "content": "",
+        "createdAt": "2025-03-19T01:03:01.030Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1742346055866-pvb3iin",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
     "id": "doc-1742343001045",
     "name": "simplify",
     "content": "# Text Simplification Template\n\nSimplify the following text to make it clearer, more accessible, and easier to understand:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A simplified version using:\n   - Shorter sentences\n   - Simpler vocabulary\n   - Clear structure\n   - Plain language\n   - Concrete examples\n2. Explanations of complex terms or concepts\n3. Visual aids or analogies to illustrate key points\n4. Multiple versions at different reading levels (elementary, middle school, high school)\n5. The key message preserved in the simplest form possible ",
@@ -450,6 +558,24 @@
         "id": "ver-1742343001045-initial",
         "content": "",
         "createdAt": "2025-03-19T01:05:01.030Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1742346055866-pvb3iin",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1742343001046",
+    "name": "strengthen_conclusion",
+    "content": "# Strengthen Conclusion Template\n\nEnhance the following conclusion by adding key takeaways, synthesizing main points, and creating a stronger closing impact:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A revised, more impactful conclusion that effectively wraps up the content\n2. A synthesis of the main points or arguments presented in the text\n3. Clear, memorable key takeaways that reinforce the central message\n4. A compelling final thought, call to action, or forward-looking statement\n5. Connections between the conclusion and the broader significance of the topic\n6. A conclusion that avoids introducing new ideas but still feels complete and satisfying ",
+    "createdAt": "2025-03-19T01:03:01.030Z",
+    "updatedAt": "2025-03-19T01:03:01.030Z",
+    "versions": [
+      {
+        "id": "ver-1742343001046-initial",
+        "content": "",
+        "createdAt": "2025-03-19T01:03:01.030Z",
         "message": "Initial version"
       }
     ],
@@ -494,7 +620,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742601910260-yhkkivm",
+    "id": "doc-1742607463220-wi9h4n3",
     "name": "translate",
     "content": "# Prompt template\n\ntranslate this to English: '''\n{{selectedText}}\n'''\n\n\n",
     "createdAt": "2025-03-19T00:10:01.030Z",

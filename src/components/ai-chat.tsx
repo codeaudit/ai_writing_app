@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,6 +65,21 @@ import AIDebugPanel from "@/components/ai-debug-panel";
 import { generateChatResponse, ChatMessage, ChatContextDocument } from "@/lib/llm-service";
 import { LLM_PROVIDERS, LLM_MODELS } from "@/lib/config";
 import { AIRoleSwitcher } from './ai-role-switcher';
+import { useTheme } from "next-themes";
+import { useInView } from "react-intersection-observer";
+import ReactMarkdown from "react-markdown";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@/components/ui/use-toast";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { generateId } from "@/lib/utils";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { ContextDocumentList } from "./context-document-list";
+import { ContextDocument } from "@/types/contextDocument";
 
 // Define color mapping for each model
 const MODEL_COLORS = {
@@ -139,9 +154,18 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const [composerContextFiles, setComposerContextFiles] = useState<Array<{id: string; name: string}>>([]);
   
+  // For message history - ensure empty objects are initialized
+  const [messageHistory, setMessageHistory] = useState<Record<string, ChatMessage[]>>({});
+  const [activeResponseVersion, setActiveResponseVersion] = useState<Record<string, number>>({});
+  
+  // Debug messages for development
+  useEffect(() => {
+    console.log("Message history state:", messageHistory);
+    console.log("Active response versions:", activeResponseVersion);
+  }, [messageHistory, activeResponseVersion]);
+  
   // Autocomplete state
   const [showAutocomplete, setShowAutocomplete] = useState(false);
-  const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0 });
   const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(0);
   const [filteredDocuments, setFilteredDocuments] = useState<Array<{ id: string; name: string; content: string }>>([]);
 
@@ -152,6 +176,10 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   // Inside the AIChat component, add a new state for the save composition dialog
   const [showSaveCompositionDialog, setShowSaveCompositionDialog] = useState(false);
   const [compositionName, setCompositionName] = useState("");
+  
+  // State for editing messages
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editedPrompt, setEditedPrompt] = useState<string>("");
 
   // Load context files from localStorage when component mounts
   useEffect(() => {
@@ -408,19 +436,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       if (filtered.length > 0) {
         // Position the autocomplete dropdown
         if (textareaRef.current) {
-          const textarea = textareaRef.current;
-          
-          // Get textarea position
-          const textareaRect = textarea.getBoundingClientRect();
-          
-          // Set position relative to the textarea
-          setAutocompletePosition({
-            top: textareaRect.height + 5, // Position below the textarea
-            left: 0 // Align with the left edge of the textarea
-          });
+          // Set autocomplete visible
+          setShowAutocomplete(true);
+        } else {
+          setShowAutocomplete(true);
         }
         
-        setShowAutocomplete(true);
         setSelectedAutocompleteIndex(0);
       } else {
         setShowAutocomplete(false);
@@ -624,27 +645,229 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
 
   // Add a function to handle clearing the chat
   const handleClearChat = () => {
-    // Clear messages from the store
+    setShowClearConfirmation(false);
     clearMessages();
-    
-    // Clear input field
-    setInput("");
-    
-    // Clear context documents
-    setContextDocuments([]);
-    
-    // Show confirmation toast
     toast({
       title: "Chat cleared",
-      description: "Your conversation has been reset.",
+      description: "All chat messages have been cleared.",
       duration: 3000,
     });
-    
-    // Close confirmation dialog
-    setShowClearConfirmation(false);
   };
 
-  // Add a common function to create and save a composition
+  // Function to start editing a user message
+  const handleEditMessage = (message: ChatMessage) => {
+    if (message.id) {
+      setEditingMessageId(message.id);
+      setEditedPrompt(message.content);
+    }
+  };
+
+  // Function to cancel editing
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditedPrompt("");
+  };
+
+  // Function to save the edited message and regenerate the response
+  const handleSaveEdit = async (messageId: string | undefined) => {
+    // Check if messageId is defined
+    if (!messageId) return;
+    
+    console.log("Starting handleSaveEdit for message ID:", messageId);
+    
+    // Find the original message and its index
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
+    
+    // Find the subsequent assistant message (if exists)
+    const nextMessageIndex = messageIndex + 1;
+    const hasAssistantResponse = nextMessageIndex < messages.length && 
+                               messages[nextMessageIndex].role === 'assistant';
+    
+    // Create updated message with edited content
+    const originalMessage = messages[messageIndex];
+    const updatedMessage = {...originalMessage, content: editedPrompt};
+    
+    console.log("Original message:", originalMessage);
+    console.log("Updated message:", updatedMessage);
+    
+    // Store the original message pair in history
+    if (hasAssistantResponse) {
+      const originalAssistantMessage = messages[nextMessageIndex];
+      
+      console.log("Original assistant message:", originalAssistantMessage);
+      console.log("Current message history:", messageHistory[messageId]);
+      
+      // Update the message history - Create a new array if it doesn't exist
+      setMessageHistory(prev => {
+        const updatedHistory = {...prev};
+        if (!updatedHistory[messageId]) {
+          updatedHistory[messageId] = [originalMessage, originalAssistantMessage];
+          console.log("Created new history entry:", updatedHistory[messageId]);
+        } else {
+          // Add to the beginning of the array to make newer versions appear first
+          updatedHistory[messageId] = [originalMessage, originalAssistantMessage, ...updatedHistory[messageId]];
+          console.log("Added to existing history:", updatedHistory[messageId]);
+        }
+        return updatedHistory;
+      });
+      
+      // Reset active version counter to 0 (most recent)
+      setActiveResponseVersion(prev => ({...prev, [messageId]: 0}));
+    }
+    
+    // Update the user message in the messages list
+    const updatedMessages = [...messages];
+    updatedMessages[messageIndex] = updatedMessage;
+    
+    // If there was an assistant response, remove it (will be regenerated)
+    if (hasAssistantResponse) {
+      updatedMessages.splice(nextMessageIndex, 1);
+    }
+    
+    // Update messages state
+    setMessages(updatedMessages);
+    
+    // Clear editing state
+    setEditingMessageId(null);
+    setEditedPrompt("");
+    
+    // Generate new response if there was an assistant response
+    if (hasAssistantResponse) {
+      // Set loading state
+      setIsLoading(true);
+      
+      try {
+        // Call the server action with all messages up to and including the edited message
+        const response = await generateChatResponse({
+          messages: updatedMessages,
+          contextDocuments: contextDocuments.map(doc => ({
+            id: doc.id,
+            title: doc.name,
+            content: doc.content
+          })),
+          stream: false
+        });
+        
+        // Set the debug prompt from the response
+        if (response.debugPrompt) {
+          setLastPrompt(response.debugPrompt);
+        }
+        
+        // Add the assistant's response to the chat
+        const assistantMessage: ChatMessage = {
+          id: generateId(),
+          role: 'assistant',
+          content: response.message.content,
+          model: response.model,
+          provider: response.provider
+        };
+        addMessage(assistantMessage);
+      } catch (error) {
+        console.error('Error in AI chat:', error);
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to generate response",
+          variant: "destructive",
+          duration: 5000,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+  
+  // Function to navigate to previous versions of a response
+  const handleNavigateHistory = (messageId: string | undefined, direction: 'prev' | 'next') => {
+    // Check if messageId is defined
+    if (!messageId) return;
+    
+    console.log(`Starting navigation for message ${messageId}, direction: ${direction}`);
+    
+    // Get current active version and history
+    const currentVersion = activeResponseVersion[messageId] || 0;
+    const msgHistory = messageHistory[messageId];
+    
+    console.log(`Current version: ${currentVersion}`);
+    console.log(`Message history length: ${msgHistory?.length || 0}`);
+    
+    // If no history exists, exit
+    if (!msgHistory || msgHistory.length === 0) {
+      console.log("No history found for message ID:", messageId);
+      return;
+    }
+    
+    // Calculate history pairs (user + assistant messages)
+    const historyPairs = Math.floor(msgHistory.length / 2);
+    console.log(`Message has ${historyPairs} history pairs`);
+    
+    // Calculate new version based on direction
+    let newVersion;
+    if (direction === 'prev') {
+      newVersion = currentVersion < historyPairs - 1 ? currentVersion + 1 : currentVersion;
+      console.log(`Trying to navigate to older version: ${currentVersion} -> ${newVersion}`);
+    } else { // next
+      newVersion = currentVersion > 0 ? currentVersion - 1 : 0;
+      console.log(`Trying to navigate to newer version: ${currentVersion} -> ${newVersion}`);
+    }
+    
+    // If no change, exit
+    if (newVersion === currentVersion) {
+      console.log("Version did not change, exiting navigator");
+      return;
+    }
+    
+    console.log(`Navigating from version ${currentVersion} to ${newVersion}`);
+    
+    // Update active version
+    setActiveResponseVersion(prev => {
+      const updated = {...prev, [messageId]: newVersion};
+      console.log("Updated active versions:", updated);
+      return updated;
+    });
+    
+    // Find the message in the UI
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) {
+      console.error(`Message ID ${messageId} not found in messages list`);
+      return;
+    }
+    
+    if (messageIndex + 1 >= messages.length) {
+      console.error(`No assistant message after message at index ${messageIndex}`);
+      return;
+    }
+    
+    // Calculate index in the history array (which stores [user1, assistant1, user2, assistant2, ...])
+    const pairIndex = newVersion * 2;
+    
+    if (pairIndex < 0 || pairIndex + 1 >= msgHistory.length) {
+      console.error(`Invalid history index: ${pairIndex} for history of length ${msgHistory.length}`);
+      return;
+    }
+    
+    const historicalUserMsg = msgHistory[pairIndex]; // user message
+    const historicalAssistantMsg = msgHistory[pairIndex + 1]; // assistant message
+    
+    if (!historicalUserMsg || !historicalAssistantMsg) {
+      console.error("Missing message in history");
+      return;
+    }
+    
+    console.log("Retrieved historical messages:", {
+      user: historicalUserMsg.content.substring(0, 20) + "...",
+      assistant: historicalAssistantMsg.content.substring(0, 20) + "..."
+    });
+    
+    // Update the messages with historical versions
+    const updatedMessages = [...messages];
+    updatedMessages[messageIndex] = historicalUserMsg;
+    updatedMessages[messageIndex + 1] = historicalAssistantMsg;
+    
+    console.log("Updating messages with historical versions");
+    setMessages(updatedMessages);
+  };
+
   const createAndSaveComposition = async (
     name: string, 
     contextDocs: ContextDocument[], 
@@ -1014,39 +1237,141 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                     className={cn(
                       "max-w-[90%] rounded-lg p-2 group",
                       message.role === 'user' 
-                        ? 'bg-primary/90 text-primary-foreground' 
+                        ? 'bg-muted text-foreground' 
                         : message.model && MODEL_COLORS[message.model as keyof typeof MODEL_COLORS]
                           ? MODEL_COLORS[message.model as keyof typeof MODEL_COLORS]
                           : 'bg-muted/70'
                     )}
                   >
-                    <div className="whitespace-pre-wrap text-xs">{message.content}</div>
+                    {/* Editing mode for user messages */}
+                    {message.role === 'user' && editingMessageId === message.id ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={editedPrompt}
+                          onChange={(e) => setEditedPrompt(e.target.value)}
+                          className="min-h-[60px] text-xs bg-background text-foreground"
+                          autoFocus
+                        />
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCancelEdit}
+                            className="h-7 text-xs"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleSaveEdit(message.id)}
+                            className="h-7 text-xs"
+                            disabled={!editedPrompt.trim()}
+                          >
+                            Regenerate
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap text-xs">{message.content}</div>
+                    )}
                     
-                    {message.role === 'assistant' && (
+                    {/* Show buttons for user messages when not editing */}
+                    {message.role === 'user' && editingMessageId !== message.id && (
                       <div className="mt-1.5 pt-0.5 border-t border-border flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-5 w-5"
-                          onClick={() => handleInsertResponse(message.content)}
-                          title="Add to document"
+                          onClick={() => handleEditMessage(message)}
+                          title="Edit prompt"
                         >
-                          <ArrowLeft className="h-2.5 w-2.5" />
+                          <Eraser className="h-2.5 w-2.5" />
                         </Button>
+                      </div>
+                    )}
+                    
+                    {/* Show buttons for assistant messages */}
+                    {message.role === 'assistant' && (
+                      <div className="mt-1.5 pt-0.5 border-t border-border flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Version navigation buttons */}
+                        {(() => {
+                          // Safe access to previous message and its history
+                          const prevMessage = index > 0 ? messages[index-1] : null;
+                          const prevMessageId = prevMessage?.id || '';
+                          const msgHistory = prevMessageId ? messageHistory[prevMessageId] : null;
+                          const hasHistory = !!msgHistory && msgHistory.length > 0;
+                          
+                          if (!hasHistory) return null;
+                          
+                          const historyPairs = Math.floor(msgHistory.length / 2); // Ensure integer division
+                          
+                          // Only show if we have at least 2 versions (otherwise navigation makes no sense)
+                          if (historyPairs <= 1) return null;
+                          
+                          const currentVersion = activeResponseVersion[prevMessageId] || 0;
+                          const hasOlderVersions = currentVersion < historyPairs - 1;
+                          const hasNewerVersions = currentVersion > 0;
+                          
+                          console.log(`Version navigation: ${currentVersion}/${historyPairs}, older: ${hasOlderVersions}, newer: ${hasNewerVersions}`);
+                          
+                          return (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5"
+                                onClick={() => handleNavigateHistory(prevMessageId, 'prev')}
+                                title="View older version"
+                                disabled={!hasOlderVersions}
+                              >
+                                <ChevronUp className="h-2.5 w-2.5" />
+                              </Button>
+                              
+                              <span className="text-[10px] text-muted-foreground">
+                                v{historyPairs - currentVersion}/{historyPairs}
+                              </span>
+                              
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5"
+                                onClick={() => handleNavigateHistory(prevMessageId, 'next')}
+                                title="View newer version"
+                                disabled={!hasNewerVersions}
+                              >
+                                <ChevronDown className="h-2.5 w-2.5" />
+                              </Button>
+                            </div>
+                          );
+                        })()}
                         
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5"
-                          onClick={() => handleCopyToClipboard(message.content, `msg-${index}`)}
-                          title="Copy to clipboard"
-                        >
-                          {isCopied === `msg-${index}` ? (
-                            <Check className="h-2.5 w-2.5" />
-                          ) : (
-                            <Copy className="h-2.5 w-2.5" />
-                          )}
-                        </Button>
+                        {/* Existing action buttons */}
+                        <div className="flex items-center ml-auto">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5"
+                            onClick={() => handleInsertResponse(message.content)}
+                            title="Add to document"
+                          >
+                            <ArrowLeft className="h-2.5 w-2.5" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5"
+                            onClick={() => handleCopyToClipboard(message.content, `msg-${index}`)}
+                            title="Copy to clipboard"
+                          >
+                            {isCopied === `msg-${index}` ? (
+                              <Check className="h-2.5 w-2.5" />
+                            ) : (
+                              <Copy className="h-2.5 w-2.5" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
