@@ -1,5 +1,11 @@
 [
   {
+    "id": "folder-1742582748294-8qrwww5",
+    "name": ".qodo",
+    "createdAt": "2025-03-21T18:45:48.294Z",
+    "parentId": null
+  },
+  {
     "id": "folder-1742346055866-k6ddp67",
     "name": "UI_Test_Files",
     "createdAt": "2025-03-19T01:00:55.866Z",
@@ -27,6 +33,12 @@
     "id": "folder-1742346055866-zav1lsp",
     "name": "output",
     "createdAt": "2025-03-19T01:00:55.866Z",
+    "parentId": null
+  },
+  {
+    "id": "folder-1742582748295-cvk7ccu",
+    "name": "system",
+    "createdAt": "2025-03-21T18:45:48.295Z",
     "parentId": null
   },
   {

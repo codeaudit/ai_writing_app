@@ -8,9 +8,13 @@ import { wrapLanguageModel } from 'ai';
 import { useLLMStore } from '@/lib/store';
 import { createCacheMiddleware } from '@/lib/ai-middleware';
 import { formatDebugPrompt, logAIDebug } from '@/lib/ai-debug';
+import { getAIRoleSystemPrompt } from '@/lib/ai-roles';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
+
+// Set the runtime to Node.js to ensure compatibility with all features
+export const runtime = 'nodejs';
 
 // Define session types
 interface AISessionMessage {
@@ -50,6 +54,7 @@ export async function POST(req: NextRequest) {
     const enableCache = llmConfig.enableCache;
     const temperature = llmConfig.temperature;
     const maxTokens = llmConfig.maxTokens;
+    const aiRole = llmConfig.aiRole || 'assistant';
     const apiKey = useLLMStore.getState().getApiKey();
 
     if (!apiKey) {
@@ -59,8 +64,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create a system message with context if provided
-    let systemMessage = 'You are a helpful writing assistant.';
+    // Get the system message for the selected AI role from the new API
+    let systemMessage = await getAIRoleSystemPrompt(aiRole);
     
     if (context) {
       systemMessage += ` Use the following context to inform your responses: ${context}`;

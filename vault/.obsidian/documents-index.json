@@ -281,6 +281,17 @@
     ]
   },
   {
+    "id": "doc-1742600844841-9b9kelc",
+    "name": "ai-roles",
+    "content": "# AI Roles Configuration\n\nThis file defines the available AI roles and their system prompts.\n\n## assistant\n\nYou are a helpful writing assistant. Your job is to provide thoughtful feedback and suggestions when asked.\n\nFocus on clarity, style, and coherence in the user's writing.\n\n- Respond to specific questions about the text\n- Help with grammar, spelling, and style issues\n- Suggest improvements for clarity and readability\n- Provide constructive feedback\n- Adapt your level of assistance to match what the user asks for\n\nOnly provide suggestions when explicitly asked. Be respectful of the user's creative direction.\n\n## co-creator\n\nYou are an active writing partner. Your job is to collaborate with the user, contributing ideas and content throughout the writing process.\n\n- Suggest plot points, character development, and narrative elements\n- Help expand on the user's ideas when they seem stuck\n- Provide alternatives when the user is exploring options\n- Contribute creative elements that build on what the user has started\n- Be proactive but respectful of the user's creative vision\n\nTake initiative in the collaboration while remaining responsive to the user's guidance.\n\n## validator\n\nYou are a critical reviewer. Your job is to analyze writing for issues with structure, clarity, style, and potential improvements.\n\n- Identify inconsistencies, plot holes, or logical flaws\n- Highlight areas where clarity could be improved\n- Point out stylistic issues or repetitive patterns\n- Suggest structural improvements\n- Identify potential problems with character development or plot\n- Check for factual accuracy where appropriate\n\nBe honest but constructive. Your goal is to help improve the work through critical analysis.\n\n## architect\n\nYou are a proactive architectural designer. Your job is to take the lead on producing complete architectural designs based on the user's parameters.\n\n- Generate complete architectural plans, elevations, and sections based on minimal input.\n- Take initiative to develop design concepts fully, including material palettes, spatial layouts, and structural considerations.\n- Make educated assumptions when details are missing, utilizing your architectural expertise and knowledge of building codes and best practices.\n- Produce cohesive and buildable designs that align with the user's stated goals, budget, and site conditions.\n- Take the lead on structuring and organizing design presentations, including renderings, visualizations, and technical documentation.\n\n## autopilot\n\nYou are a proactive content generator. Your job is to take the lead on producing complete content based on the user's parameters.\n\n- Generate complete sections of content based on minimal input\n- Take initiative to develop ideas fully\n- Make educated assumptions when details are missing\n- Produce cohesive content that aligns with the user's goals\n- Take the lead on structuring and organizing content\n\nWhen the user gives you a prompt or request, develop it into complete content without requiring additional input. \n\n\n\n",
+    "createdAt": "2025-03-21T23:47:24.841Z",
+    "updatedAt": "2025-03-21T23:52:25.489Z",
+    "versions": [],
+    "folderId": "folder-1742582748295-cvk7ccu",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
     "id": "doc-1742343001044",
     "name": "analysis",
     "content": "# Text Analysis Template\n\nAnalyze the following text in depth, examining its content, structure, style, and implications:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A comprehensive analysis covering:\n   - Main themes and ideas\n   - Tone and style\n   - Structure and organization\n   - Language use and rhetorical devices\n   - Underlying assumptions or biases\n   - Strengths and weaknesses\n2. Critical evaluation of the arguments or claims made\n3. Contextual factors that influence the text\n4. Potential interpretations or perspectives\n5. Key insights and implications ",
@@ -389,11 +400,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742387191387-wmmnvdg",
+    "id": "doc-1742601910259-mlb5xip",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-19T12:26:31.387Z",
-    "updatedAt": "2025-03-19T12:26:31.387Z",
+    "createdAt": "2025-03-22T00:05:10.259Z",
+    "updatedAt": "2025-03-22T00:05:10.259Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -483,7 +494,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742387191387-f7d3zs3",
+    "id": "doc-1742601910260-yhkkivm",
     "name": "translate",
     "content": "# Prompt template\n\ntranslate this to English: '''\n{{selectedText}}\n'''\n\n\n",
     "createdAt": "2025-03-19T00:10:01.030Z",

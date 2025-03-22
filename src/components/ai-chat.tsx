@@ -6,7 +6,28 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Send, User, Bot, AtSign, X, FileText, ChevronDown, ChevronUp, Eraser, ArrowLeft, Bug, Copy, Check, RefreshCw, Maximize2, Minimize2, Save } from 'lucide-react';
+import { 
+  ArrowLeft,
+  AtSign,
+  Bot,
+  Bug, 
+  Check,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Copy, 
+  Eraser, 
+  FileText, 
+  Maximize2, 
+  Minimize2, 
+  Plane,
+  RefreshCw,
+  Save,
+  Send,
+  Sparkles, 
+  User, 
+  X 
+} from 'lucide-react';
 import { useDocumentStore, useLLMStore, useAIChatStore } from "@/lib/store";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
@@ -43,6 +64,7 @@ import {
 import AIDebugPanel from "@/components/ai-debug-panel";
 import { generateChatResponse, ChatMessage, ChatContextDocument } from "@/lib/llm-service";
 import { LLM_PROVIDERS, LLM_MODELS } from "@/lib/config";
+import { AIRoleSwitcher } from './ai-role-switcher';
 
 // Define color mapping for each model
 const MODEL_COLORS = {
@@ -1174,6 +1196,11 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Add AIRoleSwitcher here */}
+      <div className="px-3 pt-3">
+        <AIRoleSwitcher />
+      </div>
     </Card>
   );
 }

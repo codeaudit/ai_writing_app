@@ -12,6 +12,7 @@ import { cookies } from 'next/headers';
 import { formatDebugPrompt, logAIDebug } from '@/lib/ai-debug';
 import { OpenAI } from 'openai';
 import { LanguageModelV1ObjectGenerationMode } from 'ai';
+import { getAIRoleSystemPrompt, AIRole, DEFAULT_PROMPTS } from './ai-roles';
 
 // Import environment variables directly
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -36,6 +37,7 @@ interface LLMRequestOptions {
   maxTokens?: number;
   contextDocuments?: Array<{ title: string; content: string }>;
   stream?: boolean;
+  aiRole: string;
 }
 
 interface LLMResponse {
@@ -74,10 +76,22 @@ export interface ChatResponse {
   debugPrompt?: string;
 }
 
+// Helper function to get system message based on AI role
+async function getSystemMessageForRole(aiRole: string = 'assistant'): Promise<string> {
+  try {
+    // Get the system prompt from the API
+    return await getAIRoleSystemPrompt(aiRole);
+  } catch (error) {
+    console.error(`Error fetching system prompt for role "${aiRole}":`, error);
+    // Fall back to DEFAULT_PROMPTS if API fails
+    return DEFAULT_PROMPTS[aiRole as AIRole] || DEFAULT_PROMPTS.assistant;
+  }
+}
+
 // Main LLM service function
 export async function generateTextServerAction(options: LLMRequestOptions): Promise<LLMResponse> {
   const { config } = await getServerConfig();
-  const { provider, enableCache, temperature: configTemperature, maxTokens: configMaxTokens } = config;
+  const { provider, enableCache, temperature: configTemperature, maxTokens: configMaxTokens, aiRole = 'assistant' } = config;
   
   // Debug API key information
   logApiKeyInfo(provider);
@@ -92,8 +106,8 @@ export async function generateTextServerAction(options: LLMRequestOptions): Prom
     stream = false
   } = options;
   
-  // Build system message with context if provided
-  let systemMessage = 'You are a helpful writing assistant.';
+  // Set system message based on the AI role
+  const systemMessage = await getSystemMessageForRole(aiRole);
   
   let userPrompt: string = ""
   if (contextDocuments && contextDocuments.length > 0) {
@@ -314,7 +328,7 @@ function logApiKeyInfo(provider: string) {
 // Server action for chat functionality
 export async function generateChatResponse(request: ChatRequest): Promise<ChatResponse> {
   const { config } = await getServerConfig();
-  const { provider, enableCache, temperature: configTemperature, maxTokens: configMaxTokens } = config;
+  const { provider, enableCache, temperature: configTemperature, maxTokens: configMaxTokens, aiRole = 'assistant' } = config;
   
   // Debug API key information
   logApiKeyInfo(provider);
@@ -330,10 +344,10 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
   
   // Get the last user message
   const lastMessage = messages[messages.length - 1];
-  var userPrompt = ''
+  let userPrompt = '';
   
   // Build system message with context if provided
-  let systemMessage = 'You are a helpful writing assistant.';
+  const systemMessage = await getSystemMessageForRole(aiRole);
   
   if (context) {
     userPrompt += ` Use the following context to inform your responses: <context>${context}</context>`;

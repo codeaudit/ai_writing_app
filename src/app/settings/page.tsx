@@ -316,6 +316,54 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+            
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <Label htmlFor="max-tokens">Max Tokens: {maxTokens}</Label>
+              </div>
+              <Slider
+                id="max-tokens"
+                min={100}
+                max={4000}
+                step={100}
+                value={[maxTokens]}
+                onValueChange={(value) => setMaxTokens(value[0])}
+              />
+            </div>
+            
+            {/* AI Roles Configuration Section */}
+            <div className="mt-6 pt-6 border-t">
+              <h3 className="text-lg font-medium mb-4">AI Roles Configuration</h3>
+              <div className="space-y-4">
+                <div className="rounded-md border p-4 bg-card">
+                  <div className="flex flex-col space-y-2">
+                    <h4 className="text-sm font-medium">Customize AI Behavior</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Create, edit, and customize AI roles to control how the AI assistant behaves when interacting with you.
+                    </p>
+                    <div className="flex items-center mt-2">
+                      <Button
+                        onClick={() => router.push('/admin/ai-roles')}
+                        className="w-full"
+                      >
+                        Manage AI Roles
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-sm text-muted-foreground">
+                  <p>
+                    AI roles define how the AI assistant behaves and responds to your requests. You can create custom roles for different writing tasks or editing styles.
+                  </p>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Create new AI roles with custom behaviors</li>
+                    <li>Edit system prompts to control AI responses</li>
+                    <li>Switch between roles based on your current needs</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </CardContent>
           
           <CardFooter>

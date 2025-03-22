@@ -25,6 +25,7 @@ import {
 } from './config';
 import { fuzzySearch } from './search-utils';
 import { ChatMessage } from './llm-service';
+import { getAvailableAIRoles } from './ai-roles';
 
 export interface DocumentVersion {
   id: string;
@@ -1105,6 +1106,7 @@ interface LLMConfig {
   enableCache: boolean;
   temperature: number;
   maxTokens: number;
+  aiRole: string;
 }
 
 interface LLMStore {
@@ -1113,6 +1115,7 @@ interface LLMStore {
   getApiKey: () => string;
   loadServerConfig: () => Promise<void>;
   saveToCookies: () => void;
+  initializeAIRole: () => Promise<void>;
 }
 
 export const useLLMStore = create<LLMStore>()(
@@ -1127,6 +1130,7 @@ export const useLLMStore = create<LLMStore>()(
         enableCache: ENABLE_AI_CACHE,
         temperature: DEFAULT_TEMPERATURE || 0.7,
         maxTokens: DEFAULT_MAX_TOKENS || 1000,
+        aiRole: 'assistant', // Default role is assistant
       },
       updateConfig: (newConfig) => {
         set((state) => {
@@ -1139,6 +1143,7 @@ export const useLLMStore = create<LLMStore>()(
             enableCache: updatedConfig.enableCache,
             temperature: updatedConfig.temperature,
             maxTokens: updatedConfig.maxTokens,
+            aiRole: updatedConfig.aiRole,
           };
           
           // Set cookie if in browser environment
@@ -1151,70 +1156,96 @@ export const useLLMStore = create<LLMStore>()(
       },
       getApiKey: () => {
         const state = get();
-        const { provider, apiKey, googleApiKey, anthropicApiKey } = state.config;
+        const provider = state.config.provider;
         
         switch (provider) {
-          case 'gemini':
-            return googleApiKey || '';
-          case 'anthropic':
-            return anthropicApiKey || '';
           case 'openai':
+            return state.config.apiKey;
+          case 'gemini':
+            return state.config.googleApiKey || '';
+          case 'anthropic':
+            return state.config.anthropicApiKey || '';
           default:
-            return apiKey || '';
+            return state.config.apiKey;
         }
       },
       loadServerConfig: async () => {
-        // This is a placeholder for server-side config loading
-        // It will be implemented in the server action
-        return Promise.resolve();
+        try {
+          const response = await fetch('/api/config');
+          if (!response.ok) {
+            console.error('Failed to load server config');
+            return;
+          }
+          
+          const serverConfig = await response.json();
+          
+          if (serverConfig) {
+            set((state) => ({
+              config: {
+                ...state.config,
+                ...serverConfig,
+              }
+            }));
+          }
+        } catch (error) {
+          console.error('Error loading server config:', error);
+        }
       },
       saveToCookies: () => {
         const state = get();
-        const { 
-          provider, 
-          model, 
-          enableCache, 
-          temperature, 
-          maxTokens,
-          apiKey,
-          googleApiKey,
-          anthropicApiKey
-        } = state.config;
-        
-        // Create a config object without sensitive data for regular cookie
         const cookieConfig = {
-          provider,
-          model,
-          enableCache,
-          temperature,
-          maxTokens,
+          provider: state.config.provider,
+          model: state.config.model,
+          enableCache: state.config.enableCache,
+          temperature: state.config.temperature,
+          maxTokens: state.config.maxTokens,
+          aiRole: state.config.aiRole,
         };
         
         // Set cookie if in browser environment
         if (typeof document !== 'undefined') {
-          // Set the regular config cookie
           document.cookie = `llm-config=${JSON.stringify(cookieConfig)};path=/;max-age=2592000;SameSite=Lax`;
+        }
+      },
+      initializeAIRole: async () => {
+        try {
+          // Get available roles from the API
+          const availableRoles = await getAvailableAIRoles();
           
-          // Set API keys in separate HTTP-only cookies for server-side access
-          // These will be set by a server action to ensure they're HTTP-only
-          fetch('/api/set-api-keys', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              openaiKey: apiKey,
-              googleKey: googleApiKey,
-              anthropicKey: anthropicApiKey,
-            }),
-          }).catch(err => {
-            console.error('Failed to set API key cookies:', err);
-          });
+          // If current aiRole is not in available roles, set to default (first available role or 'assistant')
+          const currentRole = get().config.aiRole;
+          
+          if (availableRoles.length > 0 && !availableRoles.includes(currentRole)) {
+            set((state) => ({
+              config: {
+                ...state.config,
+                aiRole: availableRoles[0] || 'assistant',
+              }
+            }));
+            
+            // Also update cookies
+            get().saveToCookies();
+          }
+        } catch (error) {
+          console.error('Error initializing AI role:', error);
         }
       }
     }),
     {
-      name: 'llm-store',
+      name: 'llm-storage',
+      partialize: (state) => ({ 
+        config: {
+          provider: state.config.provider,
+          apiKey: state.config.apiKey,
+          model: state.config.model,
+          googleApiKey: state.config.googleApiKey,
+          anthropicApiKey: state.config.anthropicApiKey,
+          enableCache: state.config.enableCache,
+          temperature: state.config.temperature,
+          maxTokens: state.config.maxTokens,
+          aiRole: state.config.aiRole,
+        }
+      }),
     }
   )
 );

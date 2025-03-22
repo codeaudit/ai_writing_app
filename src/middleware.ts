@@ -4,6 +4,14 @@ import { config } from './middleware.config';
 
 // This middleware handles AI session management using Vercel KV
 export async function middleware(req: NextRequest) {
+  // Skip middleware processing for API routes that don't need session management
+  const url = req.nextUrl.pathname;
+  
+  // For AI roles API routes, we don't need session management
+  if (url.startsWith('/api/ai-roles')) {
+    return NextResponse.next();
+  }
+  
   // Get or create session ID from cookies
   const sessionId = req.cookies.get('ai-session-id')?.value || generateSessionId();
   
