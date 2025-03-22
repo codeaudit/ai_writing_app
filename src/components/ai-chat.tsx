@@ -162,7 +162,19 @@ const hasRole = (message: EnhancedChatMessage, role: string): boolean => {
 export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIChatProps) {
   const { documents } = useDocumentStore();
   const { config, updateConfig } = useLLMStore();
-  const { messages, setMessages, addMessage, clearMessages } = useAIChatStore();
+  const { 
+    messages, 
+    setMessages, 
+    addMessage, 
+    clearMessages,
+    messageHistory,
+    setMessageHistory,
+    updateMessageHistory,
+    activeResponseVersion,
+    setActiveResponseVersion: setGlobalActiveResponseVersion,
+    updateActiveResponseVersion,
+    clearMessageHistory
+  } = useAIChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -178,55 +190,11 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const [composerContextFiles, setComposerContextFiles] = useState<Array<{id: string; name: string}>>([]);
   
-  // For message history - ensure empty objects are initialized
-  const [messageHistory, setMessageHistory] = useState<Record<string, EnhancedChatMessage[]>>({});
-  const [activeResponseVersion, setActiveResponseVersion] = useState<Record<string, number>>({});
-  
   // Debug messages for development
   useEffect(() => {
     console.log("Message history state:", messageHistory);
     console.log("Active response versions:", activeResponseVersion);
   }, [messageHistory, activeResponseVersion]);
-  
-  // Load message history and active versions from localStorage when component mounts
-  useEffect(() => {
-    try {
-      const savedMessageHistory = localStorage.getItem('aiChatMessageHistory');
-      const savedActiveVersions = localStorage.getItem('aiChatActiveVersions');
-      
-      if (savedMessageHistory) {
-        console.log('Loading message history from localStorage');
-        setMessageHistory(JSON.parse(savedMessageHistory));
-      }
-      
-      if (savedActiveVersions) {
-        console.log('Loading active versions from localStorage');
-        setActiveResponseVersion(JSON.parse(savedActiveVersions));
-      }
-    } catch (error) {
-      console.error('Error loading message history or active versions:', error);
-    }
-  }, []);
-
-  // Save message history and active versions to localStorage whenever they change
-  useEffect(() => {
-    try {
-      console.log('Saving message history to localStorage');
-      localStorage.setItem('aiChatMessageHistory', JSON.stringify(messageHistory));
-    } catch (error) {
-      console.error('Error saving message history:', error);
-    }
-  }, [messageHistory]);
-  
-  // Save active versions to localStorage whenever they change
-  useEffect(() => {
-    try {
-      console.log('Saving active versions to localStorage');
-      localStorage.setItem('aiChatActiveVersions', JSON.stringify(activeResponseVersion));
-    } catch (error) {
-      console.error('Error saving active versions:', error);
-    }
-  }, [activeResponseVersion]);
   
   // Autocomplete state
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -748,6 +716,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   const handleClearChat = () => {
     setShowClearConfirmation(false);
     clearMessages();
+    clearMessageHistory(); // Also clear message history
     toast({
       title: "Chat cleared",
       description: "All chat messages have been cleared.",
@@ -856,40 +825,31 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         
         // NOW update the message history with both the original and new messages
         // This is the only place where we update message history in this function
-        setMessageHistory(prev => {
-          const updatedHistory = {...prev};
+        const updatedHistory = [...(messageHistory[messageId] || [])];
+        
+        // First, check if we had a previous assistant response
+        if (originalAssistantMessage) {
+          // Check if the history already contains the original message pair
+          const containsOriginalMessage = updatedHistory.some(
+            msg => msg.id === originalMessage.id && msg.content === originalMessage.content
+          );
           
-          // First, check if we had a previous assistant response
-          if (originalAssistantMessage) {
-            // We had an existing message pair - add both the original and new pairs
-            if (!updatedHistory[messageId]) {
-              // First time editing this message, initialize with the original pair first
-              updatedHistory[messageId] = [originalMessage, originalAssistantMessage];
-              console.log("Created history entry with original and edited messages:", updatedHistory[messageId]);
-            } else {
-              // Not the first regeneration - just add the original pair, as it might not be there yet
-              const containsOriginalMessage = updatedHistory[messageId].some(
-                msg => msg.id === originalMessage.id && msg.content === originalMessage.content
-              );
-              
-              if (!containsOriginalMessage) {
-                // Only add the original message pair if it's not already in the history
-                updatedHistory[messageId] = [...updatedHistory[messageId], originalMessage, originalAssistantMessage];
-                console.log("Added original message pair to history:", updatedHistory[messageId]);
-              }
-            }
+          if (!containsOriginalMessage) {
+            // Add the original message pair if it's not already there
+            updatedHistory.push(originalMessage, originalAssistantMessage);
           }
-          
-          // Then, add the new edited message and response at the beginning
-          // This ensures the most recent is always first, no matter what
-          updatedHistory[messageId] = [updatedMessage, assistantMessage, ...updatedHistory[messageId]];
-          console.log("Added new message pair to history:", updatedHistory[messageId]);
-          
-          return updatedHistory;
-        });
+        }
+        
+        // Then, add the new edited message and response at the beginning
+        // This ensures the most recent is always first
+        updatedHistory.unshift(updatedMessage, assistantMessage);
+        
+        // Update message history
+        updateMessageHistory(messageId, updatedHistory);
+        console.log("Updated message history:", messageHistory);
         
         // Reset active version counter to 0 (most recent)
-        setActiveResponseVersion(prev => ({...prev, [messageId]: 0}));
+        updateActiveResponseVersion(messageId, 0);
         
         // Add the message to the chat
         addMessage(assistantMessage as ChatMessage);
@@ -910,82 +870,61 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     }
   };
   
-  // Function to navigate to previous versions of a response
-  const handleNavigateHistory = (messageId: string | undefined, direction: 'prev' | 'next') => {
-    // Check if messageId is defined
-    if (!messageId) return;
+  // Function to browse message history for a given message ID
+  const browseMessageHistory = (messageId: string, direction: 'prev' | 'next') => {
+    console.log("Browse history called for message ID:", messageId);
     
-    console.log(`Starting navigation for message ${messageId}, direction: ${direction}`);
-    
-    // Get current active version and history
-    const currentVersion = activeResponseVersion[messageId] || 0;
-    const msgHistory = messageHistory[messageId];
-    
-    console.log(`Current version: ${currentVersion}`);
-    console.log(`Message history length: ${msgHistory?.length || 0}`);
-    
-    // If no history exists, exit
-    if (!msgHistory || msgHistory.length === 0) {
-      console.log("No history found for message ID:", messageId);
+    if (!messageHistory[messageId]) {
+      console.log("No message history found for this message");
       return;
     }
     
-    // Calculate history pairs (user + assistant messages)
-    const historyPairs = Math.floor(msgHistory.length / 2);
-    console.log(`Message has ${historyPairs} history pairs`);
+    // Get current version index
+    const currentVersion = activeResponseVersion[messageId] || 0;
+    console.log("Current version:", currentVersion);
     
     // Calculate new version based on direction
-    let newVersion;
+    let newVersion = currentVersion;
+    
     if (direction === 'prev') {
-      newVersion = currentVersion < historyPairs - 1 ? currentVersion + 1 : currentVersion;
-      console.log(`Trying to navigate to older version: ${currentVersion} -> ${newVersion}`);
-    } else { // next
-      newVersion = currentVersion > 0 ? currentVersion - 1 : 0;
-      console.log(`Trying to navigate to newer version: ${currentVersion} -> ${newVersion}`);
+      // Going back in history (to an older version)
+      newVersion = Math.min(currentVersion + 1, (messageHistory[messageId].length / 2) - 1);
+    } else {
+      // Going forward in history (to a newer version)
+      newVersion = Math.max(currentVersion - 1, 0);
     }
     
-    // If no change, exit
+    console.log("New version:", newVersion);
+    
     if (newVersion === currentVersion) {
-      console.log("Version did not change, exiting navigator");
+      console.log("Already at the limit of history");
       return;
     }
     
-    console.log(`Navigating from version ${currentVersion} to ${newVersion}`);
-    
-    // Update active version
-    setActiveResponseVersion(prev => {
-      const updated = {...prev, [messageId]: newVersion};
-      console.log("Updated active versions:", updated);
-      return updated;
-    });
-    
-    // Find the message in the UI
+    // Find the message in the current messages list
     const messageIndex = messages.findIndex(m => m.id === messageId);
     if (messageIndex === -1) {
-      console.error(`Message ID ${messageId} not found in messages list`);
+      console.log("Message not found in current messages list");
       return;
     }
     
-    if (messageIndex + 1 >= messages.length) {
-      console.error(`No assistant message after message at index ${messageIndex}`);
+    // Calculate indices in the history array
+    // Each version consists of a user message and an assistant message
+    const historyUserIndex = newVersion * 2;
+    const historyAssistantIndex = historyUserIndex + 1;
+    
+    // Make sure we have both messages
+    if (!messageHistory[messageId][historyUserIndex] || !messageHistory[messageId][historyAssistantIndex]) {
+      console.log("Missing user or assistant message in history");
       return;
     }
     
-    // Calculate index in the history array (which stores [user1, assistant1, user2, assistant2, ...])
-    const pairIndex = newVersion * 2;
+    // Get the historical messages
+    const historicalUserMsg = messageHistory[messageId][historyUserIndex] as EnhancedChatMessage;
+    const historicalAssistantMsg = messageHistory[messageId][historyAssistantIndex] as EnhancedChatMessage;
     
-    if (pairIndex < 0 || pairIndex + 1 >= msgHistory.length) {
-      console.error(`Invalid history index: ${pairIndex} for history of length ${msgHistory.length}`);
-      return;
-    }
-    
-    const historicalUserMsg = msgHistory[pairIndex]; // user message
-    const historicalAssistantMsg = msgHistory[pairIndex + 1]; // assistant message
-    
-    if (!historicalUserMsg || !historicalAssistantMsg) {
-      console.error("Missing message in history");
-      return;
-    }
+    // Update active version
+    updateActiveResponseVersion(messageId, newVersion);
     
     console.log("Retrieved historical messages:", {
       user: historicalUserMsg.content.substring(0, 20) + "...",
@@ -1501,7 +1440,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                                   variant="ghost"
                                   size="icon"
                                   className="h-5 w-5"
-                                  onClick={() => handleNavigateHistory(prevMessageId, 'prev')}
+                                  onClick={() => browseMessageHistory(prevMessageId, 'prev')}
                                   title="View older version"
                                   disabled={!hasOlderVersions}
                                 >
@@ -1516,7 +1455,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                                   variant="ghost"
                                   size="icon"
                                   className="h-5 w-5"
-                                  onClick={() => handleNavigateHistory(prevMessageId, 'next')}
+                                  onClick={() => browseMessageHistory(prevMessageId, 'next')}
                                   title="View newer version"
                                   disabled={!hasNewerVersions}
                                 >

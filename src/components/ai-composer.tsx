@@ -1,16 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDocumentStore } from "@/lib/store";
 import AIChat from './ai-chat';
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
 
-interface AIComposerProps {}
+interface AIComposerProps {
+  onMount?: () => void;
+}
 
-export default function AIComposer({}: AIComposerProps) {
+export default function AIComposer({ onMount }: AIComposerProps) {
   const { documents, selectedDocumentId, updateDocument } = useDocumentStore();
   const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (onMount) {
+      onMount();
+    }
+  }, [onMount]);
 
   // Get the selected document
   const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);

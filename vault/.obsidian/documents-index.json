@@ -310,7 +310,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742672406916-jk24s7g",
+    "id": "doc-1742673015206-6xvxk8l",
     "name": "add_evidence",
     "content": "# Add Supporting Evidence Template\n\nStrengthen the following text by adding relevant supporting evidence, examples, statistics, or expert opinions:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. The original text with supporting evidence or examples integrated naturally\n2. A mix of different types of evidence (statistics, research findings, case studies, expert quotes)\n3. Citations or sources for the evidence when appropriate\n4. Clear connections between the evidence and the claims being supported\n5. Proper transitions to introduce the supporting material\n6. A brief explanation of how the evidence strengthens the overall argument ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -454,7 +454,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742672406917-5aifamd",
+    "id": "doc-1742673015208-q9nolig",
     "name": "improve_flow",
     "content": "# Improve Paragraph Transitions and Flow Template\n\nEnhance the following text by improving transitions between paragraphs and creating a smoother flow of ideas:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A revised version with improved transitions between paragraphs and sentences\n2. Natural connections between ideas that guide the reader through the text\n3. Consistent progression of thought that builds logically from beginning to end\n4. Elimination of any abrupt shifts or disconnected sections\n5. Appropriate transition words and phrases where needed (e.g., \"furthermore,\" \"in contrast,\" \"consequently\")\n6. A brief explanation of how the improved flow enhances readability and coherence ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -508,11 +508,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742672406917-md7r1m8",
+    "id": "doc-1742673015209-k35inok",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-22T19:40:06.917Z",
-    "updatedAt": "2025-03-22T19:40:06.917Z",
+    "createdAt": "2025-03-22T19:50:15.209Z",
+    "updatedAt": "2025-03-22T19:50:15.209Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -638,7 +638,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742672406917-57lgjev",
+    "id": "doc-1742673015212-w1ze6fh",
     "name": "translate",
     "content": "# Prompt template\n\ntranslate this to English: '''\n{{selectedText}}\n'''\n\n\n",
     "createdAt": "2025-03-19T00:10:01.030Z",

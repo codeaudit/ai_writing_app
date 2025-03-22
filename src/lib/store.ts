@@ -1252,18 +1252,44 @@ export const useLLMStore = create<LLMStore>()(
 
 interface AIChatStore {
   messages: ChatMessage[];
+  messageHistory: Record<string, EnhancedChatMessage[]>;
+  activeResponseVersion: Record<string, number>;
   setMessages: (messages: ChatMessage[]) => void;
   addMessage: (message: ChatMessage) => void;
   clearMessages: () => void;
+  setMessageHistory: (messageHistory: Record<string, EnhancedChatMessage[]>) => void;
+  updateMessageHistory: (messageId: string, messages: EnhancedChatMessage[]) => void;
+  setActiveResponseVersion: (activeVersion: Record<string, number>) => void;
+  updateActiveResponseVersion: (messageId: string, version: number) => void;
+  clearMessageHistory: () => void;
 }
 
 export const useAIChatStore = create<AIChatStore>()(
   persist(
     (set) => ({
       messages: [],
+      messageHistory: {},
+      activeResponseVersion: {},
       setMessages: (messages) => set({ messages }),
       addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
       clearMessages: () => set({ messages: [] }),
+      setMessageHistory: (messageHistory) => set({ messageHistory }),
+      updateMessageHistory: (messageId, messages) => 
+        set((state) => ({
+          messageHistory: {
+            ...state.messageHistory,
+            [messageId]: messages,
+          }
+        })),
+      setActiveResponseVersion: (activeResponseVersion) => set({ activeResponseVersion }),
+      updateActiveResponseVersion: (messageId, version) =>
+        set((state) => ({
+          activeResponseVersion: {
+            ...state.activeResponseVersion,
+            [messageId]: version,
+          }
+        })),
+      clearMessageHistory: () => set({ messageHistory: {}, activeResponseVersion: {} }),
     }),
     {
       name: 'ai-chat-storage',

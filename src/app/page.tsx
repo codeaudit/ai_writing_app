@@ -68,6 +68,9 @@ export default function Home() {
 
   // Inside the Home component, add a state for the right panel tab
   const [rightPanelTab, setRightPanelTab] = useState("ai");
+  
+  // AIComposer state reference - will be preserved even when component is not visible
+  const [aiComposerMounted, setAiComposerMounted] = useState(false);
 
   // Handle client-side mounting
   useEffect(() => {
@@ -343,6 +346,14 @@ export default function Home() {
   return (
     <main className="flex flex-col h-screen overflow-hidden">
       {isMounted && <AboutSplash isOpen={showAboutSplash} onClose={() => setShowAboutSplash(false)} />}
+      
+      {/* Always mount AIComposer but keep it hidden when not visible */}
+      {isMounted && !aiComposerMounted && (
+        <div className="hidden">
+          <AIComposer />
+        </div>
+      )}
+      
       <header className="border-b p-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Button 
@@ -583,7 +594,7 @@ export default function Home() {
                         </div>
                         <TabsContent value="ai" className="p-0 flex-1 overflow-hidden">
                           <div className="p-4 h-full overflow-auto">
-                            <AIComposer />
+                            <AIComposer key="aiComposer" onMount={() => setAiComposerMounted(true)} />
                           </div>
                         </TabsContent>
                         <TabsContent value="compositions" className="p-0 flex-1 overflow-hidden">
