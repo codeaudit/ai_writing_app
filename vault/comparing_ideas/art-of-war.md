@@ -2,7 +2,7 @@
 id: doc-1742376077709
 name: art-of-war
 createdAt: '2025-03-19T09:21:17.709Z'
-updatedAt: '2025-03-19T09:28:26.552Z'
+updatedAt: '2025-03-22T20:24:38.951Z'
 versions:
   - id: ver-1742376077709-initial
     createdAt: '2025-03-19T09:21:17.709Z'
@@ -39,3 +39,5 @@ While *The Art of War* focuses on military strategy, its principles can be appli
 *   **Political Campaigns:** Strategy, messaging, and understanding your opponent are all crucial for success in political campaigns.
 
 In conclusion, *The Art of War* is a timeless classic that offers valuable insights into strategy, planning, and leadership. Its principles can be applied to a wide range of situations, making it a relevant and insightful read for anyone seeking to achieve their goals. It's about winning without fighting, about achieving your objectives with the least amount of conflict and disruption.
+
+

@@ -2,7 +2,7 @@
 id: doc-1742662140463
 name: art_of_war_chapt
 createdAt: '2025-03-22T16:49:00.463Z'
-updatedAt: '2025-03-22T19:34:42.025Z'
+updatedAt: '2025-03-22T21:13:54.707Z'
 versions:
   - id: ver-1742662140463-initial
     createdAt: '2025-03-22T16:49:00.463Z'
@@ -10,6 +10,10 @@ versions:
 annotations: []
 ---
 # art_of_war_chapt
+
+test
+
+Okay, I'm ready to help! Please share the text you would like me to review. I can help with grammar, clarity, style, and more. Just let me know what you'd like me to focus on.
 
 Start writing here...Okay, I can help with that! To give you the best possible description of Chapter 1 of *The Art of War*, tell me what you're looking for. For example, are you writing:
 
