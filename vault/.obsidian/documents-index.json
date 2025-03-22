@@ -158,9 +158,9 @@
   {
     "id": "doc-1742662140463",
     "name": "art_of_war_chapt",
-    "content": "# art_of_war_chapt\n\nStart writing here...Okay, I can help with that! To give you the best possible description of Chapter 1 of *The Art of War*, tell me what you're looking for. For example, are you writing:\n\n*   **A summary for someone unfamiliar with the book?** I'll focus on the main points and purpose of the chapter.\n*   **An analysis of Sun Tzu's key arguments?** I'll delve into the chapter's strategic thinking.\n*   **A creative retelling or interpretation?** I'll try to capture the chapter's essence in a more imaginative way.\n\nOnce I know your goal, I can tailor the description to your specific needs.\n\n",
+    "content": "# art_of_war_chapt\n\nStart writing here...Okay, I can help with that! To give you the best possible description of Chapter 1 of *The Art of War*, tell me what you're looking for. For example, are you writing:\n\n*   **A summary for someone unfamiliar with the book?** I'll focus on the main points and purpose of the chapter.\n*   **An analysis of Sun Tzu's key arguments?** I'll delve into the chapter's strategic thinking.\n*   **A creative retelling or interpretation?** I'll try to capture the chapter's essence in a more imaginative way.\n\nOnce I know your goal, I can tailor the description to your specific needs.\n\nI'm here to help you describe Chapter 3 of \"The Art of War\" by Sun Tzu. Here's a brief summary and some key points:\n\n**Chapter 3: Strategic Attack**\n\nThis chapter discusses the importance of strategy and planning in warfare. Sun Tzu emphasizes that the ultimate skill in warfare is to win without fighting, by outmaneuvering the enemy with superior strategy. Here are some key points:\n\n1. **Victory without battle**: Sun Tzu argues that the best way to win is to avoid fighting altogether. This can be achieved through superior strategy, diplomacy, or other means.\n\n2. **Know your enemy and yourself**: To develop a winning strategy, one must understand both their own strengths and weaknesses, as well as those of the enemy.\n\n3. **Deception and surprise**: Sun Tzu advises using deception and surprise tactics to keep the enemy off-balance and unaware of your true intentions.\n\n4. **Adaptability**: A good strategist can adapt to changing circumstances and turn potential disadvantages into advantages.\n\n5. **The importance of speed and timing**: Sun Tzu emphasizes the importance of acting quickly and at the right time to catch the enemy off guard.\n\n6. **The role of the general**: The general must be wise, courageous, and adaptable, with a deep understanding of strategy and the ability to inspire their troops.\n\nPlease ask if you have specific questions about this chapter or need help with something else related to \"The Art of War.\" I'm here to provide suggestions and feedback as requested.Okay, I'm ready to help! Please provide the text for Chapter 2 of *The Art of War* so I can offer feedback. I can help with:\n\n*   **Summarizing the main points:** I can help you identify the key arguments and ideas.\n*   **Analyzing the structure:** I can comment on how the chapter is organized.\n*   **Clarifying confusing passages:** If there are any parts that are difficult to understand, I can help break them down.\n*   **Improving the writing:** I can offer suggestions for grammar, style, and clarity.\n\nI look forward to reading the chapter!\nOkay, I can help with that! To give you the best description of Chapter 1 of *The Art of War*, I need a little more direction.  Tell me, what specifically are you looking for? For example, are you interested in:\n\n*   **A general overview of the chapter's main topics?** (e.g., strategy, planning, etc.)\n*   **A summary of Sun Tzu's key arguments or points?**\n*   **The chapter's focus on assessing a situation before engaging in conflict?**\n*   **How the chapter sets the stage for the rest of the book?**\n\nOnce I know what you're looking for, I can provide a more tailored and helpful description.\n",
     "createdAt": "2025-03-22T16:49:00.463Z",
-    "updatedAt": "2025-03-22T16:49:12.926Z",
+    "updatedAt": "2025-03-22T19:34:42.025Z",
     "versions": [
       {
         "id": "ver-1742662140463-initial",
@@ -310,7 +310,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742662591523-3i10ytm",
+    "id": "doc-1742672406916-jk24s7g",
     "name": "add_evidence",
     "content": "# Add Supporting Evidence Template\n\nStrengthen the following text by adding relevant supporting evidence, examples, statistics, or expert opinions:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. The original text with supporting evidence or examples integrated naturally\n2. A mix of different types of evidence (statistics, research findings, case studies, expert quotes)\n3. Citations or sources for the evidence when appropriate\n4. Clear connections between the evidence and the claims being supported\n5. Proper transitions to introduce the supporting material\n6. A brief explanation of how the evidence strengthens the overall argument ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -454,7 +454,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742662591524-gkjpqbq",
+    "id": "doc-1742672406917-5aifamd",
     "name": "improve_flow",
     "content": "# Improve Paragraph Transitions and Flow Template\n\nEnhance the following text by improving transitions between paragraphs and creating a smoother flow of ideas:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A revised version with improved transitions between paragraphs and sentences\n2. Natural connections between ideas that guide the reader through the text\n3. Consistent progression of thought that builds logically from beginning to end\n4. Elimination of any abrupt shifts or disconnected sections\n5. Appropriate transition words and phrases where needed (e.g., \"furthermore,\" \"in contrast,\" \"consequently\")\n6. A brief explanation of how the improved flow enhances readability and coherence ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -508,11 +508,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742662591525-js8phaj",
+    "id": "doc-1742672406917-md7r1m8",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-22T16:56:31.525Z",
-    "updatedAt": "2025-03-22T16:56:31.525Z",
+    "createdAt": "2025-03-22T19:40:06.917Z",
+    "updatedAt": "2025-03-22T19:40:06.917Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -638,7 +638,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742662591525-zpufyl1",
+    "id": "doc-1742672406917-57lgjev",
     "name": "translate",
     "content": "# Prompt template\n\ntranslate this to English: '''\n{{selectedText}}\n'''\n\n\n",
     "createdAt": "2025-03-19T00:10:01.030Z",

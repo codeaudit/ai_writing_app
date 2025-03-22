@@ -188,6 +188,46 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     console.log("Active response versions:", activeResponseVersion);
   }, [messageHistory, activeResponseVersion]);
   
+  // Load message history and active versions from localStorage when component mounts
+  useEffect(() => {
+    try {
+      const savedMessageHistory = localStorage.getItem('aiChatMessageHistory');
+      const savedActiveVersions = localStorage.getItem('aiChatActiveVersions');
+      
+      if (savedMessageHistory) {
+        console.log('Loading message history from localStorage');
+        setMessageHistory(JSON.parse(savedMessageHistory));
+      }
+      
+      if (savedActiveVersions) {
+        console.log('Loading active versions from localStorage');
+        setActiveResponseVersion(JSON.parse(savedActiveVersions));
+      }
+    } catch (error) {
+      console.error('Error loading message history or active versions:', error);
+    }
+  }, []);
+
+  // Save message history and active versions to localStorage whenever they change
+  useEffect(() => {
+    try {
+      console.log('Saving message history to localStorage');
+      localStorage.setItem('aiChatMessageHistory', JSON.stringify(messageHistory));
+    } catch (error) {
+      console.error('Error saving message history:', error);
+    }
+  }, [messageHistory]);
+  
+  // Save active versions to localStorage whenever they change
+  useEffect(() => {
+    try {
+      console.log('Saving active versions to localStorage');
+      localStorage.setItem('aiChatActiveVersions', JSON.stringify(activeResponseVersion));
+    } catch (error) {
+      console.error('Error saving active versions:', error);
+    }
+  }, [activeResponseVersion]);
+  
   // Autocomplete state
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(0);

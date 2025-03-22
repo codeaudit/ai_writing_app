@@ -117,30 +117,23 @@ export default function AIComposer({}: AIComposerProps) {
     setIsExpanded(!isExpanded);
   };
 
-  if (isExpanded) {
-    return (
-      <div className={cn(
-        "fixed inset-0 bg-background z-50 flex flex-col",
-        "transition-all duration-300 ease-in-out"
-      )}>
-        <div className="flex-1 overflow-auto">
-          <AIChat 
-            onInsertText={handleInsertText}
-            isExpanded={isExpanded}
-            onToggleExpand={toggleExpand}
-          />
-        </div>
-      </div>
-    );
-  }
-
+  // Instead of conditionally rendering completely different elements,
+  // use a single container with conditional styling to prevent unmounting
   return (
-    <div className="h-full flex flex-col">
-      <AIChat 
-        onInsertText={handleInsertText}
-        isExpanded={isExpanded}
-        onToggleExpand={toggleExpand}
-      />
+    <div className={cn(
+      "flex flex-col", 
+      isExpanded ? "fixed inset-0 bg-background z-50" : "h-full"
+    )}>
+      <div className={cn(
+        "flex-1 overflow-auto",
+        isExpanded ? "" : "h-full"
+      )}>
+        <AIChat 
+          onInsertText={handleInsertText}
+          isExpanded={isExpanded}
+          onToggleExpand={toggleExpand}
+        />
+      </div>
     </div>
   );
 } 
