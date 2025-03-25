@@ -23,6 +23,7 @@ export const LLM_PROVIDERS = [
   { value: 'openrouter', label: 'OpenRouter' },
   { value: 'anthropic', label: 'Anthropic Claude' },
   { value: 'gemini', label: 'Google Gemini' },
+  { value: 'featherless', label: 'Featherless AI' },
 ];
 
 // LLM Model Options by Provider
@@ -55,4 +56,9 @@ export const LLM_MODELS = {
     { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite' },
     { value: 'gemini-2.0-flash-thinking-exp-01-21', label: 'Gemini 2.0 Flash Thinking' },
   ],
+  featherless : [
+    { value: 'featherless-ai/Qwerky-72B', label: 'Qwerky 72B' },
+    { value: 'featherless-ai/Qwerky-QwQ-32B', label: 'Qwerky QwQ 32B' },
+  ],
+
 }; 

@@ -19,6 +19,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || ''
 
 // Create OpenRouter client
 const openRouterClient = new OpenAI({
@@ -28,6 +29,17 @@ const openRouterClient = new OpenAI({
     'HTTP-Referer': 'https://github.com/yourusername/writing_app',
     'X-Title': 'Writing App'
   }
+});
+
+// Create Featherless client
+const featherlessClient = new OpenAI({
+  apiKey: FEATHERLESS_API_KEY,
+  baseURL: 'https://api.featherless.ai/v1'
+});
+
+// Create OpenAI client
+const openaiClient = new OpenAI({
+  apiKey: OPENAI_API_KEY
 });
 
 interface LLMRequestOptions {
@@ -196,6 +208,139 @@ export async function generateTextServerAction(options: LLMRequestOptions): Prom
           }
         };
         break;
+      case 'featherless':
+        // Use standard OpenAI client with Featherless model format
+        baseModel = {
+          provider: 'featherless',
+          specificationVersion: 'v1' as const,
+          modelId: modelName,
+          defaultObjectGenerationMode: 'text' as LanguageModelV1ObjectGenerationMode,
+          async doGenerate(options: any) {
+            const { prompt, temperature = 0.7, maxTokens = 4096 } = options;
+            const messages = typeof prompt === 'string' 
+              ? [{ role: 'user', content: prompt }]
+              : prompt.map((msg: any) => ({
+                  role: msg.role,
+                  content: Array.isArray(msg.content) 
+                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
+                    : msg.content
+                }));
+                
+            try {
+              // Add system message if none exists
+              if (!messages.some((msg: any) => msg.role === 'system')) {
+                messages.unshift({
+                  role: 'system',
+                  content: 'You are a helpful assistant.'
+                });
+              }
+              
+              // Use the Featherless client
+              const response = await featherlessClient.chat.completions.create({
+                model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
+                messages,
+                temperature,
+                max_tokens: Math.min(maxTokens, 4096), // Limit max tokens to 4096
+              });
+
+              return {
+                text: response.choices[0]?.message?.content ?? '',
+                model: modelName,
+                provider: 'featherless',
+                finishReason: response.choices[0]?.finish_reason ?? 'stop',
+                usage: {
+                  promptTokens: response.usage?.prompt_tokens ?? 0,
+                  completionTokens: response.usage?.completion_tokens ?? 0
+                }
+              };
+            } catch (error: any) {
+              console.error(`Featherless API error: ${error.message}`, error);
+              // If we get a validation error, try with fewer tokens
+              if (error.status === 422) {
+                try {
+                  const response = await featherlessClient.chat.completions.create({
+                    model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
+                    messages,
+                    temperature,
+                    max_tokens: 2048, // Reduce max tokens as fallback
+                  });
+                  
+                  return {
+                    text: response.choices[0]?.message?.content ?? '',
+                    model: modelName,
+                    provider: 'featherless',
+                    finishReason: response.choices[0]?.finish_reason ?? 'stop',
+                    usage: {
+                      promptTokens: response.usage?.prompt_tokens ?? 0,
+                      completionTokens: response.usage?.completion_tokens ?? 0
+                    }
+                  };
+                } catch (retryError: any) {
+                  console.error(`Featherless API retry failed: ${retryError.message}`);
+                  throw retryError;
+                }
+              }
+              throw error;
+            }
+          },
+          async doStream(options: any) {
+            const { prompt, temperature = 0.7, maxTokens = 4096 } = options;
+            const messages = typeof prompt === 'string' 
+              ? [{ role: 'user', content: prompt }]
+              : prompt.map((msg: any) => ({
+                  role: msg.role,
+                  content: Array.isArray(msg.content) 
+                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
+                    : msg.content
+                }));
+
+            try {
+              // Add system message if none exists
+              if (!messages.some((msg: any) => msg.role === 'system')) {
+                messages.unshift({
+                  role: 'system',
+                  content: 'You are a helpful assistant.'
+                });
+              }
+              
+              // Use the Featherless client
+              const stream = await featherlessClient.chat.completions.create({
+                model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
+                messages,
+                temperature,
+                max_tokens: Math.min(maxTokens, 4096), // Limit max tokens to 4096
+                stream: true
+              });
+
+              return {
+                stream: stream.toReadableStream()
+              };
+            } catch (error: any) {
+              console.error(`Featherless API streaming error: ${error.message}`, error);
+              // If we get a validation error, try with fewer tokens
+              if (error.status === 422) {
+                try {
+                  const stream = await featherlessClient.chat.completions.create({
+                    model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
+                    messages,
+                    temperature,
+                    max_tokens: 2048, // Reduce max tokens as fallback
+                    stream: true
+                  });
+                  
+                  return {
+                    stream: stream.toReadableStream()
+                  };
+                } catch (retryError: any) {
+                  console.error(`Featherless API streaming retry failed: ${retryError.message}`);
+                  throw retryError;
+                }
+              }
+              throw error;
+            }
+          }
+        };
+        break;
       case 'openai':
       default:
         // Set the API key for OpenAI
@@ -297,12 +442,14 @@ async function getServerConfig() {
   const openaiKeyCookie = cookieStore.get('openai-api-key');
   const googleKeyCookie = cookieStore.get('google-api-key');
   const anthropicKeyCookie = cookieStore.get('anthropic-api-key');
+  const featherlessKeyCoookie = cookieStore.get('featherless-api-key');
   
   // Always use environment API keys for server-side operations
   config.apiKeys = {
     openai: openaiKeyCookie?.value || OPENAI_API_KEY,
     anthropic: anthropicKeyCookie?.value || ANTHROPIC_API_KEY,
-    google: googleKeyCookie?.value || GOOGLE_API_KEY
+    google: googleKeyCookie?.value || GOOGLE_API_KEY,
+    featherless:  featherlessKeyCoookie?.value || FEATHERLESS_API_KEY
   };
   
   return { config };
@@ -445,6 +592,139 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
             return {
               stream: stream.toReadableStream()
             };
+          }
+        };
+        break;
+      case 'featherless':
+        // Use standard OpenAI client with Featherless model format
+        baseModel = {
+          provider: 'featherless',
+          specificationVersion: 'v1' as const,
+          modelId: modelName,
+          defaultObjectGenerationMode: 'text' as LanguageModelV1ObjectGenerationMode,
+          async doGenerate(options: any) {
+            const { prompt, temperature = 0.7, maxTokens = 4096 } = options;
+            const messages = typeof prompt === 'string' 
+              ? [{ role: 'user', content: prompt }]
+              : prompt.map((msg: any) => ({
+                  role: msg.role,
+                  content: Array.isArray(msg.content) 
+                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
+                    : msg.content
+                }));
+                
+            try {
+              // Add system message if none exists
+              if (!messages.some((msg: any) => msg.role === 'system')) {
+                messages.unshift({
+                  role: 'system',
+                  content: 'You are a helpful assistant.'
+                });
+              }
+              
+              // Use the Featherless client
+              const response = await featherlessClient.chat.completions.create({
+                model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
+                messages,
+                temperature,
+                max_tokens: Math.min(maxTokens, 4096), // Limit max tokens to 4096
+              });
+
+              return {
+                text: response.choices[0]?.message?.content ?? '',
+                model: modelName,
+                provider: 'featherless',
+                finishReason: response.choices[0]?.finish_reason ?? 'stop',
+                usage: {
+                  promptTokens: response.usage?.prompt_tokens ?? 0,
+                  completionTokens: response.usage?.completion_tokens ?? 0
+                }
+              };
+            } catch (error: any) {
+              console.error(`Featherless API error: ${error.message}`, error);
+              // If we get a validation error, try with fewer tokens
+              if (error.status === 422) {
+                try {
+                  const response = await featherlessClient.chat.completions.create({
+                    model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
+                    messages,
+                    temperature,
+                    max_tokens: 2048, // Reduce max tokens as fallback
+                  });
+                  
+                  return {
+                    text: response.choices[0]?.message?.content ?? '',
+                    model: modelName,
+                    provider: 'featherless',
+                    finishReason: response.choices[0]?.finish_reason ?? 'stop',
+                    usage: {
+                      promptTokens: response.usage?.prompt_tokens ?? 0,
+                      completionTokens: response.usage?.completion_tokens ?? 0
+                    }
+                  };
+                } catch (retryError: any) {
+                  console.error(`Featherless API retry failed: ${retryError.message}`);
+                  throw retryError;
+                }
+              }
+              throw error;
+            }
+          },
+          async doStream(options: any) {
+            const { prompt, temperature = 0.7, maxTokens = 4096 } = options;
+            const messages = typeof prompt === 'string' 
+              ? [{ role: 'user', content: prompt }]
+              : prompt.map((msg: any) => ({
+                  role: msg.role,
+                  content: Array.isArray(msg.content) 
+                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
+                    : msg.content
+                }));
+
+            try {
+              // Add system message if none exists
+              if (!messages.some((msg: any) => msg.role === 'system')) {
+                messages.unshift({
+                  role: 'system',
+                  content: 'You are a helpful assistant.'
+                });
+              }
+              
+              // Use the Featherless client
+              const stream = await featherlessClient.chat.completions.create({
+                model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
+                messages,
+                temperature,
+                max_tokens: Math.min(maxTokens, 4096), // Limit max tokens to 4096
+                stream: true
+              });
+
+              return {
+                stream: stream.toReadableStream()
+              };
+            } catch (error: any) {
+              console.error(`Featherless API streaming error: ${error.message}`, error);
+              // If we get a validation error, try with fewer tokens
+              if (error.status === 422) {
+                try {
+                  const stream = await featherlessClient.chat.completions.create({
+                    model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
+                    messages,
+                    temperature,
+                    max_tokens: 2048, // Reduce max tokens as fallback
+                    stream: true
+                  });
+                  
+                  return {
+                    stream: stream.toReadableStream()
+                  };
+                } catch (retryError: any) {
+                  console.error(`Featherless API streaming retry failed: ${retryError.message}`);
+                  throw retryError;
+                }
+              }
+              throw error;
+            }
           }
         };
         break;

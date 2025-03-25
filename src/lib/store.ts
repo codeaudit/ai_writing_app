@@ -1297,6 +1297,33 @@ const createEmptyChatTree = (): ChatTree => ({
   activeThread: []
 });
 
+// Selectors for derived state
+const selectActiveMessages = (state: AIChatStore) => 
+  state.chatTree.activeThread
+    .map(id => state.chatTree.nodes[id])
+    .filter(Boolean);
+
+const selectThreadMetadata = (state: AIChatStore) => ({
+  hasSiblings: (nodeId: string) => {
+    const node = state.chatTree.nodes[nodeId];
+    if (!node?.parentId) return false;
+    const parent = state.chatTree.nodes[node.parentId];
+    return parent?.childrenIds.length > 1;
+  },
+  getSiblingCount: (nodeId: string) => {
+    const node = state.chatTree.nodes[nodeId];
+    if (!node?.parentId) return 0;
+    const parent = state.chatTree.nodes[node.parentId];
+    return parent?.childrenIds.length || 0;
+  },
+  getCurrentBranchIndex: (nodeId: string) => {
+    const node = state.chatTree.nodes[nodeId];
+    if (!node?.parentId) return 0;
+    const parent = state.chatTree.nodes[node.parentId];
+    return parent?.childrenIds.indexOf(nodeId) || 0;
+  }
+});
+
 export const useAIChatStore = create<AIChatStore>()(
   persist(
     (set, get) => ({
@@ -1582,6 +1609,9 @@ export const useAIChatStore = create<AIChatStore>()(
           }
         };
       }),
+      // Add selectors to the store
+      selectActiveMessages: () => selectActiveMessages(get()),
+      selectThreadMetadata: () => selectThreadMetadata(get()),
     }),
     {
       name: 'ai-chat-storage'

@@ -113,6 +113,12 @@ const MODEL_COLORS = {
   'gemini-2.0-flash': 'bg-sky-100 dark:bg-sky-950/50',
   'gemini-2.0-flash-lite': 'bg-sky-50 dark:bg-sky-950/30',
   'gemini-2.0-flash-thinking-exp-01-21': 'bg-sky-50/80 dark:bg-sky-950/20',
+   
+  // Featherless.ai models
+  'featherless-ai/Qwerky-QwQ-32B': 'bg-orange-100 dark:bg-orange-950/50',
+  'featherless-ai/Qwerky-72B': 'bg-orange-100 dark:bg-orange-950/50'
+  
+
 };
 
 // ============================================================================
@@ -129,7 +135,7 @@ interface ModelOption {
   label: string;
 }
 
-type ProviderValue = 'openai' | 'openrouter' | 'anthropic' | 'gemini';
+type ProviderValue = 'openai' | 'openrouter' | 'anthropic' | 'gemini' | 'featherless';
 
 interface ProviderOption {
   value: ProviderValue;
@@ -289,7 +295,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       .filter(Boolean),
     [chatTree.activeThread, chatTree.nodes]
   );
-  
+
   // Scroll to bottom of messages when new messages are added
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -374,8 +380,10 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     } catch (error) {
       console.error('Error in AI chat:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate response",
+        title: "AI Response Error",
+        description: error instanceof Error 
+          ? `Failed to generate response: ${error.message}`
+          : "An unexpected error occurred while generating the AI response. Please try again.",
         variant: "destructive",
         duration: 5000,
       });
@@ -483,11 +491,11 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     
     setActiveThread(newActiveThread);
     
-    toast({
+      toast({
       title: "System message added",
       description: "A system message has been added to the conversation.",
-      duration: 3000,
-    });
+        duration: 3000,
+      });
   };
 
   // State for editing messages
@@ -499,12 +507,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   function handleClearChat() {
     setShowClearConfirmation(false);
     clearAll();
-    toast({
+      toast({
       title: "Chat cleared",
       description: "All chat messages have been cleared.",
-      duration: 3000,
-    });
-  }
+        duration: 3000,
+      });
+    }
 
   function handleClearAllContextDocuments() {
     // Clear context documents
@@ -517,7 +525,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
 
   function handleRemoveContextDocument(documentId: string) {
     // Remove document from context
-    toast({
+      toast({
       title: "Document removed",
       description: "The document has been removed from context.",
       duration: 3000,
@@ -548,11 +556,11 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   function handleInsertResponse(content: string) {
     if (onInsertText) {
       onInsertText(content);
-      toast({
+    toast({
         title: "Text inserted",
         description: "The AI response has been inserted into the editor.",
-        duration: 3000,
-      });
+      duration: 3000,
+    });
     } else {
       toast({
         title: "Cannot insert text",
@@ -658,12 +666,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   // Add handleSaveComposition function
   async function handleSaveComposition() {
     if (!compositionName.trim()) {
-      toast({
+        toast({
         title: "Error",
         description: "Please enter a name for the composition",
-        variant: "destructive",
-        duration: 3000,
-      });
+          variant: "destructive",
+          duration: 3000,
+        });
       return;
     }
 
@@ -700,7 +708,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       // Close the dialog and show success message
       setShowSaveCompositionDialog(false);
       setCompositionName('');
-
+      
       toast({
         title: "Success",
         description: "Composition saved successfully",
@@ -995,44 +1003,44 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                       <div className="flex-1 min-w-0">
                         {editingMessageId === message.id ? (
                           <div className="bg-primary/10 rounded-lg p-3 text-sm">
-                            <Textarea
-                              value={editedPrompt}
-                              onChange={(e) => setEditedPrompt(e.target.value)}
+                          <Textarea
+                            value={editedPrompt}
+                            onChange={(e) => setEditedPrompt(e.target.value)}
                               className="w-full min-h-[60px] text-sm bg-transparent border-none focus-visible:ring-0 p-0"
                               placeholder="Edit your message..."
-                              autoFocus
-                            />
+                            autoFocus
+                          />
                             <div className="mt-2 flex justify-end gap-1 border-t pt-2">
-                              <Button
-                                variant="ghost"
+                            <Button
+                              variant="ghost"
                                 size="icon"
                                 className="h-6 w-6"
-                                onClick={handleCancelEdit}
-                              >
+                              onClick={handleCancelEdit}
+                            >
                                 <X className="h-3 w-3" />
-                              </Button>
-                              <Button
+                            </Button>
+                            <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6"
                                 onClick={() => handleSaveEdit(message.id, editedPrompt)}
                               >
                                 <Check className="h-3 w-3" />
-                              </Button>
-                            </div>
+                            </Button>
                           </div>
-                        ) : (
+                        </div>
+                      ) : (
                           <div className="bg-primary/10 rounded-lg p-3 text-sm">
                             {message.userContent}
                             <div className="mt-2 flex justify-end gap-1 border-t pt-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
+                          <Button
+                            variant="ghost"
+                            size="icon"
                                 className="h-6 w-6"
                                 onClick={() => handleEditMessage({ id: message.id, userContent: message.userContent || '' })}
-                              >
+                          >
                                 <Pencil className="h-3 w-3" />
-                              </Button>
+                          </Button>
                               {hasSiblings(message.id) && (
                                 <BranchMenu
                                   currentBranchIndex={getCurrentBranchIndex(message.id)}
@@ -1045,9 +1053,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                               )}
                               <DebugTreeDialog tree={chatTree} />
                             </div>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                              </div>
                     </div>
                   )}
                   
@@ -1094,8 +1102,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                             <DebugTreeDialog tree={chatTree} />
                           </div>
                         </div>
-                      </div>
                     </div>
+                  </div>
                   )}
                 </div>
               ))
