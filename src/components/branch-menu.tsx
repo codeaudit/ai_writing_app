@@ -43,6 +43,15 @@ export function BranchMenu({
   currentBranchId,
   onBranchSelect
 }: BranchMenuProps) {
+  // Get the parent node of the current branch
+  const currentBranch = chatNodes[currentBranchId];
+  const parentNode = currentBranch?.parentId ? chatNodes[currentBranch.parentId] : null;
+  
+  // Only show the menu if there are multiple siblings
+  if (!parentNode || parentNode.childrenIds.length <= 1) {
+    return null;
+  }
+  
   return (
     <TooltipProvider>
       <Tooltip>
@@ -76,7 +85,7 @@ export function BranchMenu({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             
-            {allBranchIds.map((branchId, idx) => {
+            {parentNode.childrenIds.map((branchId, idx) => {
               const branch = chatNodes[branchId];
               if (!branch) return null;
               
@@ -90,7 +99,9 @@ export function BranchMenu({
                   key={branchId}
                   onSelect={(e) => {
                     e.preventDefault();
-                    if (!isCurrentBranch) onBranchSelect(branchId);
+                    if (!isCurrentBranch) {
+                      onBranchSelect(branchId);
+                    }
                   }}
                   disabled={isCurrentBranch}
                   className={cn(
@@ -115,16 +126,16 @@ export function BranchMenu({
                           You
                         </Badge>
                         <div className="line-clamp-2">
-                          {getPreview(branch.content)}
+                          {getPreview(branch.userContent)}
                         </div>
                       </div>
-                      {response?.content && (
+                      {response?.assistantContent && (
                         <div className="flex gap-1.5 items-start">
                           <Badge variant="outline" className="text-[9px] mt-0.5 shrink-0 bg-primary/5">
                             AI
                           </Badge>
                           <div className="line-clamp-2">
-                            {getPreview(response.content)}
+                            {getPreview(response.assistantContent)}
                           </div>
                         </div>
                       )}

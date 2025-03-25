@@ -2,13 +2,15 @@
 id: doc-1742662140463
 name: art_of_war_chapt
 createdAt: '2025-03-22T16:49:00.463Z'
-updatedAt: '2025-03-22T21:13:54.707Z'
+updatedAt: '2025-03-25T11:51:03.956Z'
 versions:
   - id: ver-1742662140463-initial
     createdAt: '2025-03-22T16:49:00.463Z'
     message: Initial version
 annotations: []
 ---
+Okay, I'm ready. Please provide the text you want me to review. I'll do my best to offer helpful feedback on clarity, style, and coherence.
+Okay, I'm ready to help. Please provide the text you would like me to review. I can assist with grammar, clarity, style, and more. Just paste your text, and let me know what kind of feedback you're looking for.
 # art_of_war_chapt
 
 test
@@ -56,4 +58,3 @@ Okay, I can help with that! To give you the best description of Chapter 1 of *Th
 *   **The chapter's focus on assessing a situation before engaging in conflict?**
 *   **How the chapter sets the stage for the rest of the book?**
 
-Once I know what you're looking for, I can provide a more tailored and helpful description.

@@ -24,7 +24,8 @@ import {
   Save,
   Send,
   Sparkles, 
-  X 
+  X,
+  User
 } from 'lucide-react';
 import { useDocumentStore, useLLMStore, useAIChatStore } from "@/lib/store";
 import { toast } from "@/components/ui/use-toast";
@@ -77,11 +78,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { ContextDocumentList } from "./context-document-list";
-import { ContextDocument } from "@/types/contextDocument";
+import type { ContextDocument } from "@/types/contextDocument";
 import { BranchMenu } from "@/components/branch-menu";
-import type { ChatMessageNode } from "@/lib/store";
+import { ChatMessageNode } from "@/lib/store";
 
-// Define color mapping for each model
+// ============================================================================
+// Constants and Configuration
+// ============================================================================
+// Color mapping for different AI models
 const MODEL_COLORS = {
   // OpenAI Models
   'gpt-4o': 'bg-emerald-100 dark:bg-emerald-950/50',
@@ -111,12 +115,9 @@ const MODEL_COLORS = {
   'gemini-2.0-flash-thinking-exp-01-21': 'bg-sky-50/80 dark:bg-sky-950/20',
 };
 
-interface ContextDocument {
-  id: string;
-  name: string;
-  content: string;
-}
-
+// ============================================================================
+// Type Definitions and Interfaces
+// ============================================================================
 interface AIChatProps {
   onInsertText?: (text: string) => void;
   isExpanded?: boolean;
@@ -138,46 +139,20 @@ interface ProviderOption {
 // Update the message history type to handle nulls
 type MessageHistory = Array<ChatMessage | null>;
 
-// Helper function to filter out nulls from message history
+// ============================================================================
+// Helper Functions
+// ============================================================================
+// Helper to filter out nulls from message history
 function filterNullMessages(messages: MessageHistory): ChatMessage[] {
   return messages.filter((msg): msg is ChatMessage => msg !== null);
 }
 
-// Define the chat message node type
-interface ChatMessageNode extends ChatMessage {
-  // Additional content fields for different roles
-  systemContent?: string;
-  userContent?: string;
-  assistantContent?: string;
-  
-  // Tree structure properties
-  id: string;                   // Unique identifier for this node
-  parentId: string | null;      // ID of the parent node (null for root)
-  childrenIds: string[];        // IDs of child nodes
-  siblingIds: string[];         // IDs of sibling nodes (nodes with same parent)
-  
-  // Navigation metadata
-  isActive: boolean;            // Whether this node is in the active thread
-  threadPosition: number;       // Position in the active thread (for ordering)
-}
-
-// Interface to represent the entire chat tree
-interface ChatTree {
-  nodes: Record<string, ChatMessageNode>;  // Map of node IDs to nodes
-  rootId: string | null;                   // ID of the root node
-  activeThread: string[];                  // Ordered list of node IDs in the active thread
-}
-
-// Helper function to get content for display based on role
+// Helper to get content for display based on role
 function getDisplayContent(message: ChatMessageNode): string {
-  if (message.systemContent && message.role === 'system') {
-    return message.systemContent;
-  } else if (message.userContent && message.role === 'user') {
-    return message.userContent;
-  } else if (message.assistantContent && message.role === 'assistant') {
-    return message.assistantContent;
-  }
-  return message.content;
+  if (message.systemContent) return message.systemContent;
+  if (message.userContent) return message.userContent;
+  if (message.assistantContent) return message.assistantContent;
+  return '';
 }
 
 // Type guard to check if a message has a specific role
@@ -186,22 +161,60 @@ function hasRole(message: ChatMessageNode, role: string): boolean {
 }
 
 // Helper to check if a node has siblings
-function hasSiblings(message: ChatMessageNode): boolean {
-  return message.siblingIds && message.siblingIds.length > 0;
+function hasSiblings(nodeId: string): boolean {
+  const { chatTree } = useAIChatStore.getState();
+  const node = chatTree.nodes[nodeId];
+  if (!node || !node.parentId) return false;
+  
+  const parent = chatTree.nodes[node.parentId];
+  return parent.childrenIds.length > 1;
 }
 
-// Helper to check if a node is in the active thread
+// Helper to get the number of siblings for a node
+function getSiblingCount(nodeId: string): number {
+  const { chatTree } = useAIChatStore.getState();
+  const node = chatTree.nodes[nodeId];
+  if (!node || !node.parentId) return 0;
+  
+  const parent = chatTree.nodes[node.parentId];
+  return parent.childrenIds.length;
+}
+
+// Helper to get the current branch index
+function getCurrentBranchIndex(nodeId: string): number {
+  const { chatTree } = useAIChatStore.getState();
+  const node = chatTree.nodes[nodeId];
+  if (!node || !node.parentId) return 0;
+  
+  const parent = chatTree.nodes[node.parentId];
+  return parent.childrenIds.indexOf(nodeId);
+}
+
+// Helper function to check if a node is in the active thread
 function isNodeActive(message: ChatMessageNode): boolean {
   return message.isActive;
 }
 
 // Helper function to convert ChatMessageNode to LLM service ChatMessage
 function convertToLLMMessage(node: ChatMessageNode): ChatMessage {
+  let role: 'user' | 'assistant' | 'system' = 'user';
+  let content = '';
+  
+  if (node.systemContent) {
+    role = 'system';
+    content = node.systemContent;
+  } else if (node.userContent) {
+    role = 'user';
+    content = node.userContent;
+  } else if (node.assistantContent) {
+    role = 'assistant';
+    content = node.assistantContent;
+  }
+  
   return {
-    role: node.role === 'system' ? 'user' : node.role,
-    content: node.content,
-    model: node.model,
-    provider: node.provider
+    role,
+    content,
+    model: node.model
   };
 }
 
@@ -212,7 +225,13 @@ function prepareMessagesForAPI(messages: (ChatMessageNode | null)[]): ChatMessag
     .map(convertToLLMMessage);
 }
 
+// ============================================================================
+// Main Component
+// ============================================================================
 export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIChatProps) {
+  // ============================================================================
+  // State and Store Management
+  // ============================================================================
   const { documents } = useDocumentStore();
   const { config, updateConfig } = useLLMStore();
   const { 
@@ -223,7 +242,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     createSiblingNode,
     addResponseNode,
     navigateToThread,
-    clearAll
+    clearAll,
+    ensureActiveThread
   } = useAIChatStore();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -233,6 +253,14 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   useEffect(() => {
     useLLMStore.getState().saveToCookies();
   }, []);
+  
+  // Ensure proper node activation when component mounts or chat tree changes
+  useEffect(() => {
+    // Only call ensureActiveThread if there are nodes in the tree
+    if (chatTree.rootId && Object.keys(chatTree.nodes).length > 0) {
+      ensureActiveThread();
+    }
+  }, [chatTree.rootId]); // Only depend on rootId changes
   
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -267,31 +295,29 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeMessages]);
 
+  // Function to handle form submission
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!input.trim() || isLoading) return;
     
-    // Generate a unique ID for the user message node
-    const userNodeId = generateId();
+    // Generate a unique ID for the message node
+    const messageNodeId = generateId();
     
-    // Create a user message node
-    const userNode: ChatMessageNode = {
-      id: userNodeId,
-      role: 'user',
-      content: input,
+    // Create a message node that will hold both user and assistant content
+    const messageNode: ChatMessageNode = {
+      id: messageNodeId,
       userContent: input,
       parentId: chatTree.activeThread.length > 0 
         ? chatTree.activeThread[chatTree.activeThread.length - 1] 
         : null,
       childrenIds: [],
-      siblingIds: [],
       isActive: true,
       threadPosition: chatTree.activeThread.length
     };
     
-    // Add user node to the chat tree
-    addNode(userNode);
+    // Add message node to the chat tree
+    addNode(messageNode);
     
     // Clear input
     setInput("");
@@ -300,15 +326,13 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     setIsLoading(true);
     
     try {
-      // Get history messages from the active thread, excluding the one we just added
+      // Get history messages from the active thread, including the user message we just added
       const historyMessages = prepareMessagesForAPI(
-        chatTree.activeThread.length > 1 
-          ? chatTree.activeThread.slice(0, -1).map(nodeId => chatTree.nodes[nodeId] || null)
-          : []
+        chatTree.activeThread.map(nodeId => chatTree.nodes[nodeId] || null)
       );
       
       // Add the user message as the final message
-      const apiMessages = [...historyMessages, convertToLLMMessage(userNode)];
+      const apiMessages = [...historyMessages, convertToLLMMessage(messageNode)];
       
       console.log("Sending messages to API:", apiMessages);
       
@@ -328,15 +352,21 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         setLastPrompt(response.debugPrompt);
       }
       
-      // Make sure response and response.message exist before creating assistantMessage
+      // Make sure response and response.message exist before updating the node
       if (response && response.message) {
-        // Add the assistant's response to the chat tree
-        addResponseNode(
-          userNodeId,
-          response.message.content,
-          response.model,
-          response.provider
-        );
+        // Update the existing node with the assistant's response
+        const updatedNode: ChatMessageNode = {
+          ...messageNode,
+          assistantContent: response.message.content,
+          model: response.model
+        };
+        
+        // Update the node in the chat tree
+        updateNode(messageNodeId, updatedNode);
+        
+        // Update the active thread to include the updated node
+        const newActiveThread = [...chatTree.activeThread, messageNodeId];
+        setActiveThread(newActiveThread);
       } else {
         // Handle case where response or response.message is undefined
         throw new Error("Received invalid response from AI service");
@@ -355,56 +385,28 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   };
 
   // Function to save the edited message and create a new branch
-  const handleSaveEdit = async (messageId: string | undefined) => {
-    // Check if messageId is defined
-    if (!messageId) return;
-    
-    console.log("Starting handleSaveEdit for message ID:", messageId);
-    
-    // Get the original node from the chat tree
-    const originalNode = chatTree.nodes[messageId];
-    if (!originalNode) {
-      console.error("Node not found:", messageId);
-      return;
-    }
-    
-    // Immediately clear editing state to dismiss the edit field
-    setEditingMessageId(null);
-    setEditedPrompt("");
-    
-    // Create a new sibling node with the edited content and focus on it
-    const newNodeId = createSiblingNode(messageId, editedPrompt);
-    
-    // Set loading state
-    setIsLoading(true);
-    
+  const handleSaveEdit = async (nodeId: string, editedPrompt: string) => {
     try {
-      // Get the path to the parent node (excluding the newly created node)
-      const pathToParent: string[] = [];
-      let currentNodeId = chatTree.nodes[newNodeId]?.parentId;
+      setIsLoading(true);
       
-      while (currentNodeId) {
-        pathToParent.unshift(currentNodeId);
-        currentNodeId = chatTree.nodes[currentNodeId]?.parentId;
-      }
+      // Get the original node and its path to root
+      const originalNode = chatTree.nodes[nodeId];
+      if (!originalNode) return;
       
-      // Convert path to messages
-      const pathMessages = prepareMessagesForAPI(
+      const pathToParent = chatTree.activeThread.slice(0, chatTree.activeThread.indexOf(nodeId));
+      
+      // Get history messages from the active thread up to the edited message
+      const historyMessages = prepareMessagesForAPI(
         pathToParent.map(nodeId => chatTree.nodes[nodeId] || null)
       );
       
-      // Create a new user message with the edited content for the API call
-      const editedUserMessage = {
+      // Add the edited message as the final message
+      const apiMessages: ChatMessage[] = [...historyMessages, {
         role: 'user' as const,
         content: editedPrompt
-      };
+      }];
       
-      // Add the edited user message as the final message
-      const apiMessages = [...pathMessages, editedUserMessage];
-      
-      console.log("Sending edited messages to API:", apiMessages);
-      
-      // Call the server action with the history messages + edited message
+      // Call the server action with all messages for context
       const response = await generateChatResponse({
         messages: apiMessages,
         contextDocuments: contextDocuments.map(doc => ({
@@ -415,48 +417,58 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         stream: false
       });
       
-      // Check if response and debugPrompt exist before using them
-      if (response && response.debugPrompt) {
-        setLastPrompt(response.debugPrompt);
-      }
-      
-      // Make sure response and response.message exist before creating assistant node
+      // Make sure response and response.message exist before creating the new node
       if (response && response.message) {
-        // Add the assistant's response to the chat tree
-        addResponseNode(
-          newNodeId,
-          response.message.content,
-          response.model,
-          response.provider
-        );
+        // Generate a new ID for the new node
+        const newNodeId = generateId();
+        
+        // Create a new node with both user and assistant content
+        const newNode: ChatMessageNode = {
+          id: newNodeId,
+          userContent: editedPrompt,
+          assistantContent: response.message.content,
+          model: response.model,
+          parentId: originalNode.parentId,
+          childrenIds: [],
+          isActive: true,
+          threadPosition: originalNode.threadPosition
+        };
+        
+        // Add the new node to the chat tree
+        addNode(newNode);
+        
+        // Update the active thread to include the new node
+        const newActiveThread = [...pathToParent, newNodeId];
+        setActiveThread(newActiveThread);
+        
+        // Clear editing state
+        setEditingMessageId(null);
+        setEditedPrompt("");
       } else {
         // Handle case where response or response.message is undefined
         throw new Error("Received invalid response from AI service");
       }
     } catch (error) {
-      console.error('Error in AI chat:', error);
+      console.error('Error saving edit:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate response",
+        description: "Failed to save edit. Please try again.",
         variant: "destructive",
-        duration: 5000,
+        duration: 3000,
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Add a button to insert a system message for demonstration
+  // Function to add a system message
   const addSystemMessage = () => {
     const systemNodeId = generateId();
     const systemNode: ChatMessageNode = {
       id: systemNodeId,
-      role: 'system',
-      content: "I'll help you analyze and improve your documents. You can ask me to summarize, edit, or give feedback on your writing.",
       systemContent: "I'll help you analyze and improve your documents. You can ask me to summarize, edit, or give feedback on your writing.",
       parentId: null,
       childrenIds: [],
-      siblingIds: [],
       isActive: true,
       threadPosition: 0
     };
@@ -521,10 +533,10 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     });
   }
 
-  function handleEditMessage(message: { id: string; userContent?: string; content: string }) {
+  function handleEditMessage(message: { id: string; userContent: string }) {
     if (message.id) {
       setEditingMessageId(message.id);
-      setEditedPrompt(message.userContent || message.content);
+      setEditedPrompt(message.userContent);
     }
   }
 
@@ -550,6 +562,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     }
   }
   
+  // Function to navigate to a sibling node
   function navigateToSibling(nodeId: string) {
     if (!nodeId || !chatTree.nodes[nodeId]) {
       console.error("Node not found:", nodeId);
@@ -559,8 +572,24 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     console.log("Navigating to sibling:", nodeId);
     
     try {
-      // Perform a single navigation operation to avoid state update loops
-      navigateToThread(nodeId);
+      // Get the parent node
+      const parentId = chatTree.nodes[nodeId].parentId;
+      if (!parentId) {
+        console.error("Parent node not found for:", nodeId);
+        return;
+      }
+      
+      // Build thread from root to this node
+      const newThread: string[] = [];
+      let currentNodeId: string | null = nodeId;
+      
+      while (currentNodeId && chatTree.nodes[currentNodeId]) {
+        newThread.unshift(currentNodeId);
+        currentNodeId = chatTree.nodes[currentNodeId].parentId;
+      }
+      
+      // Update active thread and node states
+      setActiveThread(newThread);
       
       // Show toast notification only after navigation is complete
       toast({
@@ -644,8 +673,21 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       
       // Create the composition content
       const compositionContent = messages.map(msg => {
-        const role = msg.role === 'system' ? '[System]' : msg.role === 'user' ? '[User]' : '[Assistant]';
-        return `${role}\n${msg.content}\n`;
+        let role = '[Unknown]';
+        let content = '';
+        
+        if (msg.systemContent) {
+          role = '[System]';
+          content = msg.systemContent;
+        } else if (msg.userContent) {
+          role = '[User]';
+          content = msg.userContent;
+        } else if (msg.assistantContent) {
+          role = '[Assistant]';
+          content = msg.assistantContent;
+        }
+        
+        return `${role}\n${content}\n`;
       }).join('\n');
 
       // Add the composition
@@ -675,11 +717,20 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     }
   }
 
+  // Add the missing addContextDocument function
+  const addContextDocument = (doc: ContextDocument) => {
+    setContextDocuments(prev => [...prev, doc]);
+  };
+
+  // ============================================================================
+  // UI Components
+  // ============================================================================
   return (
     <Card className={cn(
       "w-full h-full flex flex-col border rounded-lg overflow-hidden shadow-md transition-all duration-200",
       isExpanded ? "fixed inset-4 z-50" : "relative"
     )}>
+      {/* Header Section */}
       <CardHeader className="px-3 py-1.5 border-b">
         <div className="flex items-center justify-between">
           
@@ -867,7 +918,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         </div>
       </CardHeader>
       
-      {/* Context documents list - simplified */}
+      {/* Context Documents Section */}
       {contextDocuments.length > 0 && (
         <div className="flex flex-wrap gap-1 mx-3 mt-0.5 p-1 bg-muted/30 rounded-md">
           <div className="flex justify-between w-full mb-0.5">
@@ -899,6 +950,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         </div>
       )}
       
+      {/* Main Chat Content Area */}
       <CardContent className="flex-1 p-0 overflow-hidden">
         <ScrollArea className="h-full">
           <div className="p-3 space-y-3">
@@ -932,168 +984,121 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
               </div>
             ) : (
               // Use the active messages from the tree
-              activeMessages.map((node) => {
-                if (!node) return null;
-                
-                return (
-                  <div 
-                    key={node.id} 
-                    className={`flex ${
-                      hasRole(node, 'user') 
-                        ? 'justify-end' 
-                        : hasRole(node, 'system') 
-                          ? 'justify-center' 
-                          : 'justify-start'
-                    }`}
-                  >
-                    <div 
-                      className={cn(
-                        "max-w-[90%] rounded-lg p-2 group",
-                        hasRole(node, 'user')
-                          ? 'bg-muted text-foreground'
-                          : hasRole(node, 'system')
-                          ? 'bg-primary/10 text-foreground'
-                          : node.model && MODEL_COLORS[node.model as keyof typeof MODEL_COLORS]
-                            ? MODEL_COLORS[node.model as keyof typeof MODEL_COLORS]
-                            : 'bg-muted/70'
-                      )}
-                    >
-                      {/* Display role badge for system messages */}
-                      {hasRole(node, 'system') && (
-                        <Badge variant="outline" className="mb-1 text-[10px] bg-primary/10">System</Badge>
-                      )}
-                      
-                      {/* Editing mode for user messages */}
-                      {hasRole(node, 'user') && editingMessageId === node.id ? (
-                        <div className="space-y-2">
-                          <Textarea
-                            value={editedPrompt}
-                            onChange={(e) => setEditedPrompt(e.target.value)}
-                            className="min-h-[60px] text-xs bg-background text-foreground"
-                            autoFocus
-                          />
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleCancelEdit}
-                              className="h-7 text-xs"
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleSaveEdit(node.id)}
-                              className="h-7 text-xs"
-                              disabled={!editedPrompt.trim()}
-                            >
-                              Create Branch
-                            </Button>
+              activeMessages.map((message, index) => (
+                <div key={message.id} className="flex flex-col gap-1">
+                  {/* User message bubble */}
+                  {message.userContent && (
+                    <div className="flex items-start gap-2">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {editingMessageId === message.id ? (
+                          <div className="bg-primary/10 rounded-lg p-3 text-sm">
+                            <Textarea
+                              value={editedPrompt}
+                              onChange={(e) => setEditedPrompt(e.target.value)}
+                              className="w-full min-h-[60px] text-sm bg-transparent border-none focus-visible:ring-0 p-0"
+                              placeholder="Edit your message..."
+                              autoFocus
+                            />
+                            <div className="mt-2 flex justify-end gap-1 border-t pt-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={handleCancelEdit}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => handleSaveEdit(message.id, editedPrompt)}
+                              >
+                                <Check className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="whitespace-pre-wrap text-xs">
-                          {getDisplayContent(node)}
-                        </div>
-                      )}
-                      
-                      {/* Show buttons for user messages when not editing */}
-                      {hasRole(node, 'user') && editingMessageId !== node.id && (
-                        <div className="mt-1.5 pt-0.5 border-t border-border flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5"
-                            onClick={() => handleEditMessage(node)}
-                            title="Edit prompt & create branch"
-                          >
-                            <Pencil className="h-2.5 w-2.5" />
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {/* Show buttons for assistant messages */}
-                      {hasRole(node, 'assistant') && (
-                        <div className="mt-1.5 pt-0.5 border-t border-border flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                          {/* Branch navigator section */}
-                          {(() => {
-                            // First check if this is an AI response with a parent user message
-                            if (!node.parentId) return null;
-                            
-                            // Get the parent user message
-                            const parentUserNode = chatTree.nodes[node.parentId];
-                            if (!parentUserNode || parentUserNode.role !== 'user') return null;
-                            
-                            // Check if the parent has siblings (indicating branch options)
-                            const siblingIds = parentUserNode.siblingIds || [];
-                            
-                            // Filter out siblings that don't exist and exclude parent itself
-                            const validSiblingIds = siblingIds.filter(id => 
-                              id !== parentUserNode.id && 
-                              chatTree.nodes[id] && 
-                              chatTree.nodes[id].role === 'user'
-                            );
-                            
-                            // Only show branch navigation if there are valid siblings
-                            if (validSiblingIds.length === 0) return null;
-                            
-                            // Get all branches including the current one
-                            const allBranchIds = [parentUserNode.id, ...validSiblingIds];
-                            const branchCount = allBranchIds.length;
-                            
-                            // Find current branch index
-                            const currentBranchIndex = allBranchIds.indexOf(parentUserNode.id);
-                            
-                            // If there are multiple branches, show the branch menu
-                            if (branchCount > 1) {
-                              return (
+                        ) : (
+                          <div className="bg-primary/10 rounded-lg p-3 text-sm">
+                            {message.userContent}
+                            <div className="mt-2 flex justify-end gap-1 border-t pt-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => handleEditMessage({ id: message.id, userContent: message.userContent || '' })}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              {hasSiblings(message.id) && (
                                 <BranchMenu
-                                  currentBranchIndex={currentBranchIndex}
-                                  branchCount={branchCount}
-                                  allBranchIds={allBranchIds}
+                                  currentBranchIndex={getCurrentBranchIndex(message.id)}
+                                  branchCount={getSiblingCount(message.id)}
+                                  allBranchIds={chatTree.nodes[message.parentId!].childrenIds}
                                   chatNodes={chatTree.nodes}
-                                  currentBranchId={parentUserNode.id}
+                                  currentBranchId={message.id}
                                   onBranchSelect={navigateToSibling}
                                 />
-                              );
-                            }
-                            
-                            return null;
-                          })()}
-                          
-                          {/* Action buttons */}
-                          <div className="flex items-center ml-auto">
+                              )}
+                              <DebugTreeDialog tree={chatTree} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Assistant message bubble */}
+                  {message.assistantContent && (
+                    <div className="flex items-start gap-2">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Bot className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="bg-muted rounded-lg p-3 text-sm">
+                          {message.assistantContent}
+                          <div className="mt-2 flex justify-end gap-1 border-t pt-2">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-5 w-5"
-                              onClick={() => handleInsertResponse(getDisplayContent(node))}
-                              title="Add to document"
+                              className="h-6 w-6"
+                              onClick={() => handleCopyToClipboard(message.assistantContent || '', message.id)}
                             >
-                              <ArrowLeft className="h-2.5 w-2.5" />
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5"
-                              onClick={() => handleCopyToClipboard(getDisplayContent(node), node.id)}
-                              title="Copy to clipboard"
-                            >
-                              {isCopied === node.id ? (
-                                <Check className="h-2.5 w-2.5" />
+                              {isCopied === message.id ? (
+                                <Check className="h-3 w-3" />
                               ) : (
-                                <Copy className="h-2.5 w-2.5" />
+                                <Copy className="h-3 w-3" />
                               )}
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleInsertResponse(message.assistantContent || '')}
+                            >
+                              <FileText className="h-3 w-3" />
+                            </Button>
+                            {hasSiblings(message.id) && (
+                              <BranchMenu
+                                currentBranchIndex={getCurrentBranchIndex(message.id)}
+                                branchCount={getSiblingCount(message.id)}
+                                allBranchIds={chatTree.nodes[message.parentId!].childrenIds}
+                                chatNodes={chatTree.nodes}
+                                currentBranchId={message.id}
+                                onBranchSelect={navigateToSibling}
+                              />
+                            )}
+                            <DebugTreeDialog tree={chatTree} />
                           </div>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })
+                  )}
+                </div>
+              ))
             )}
             
             {isLoading && (
@@ -1110,6 +1115,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         </ScrollArea>
       </CardContent>
       
+      {/* Input Area */}
       <CardFooter className={cn(
         "p-2 pt-1.5 border-t flex-shrink-0 transition-all duration-200",
         isInputFocused ? "pb-3" : ""
@@ -1272,6 +1278,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   );
 }
 
+// ============================================================================
+// Supporting Components
+// ============================================================================
 function SuggestionButton({ text, onClick }: { text: string; onClick: () => void }) {
   return (
     <Button 
@@ -1282,5 +1291,35 @@ function SuggestionButton({ text, onClick }: { text: string; onClick: () => void
     >
       {text}
     </Button>
+  );
+}
+
+function DebugTreeDialog({ tree }: { tree: any }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          title="Debug tree structure"
+        >
+          <Bug className="h-3 w-3" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Chat Tree Structure</DialogTitle>
+          <DialogDescription>
+            This shows the current state of the chat tree.
+          </DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="mt-4 max-h-[60vh]">
+          <pre className="text-xs p-4 bg-muted rounded-lg overflow-auto">
+            {JSON.stringify(tree, null, 2)}
+          </pre>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 } 

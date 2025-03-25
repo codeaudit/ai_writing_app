@@ -83,6 +83,7 @@
     "react-console-emulator": "^5.0.2",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
+    "react-intersection-observer": "^9.16.0",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^2.1.7",
     "react-syntax-highlighter": "^15.6.1",
@@ -137,13 +138,23 @@
     },
     "mac": {
       "category": "public.app-category.productivity",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
-      "target": ["nsis", "portable"]
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "linux": {
-      "target": ["AppImage", "deb", "rpm"],
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
       "category": "Office"
     }
   }
