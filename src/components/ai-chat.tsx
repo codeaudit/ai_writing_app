@@ -116,7 +116,8 @@ const MODEL_COLORS = {
    
   // Featherless.ai models
   'featherless-ai/Qwerky-QwQ-32B': 'bg-orange-100 dark:bg-orange-950/50',
-  'featherless-ai/Qwerky-72B': 'bg-orange-100 dark:bg-orange-950/50'
+  'featherless-ai/Qwerky-72B': 'bg-orange-100 dark:bg-orange-950/50',
+  'deepseek-ai/DeepSeek-R1': 'bg-orange-50 dark:bg-orange-950/50', 
   
 
 };

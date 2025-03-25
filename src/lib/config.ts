@@ -59,6 +59,8 @@ export const LLM_MODELS = {
   featherless : [
     { value: 'featherless-ai/Qwerky-72B', label: 'Qwerky 72B' },
     { value: 'featherless-ai/Qwerky-QwQ-32B', label: 'Qwerky QwQ 32B' },
+    { value: 'deepseek-ai/DeepSeek-R1', label: 'DeepSeek R1' },
+    { value: 'RWKV/v6-Finch-14B-HF', label: 'RWKV Finch 14B' },
   ],
 
 }; 
