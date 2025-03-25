@@ -49,7 +49,7 @@ interface LLMResponse {
 // Define chat-related types
 export interface ChatMessage {
   id?: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   model?: string;
   provider?: string;
@@ -342,8 +342,17 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
     stream = false
   } = request;
   
+  // Check if there are any messages
+  if (!messages || messages.length === 0) {
+    throw new Error("No messages provided to generate a response from");
+  }
+  
   // Get the last user message
   const lastMessage = messages[messages.length - 1];
+  if (!lastMessage || !lastMessage.content) {
+    throw new Error("The last message is invalid or missing content");
+  }
+  
   let userPrompt = '';
   
   // Build system message with context if provided
@@ -356,7 +365,7 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
   if (contextDocuments && contextDocuments.length > 0) {
     userPrompt += ' Use the following additional context documents to inform your responses:\n\n';
     contextDocuments.forEach(doc => {
-      userPrompt += `Document: ${doc.title}\n${doc.content}\n\n`;
+      userPrompt += `Document: ${doc.title || doc.name || "Untitled"}\n${doc.content}\n\n`;
     });
   }
 

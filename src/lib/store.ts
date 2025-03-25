@@ -1250,50 +1250,367 @@ export const useLLMStore = create<LLMStore>()(
   )
 );
 
-interface AIChatStore {
-  messages: ChatMessage[];
-  messageHistory: Record<string, EnhancedChatMessage[]>;
-  activeResponseVersion: Record<string, number>;
-  setMessages: (messages: ChatMessage[]) => void;
-  addMessage: (message: ChatMessage) => void;
-  clearMessages: () => void;
-  setMessageHistory: (messageHistory: Record<string, EnhancedChatMessage[]>) => void;
-  updateMessageHistory: (messageId: string, messages: EnhancedChatMessage[]) => void;
-  setActiveResponseVersion: (activeVersion: Record<string, number>) => void;
-  updateActiveResponseVersion: (messageId: string, version: number) => void;
-  clearMessageHistory: () => void;
+// Chat tree types
+export interface ChatMessageNode {
+  // Message content
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  model?: string;
+  provider?: string;
+  
+  // Additional content fields for different roles
+  systemContent?: string;
+  userContent?: string;
+  assistantContent?: string;
+  
+  // Tree structure properties
+  id: string;                   // Unique identifier for this node
+  parentId: string | null;      // ID of the parent node (null for root)
+  childrenIds: string[];        // IDs of child nodes
+  siblingIds: string[];         // IDs of sibling nodes (nodes with same parent)
+  
+  // Navigation metadata
+  isActive: boolean;            // Whether this node is in the active thread
+  threadPosition: number;       // Position in the active thread (for ordering)
 }
 
-export const useAIChatStore = create<AIChatStore>()(
+export interface ChatTree {
+  nodes: Record<string, ChatMessageNode>;  // Map of node IDs to nodes
+  rootId: string | null;                   // ID of the root node
+  activeThread: string[];                  // Ordered list of node IDs in the active thread
+}
+
+interface AIChatStore {
+  // Tree-based structure
+  chatTree: ChatTree;
+  
+  // Tree operations
+  setChatTree: (chatTree: ChatTree) => void;
+  addNode: (node: ChatMessageNode) => void;
+  updateNode: (nodeId: string, updates: Partial<ChatMessageNode>) => void;
+  deleteNode: (nodeId: string) => void;
+  setActiveThread: (threadNodeIds: string[]) => void;
+  createSiblingNode: (originalNodeId: string, newContent: string) => string;
+  addResponseNode: (parentNodeId: string, content: string, model?: string, provider?: string) => string;
+  
+  // Utils
+  navigateToThread: (nodeId: string) => void;
+  clearAll: () => void;
+}
+
+// Helper function to generate a unique node ID
+const generateNodeId = () => `node-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+// Create an empty chat tree
+const createEmptyChatTree = (): ChatTree => ({
+  nodes: {},
+  rootId: null,
+  activeThread: []
+});
+
+export const useAIChatStore = create<AIChatStore>(
   persist(
-    (set) => ({
-      messages: [],
-      messageHistory: {},
-      activeResponseVersion: {},
-      setMessages: (messages) => set({ messages }),
-      addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
-      clearMessages: () => set({ messages: [] }),
-      setMessageHistory: (messageHistory) => set({ messageHistory }),
-      updateMessageHistory: (messageId, messages) => 
-        set((state) => ({
-          messageHistory: {
-            ...state.messageHistory,
-            [messageId]: messages,
+    (set, get) => ({
+      chatTree: createEmptyChatTree(),
+      
+      setChatTree: (chatTree) => set({ chatTree }),
+      
+      addNode: (node) => set((state) => {
+        const chatTree = { ...state.chatTree };
+        const nodes = { ...chatTree.nodes };
+        
+        // Initialize arrays if they don't exist
+        node.childrenIds = node.childrenIds || [];
+        node.siblingIds = node.siblingIds || [];
+        
+        // Set default values
+        node.isActive = node.isActive !== undefined ? node.isActive : true;
+        node.threadPosition = node.threadPosition || 0;
+        
+        // Add the node to our nodes map
+        nodes[node.id] = node;
+        
+        // If this is a root node (no parent)
+        if (!node.parentId) {
+          if (!chatTree.rootId) {
+            chatTree.rootId = node.id;
           }
-        })),
-      setActiveResponseVersion: (activeResponseVersion) => set({ activeResponseVersion }),
-      updateActiveResponseVersion: (messageId, version) =>
-        set((state) => ({
-          activeResponseVersion: {
-            ...state.activeResponseVersion,
-            [messageId]: version,
+        } else {
+          // This is a child node
+          const parentNode = nodes[node.parentId];
+          if (parentNode) {
+            // Add this node to parent's children
+            if (!parentNode.childrenIds.includes(node.id)) {
+              parentNode.childrenIds = [...parentNode.childrenIds, node.id];
+            }
+            
+            // Update siblings
+            if (parentNode.childrenIds.length > 1) {
+              parentNode.childrenIds.forEach(childId => {
+                if (childId !== node.id) {
+                  // Add current node as sibling to other children
+                  const sibling = nodes[childId];
+                  if (sibling) {
+                    sibling.siblingIds = Array.from(new Set([...sibling.siblingIds, node.id]));
+                  }
+                  
+                  // Add other children as siblings to current node
+                  node.siblingIds = Array.from(new Set([...node.siblingIds, childId]));
+                }
+              });
+            }
           }
-        })),
-      clearMessageHistory: () => set({ messageHistory: {}, activeResponseVersion: {} }),
+        }
+        
+        // Update active thread if this node is active
+        if (node.isActive) {
+          chatTree.activeThread = [...chatTree.activeThread, node.id];
+        }
+        
+        return { chatTree: { ...chatTree, nodes } };
+      }),
+      
+      updateNode: (nodeId, updates) => set((state) => {
+        const chatTree = { ...state.chatTree };
+        const nodes = { ...chatTree.nodes };
+        
+        if (!nodes[nodeId]) return state;
+        
+        nodes[nodeId] = { ...nodes[nodeId], ...updates };
+        
+        return { chatTree: { ...chatTree, nodes } };
+      }),
+      
+      deleteNode: (nodeId) => set((state) => {
+        const chatTree = { ...state.chatTree };
+        const nodes = { ...chatTree.nodes };
+        
+        if (!nodes[nodeId]) return state;
+        
+        const nodeToDelete = nodes[nodeId];
+        
+        // Remove this node from its parent's children
+        if (nodeToDelete.parentId && nodes[nodeToDelete.parentId]) {
+          nodes[nodeToDelete.parentId].childrenIds = nodes[nodeToDelete.parentId].childrenIds.filter(
+            id => id !== nodeId
+          );
+        }
+        
+        // Remove this node from its siblings' siblingIds lists
+        nodeToDelete.siblingIds.forEach(siblingId => {
+          if (nodes[siblingId]) {
+            nodes[siblingId].siblingIds = nodes[siblingId].siblingIds.filter(
+              id => id !== nodeId
+            );
+          }
+        });
+        
+        // Check if this is the root node
+        if (chatTree.rootId === nodeId) {
+          chatTree.rootId = null;
+        }
+        
+        // Remove from active thread if needed
+        if (nodeToDelete.isActive) {
+          chatTree.activeThread = chatTree.activeThread.filter(id => id !== nodeId);
+        }
+        
+        // Delete the node
+        delete nodes[nodeId];
+        
+        return { chatTree: { ...chatTree, nodes } };
+      }),
+      
+      setActiveThread: (threadNodeIds) => set((state) => {
+        const chatTree = { ...state.chatTree };
+        const nodes = { ...chatTree.nodes };
+        
+        // Deactivate all nodes
+        Object.values(nodes).forEach(node => {
+          node.isActive = false;
+          node.threadPosition = 0;
+        });
+        
+        // Activate nodes in the new thread
+        threadNodeIds.forEach((nodeId, index) => {
+          if (nodes[nodeId]) {
+            nodes[nodeId].isActive = true;
+            nodes[nodeId].threadPosition = index;
+          }
+        });
+        
+        return {
+          chatTree: {
+            ...chatTree,
+            nodes,
+            activeThread: threadNodeIds
+          }
+        };
+      }),
+      
+      createSiblingNode: (originalNodeId, newContent) => {
+        const state = get();
+        const chatTree = state.chatTree;
+        const nodes = chatTree.nodes;
+        
+        if (!nodes[originalNodeId]) {
+          console.error("Original node not found:", originalNodeId);
+          return originalNodeId;
+        }
+        
+        const originalNode = nodes[originalNodeId];
+        const parentNodeId = originalNode.parentId;
+        const parentNode = parentNodeId ? nodes[parentNodeId] : null;
+        
+        // Get existing siblings
+        const existingSiblings = parentNode
+          ? parentNode.childrenIds.filter(id => id !== originalNodeId && nodes[id])
+          : [];
+        
+        // Include original node as sibling
+        const allSiblingIds = [originalNodeId, ...existingSiblings];
+        
+        // Create new sibling node
+        const newNodeId = generateNodeId();
+        const newNode: ChatMessageNode = {
+          ...originalNode,
+          id: newNodeId,
+          content: newContent,
+          userContent: newContent,
+          childrenIds: [],
+          siblingIds: allSiblingIds,
+          isActive: true
+        };
+        
+        // Update the tree
+        set(state => {
+          const updatedNodes = { ...state.chatTree.nodes };
+          
+          // Add new node
+          updatedNodes[newNodeId] = newNode;
+          
+          // Update siblings
+          allSiblingIds.forEach(siblingId => {
+            if (updatedNodes[siblingId]) {
+              updatedNodes[siblingId] = {
+                ...updatedNodes[siblingId],
+                siblingIds: Array.from(new Set([...updatedNodes[siblingId].siblingIds, newNodeId])),
+                isActive: false
+              };
+            }
+          });
+          
+          // Update parent
+          if (parentNodeId && updatedNodes[parentNodeId]) {
+            updatedNodes[parentNodeId] = {
+              ...updatedNodes[parentNodeId],
+              childrenIds: [...updatedNodes[parentNodeId].childrenIds, newNodeId],
+              isActive: true
+            };
+          }
+          
+          return {
+            chatTree: {
+              ...state.chatTree,
+              nodes: updatedNodes
+            }
+          };
+        });
+        
+        // Navigate to the new branch
+        get().navigateToThread(newNodeId);
+        
+        return newNodeId;
+      },
+      
+      addResponseNode: (parentNodeId, content, model, provider) => {
+        const state = get();
+        const chatTree = state.chatTree;
+        const nodes = chatTree.nodes;
+        
+        if (!nodes[parentNodeId]) {
+          console.error("Parent node not found:", parentNodeId);
+          return parentNodeId;
+        }
+        
+        const parentNode = nodes[parentNodeId];
+        const existingSiblings = parentNode.childrenIds
+          .map(id => nodes[id])
+          .filter(Boolean);
+        
+        // Create new response node
+        const newNodeId = generateNodeId();
+        const newNode: ChatMessageNode = {
+          id: newNodeId,
+          role: 'assistant',
+          content: content,
+          assistantContent: content,
+          model,
+          provider,
+          parentId: parentNodeId,
+          childrenIds: [],
+          siblingIds: existingSiblings.map(node => node.id),
+          isActive: true,
+          threadPosition: parentNode.threadPosition + 1
+        };
+        
+        // Update the tree
+        set(state => {
+          const updatedNodes = { ...state.chatTree.nodes };
+          
+          // Add new node
+          updatedNodes[newNodeId] = newNode;
+          
+          // Update parent's children
+          if (updatedNodes[parentNodeId]) {
+            updatedNodes[parentNodeId] = {
+              ...updatedNodes[parentNodeId],
+              childrenIds: [...updatedNodes[parentNodeId].childrenIds, newNodeId]
+            };
+          }
+          
+          // Update active thread
+          return {
+            chatTree: {
+              ...state.chatTree,
+              nodes: updatedNodes,
+              activeThread: [...state.chatTree.activeThread, newNodeId]
+            }
+          };
+        });
+        
+        return newNodeId;
+      },
+      
+      navigateToThread: (nodeId) => {
+        const state = get();
+        const chatTree = state.chatTree;
+        const nodes = chatTree.nodes;
+        
+        if (!nodes[nodeId]) {
+          console.error("Node not found:", nodeId);
+          return;
+        }
+        
+        // Build thread from root to this node
+        const newThread: string[] = [];
+        let currentNodeId: string | null = nodeId;
+        
+        while (currentNodeId && nodes[currentNodeId]) {
+          newThread.unshift(currentNodeId);
+          currentNodeId = nodes[currentNodeId].parentId;
+        }
+        
+        // Update active thread and node states
+        get().setActiveThread(newThread);
+      },
+      
+      clearAll: () => set({
+        chatTree: createEmptyChatTree()
+      })
     }),
     {
-      name: 'ai-chat-storage',
-      storage: createJSONStorage(() => localStorage),
+      name: 'ai-chat-store'
     }
   )
 ); 

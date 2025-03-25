@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,7 +60,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import AIDebugPanel from "@/components/ai-debug-panel";
-import { generateChatResponse, ChatMessage, ChatContextDocument } from "@/lib/llm-service";
+import { generateChatResponse, type ChatMessage } from "@/lib/llm-service";
 import { LLM_PROVIDERS, LLM_MODELS } from "@/lib/config";
 import { AIRoleSwitcher } from './ai-role-switcher';
 import { useTheme } from "next-themes";
@@ -78,6 +78,8 @@ import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { ContextDocumentList } from "./context-document-list";
 import { ContextDocument } from "@/types/contextDocument";
+import { BranchMenu } from "@/components/branch-menu";
+import type { ChatMessageNode } from "@/lib/store";
 
 // Define color mapping for each model
 const MODEL_COLORS = {
@@ -133,48 +135,97 @@ interface ProviderOption {
   label: string;
 }
 
-// Define the enhanced version of the ChatMessage type
-interface EnhancedChatMessage extends ChatMessage {
-  // New structure with separate content fields
+// Update the message history type to handle nulls
+type MessageHistory = Array<ChatMessage | null>;
+
+// Helper function to filter out nulls from message history
+function filterNullMessages(messages: MessageHistory): ChatMessage[] {
+  return messages.filter((msg): msg is ChatMessage => msg !== null);
+}
+
+// Define the chat message node type
+interface ChatMessageNode extends ChatMessage {
+  // Additional content fields for different roles
   systemContent?: string;
   userContent?: string;
   assistantContent?: string;
+  
+  // Tree structure properties
+  id: string;                   // Unique identifier for this node
+  parentId: string | null;      // ID of the parent node (null for root)
+  childrenIds: string[];        // IDs of child nodes
+  siblingIds: string[];         // IDs of sibling nodes (nodes with same parent)
+  
+  // Navigation metadata
+  isActive: boolean;            // Whether this node is in the active thread
+  threadPosition: number;       // Position in the active thread (for ordering)
+}
+
+// Interface to represent the entire chat tree
+interface ChatTree {
+  nodes: Record<string, ChatMessageNode>;  // Map of node IDs to nodes
+  rootId: string | null;                   // ID of the root node
+  activeThread: string[];                  // Ordered list of node IDs in the active thread
 }
 
 // Helper function to get content for display based on role
-const getDisplayContent = (message: EnhancedChatMessage): string => {
-  if (message.systemContent && message.role === 'system' as any) {
+function getDisplayContent(message: ChatMessageNode): string {
+  if (message.systemContent && message.role === 'system') {
     return message.systemContent;
   } else if (message.userContent && message.role === 'user') {
     return message.userContent;
   } else if (message.assistantContent && message.role === 'assistant') {
     return message.assistantContent;
   }
-  // Fallback to the original content for backward compatibility
   return message.content;
-};
+}
 
 // Type guard to check if a message has a specific role
-const hasRole = (message: EnhancedChatMessage, role: string): boolean => {
+function hasRole(message: ChatMessageNode, role: string): boolean {
   return message.role === role;
-};
+}
+
+// Helper to check if a node has siblings
+function hasSiblings(message: ChatMessageNode): boolean {
+  return message.siblingIds && message.siblingIds.length > 0;
+}
+
+// Helper to check if a node is in the active thread
+function isNodeActive(message: ChatMessageNode): boolean {
+  return message.isActive;
+}
+
+// Helper function to convert ChatMessageNode to LLM service ChatMessage
+function convertToLLMMessage(node: ChatMessageNode): ChatMessage {
+  return {
+    role: node.role === 'system' ? 'user' : node.role,
+    content: node.content,
+    model: node.model,
+    provider: node.provider
+  };
+}
+
+// Helper function to filter out nulls and convert messages
+function prepareMessagesForAPI(messages: (ChatMessageNode | null)[]): ChatMessage[] {
+  return messages
+    .filter((msg): msg is ChatMessageNode => msg !== null)
+    .map(convertToLLMMessage);
+}
 
 export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIChatProps) {
   const { documents } = useDocumentStore();
   const { config, updateConfig } = useLLMStore();
   const { 
-    messages, 
-    setMessages, 
-    addMessage, 
-    clearMessages,
-    messageHistory,
-    setMessageHistory,
-    updateMessageHistory,
-    activeResponseVersion,
-    setActiveResponseVersion: setGlobalActiveResponseVersion,
-    updateActiveResponseVersion,
-    clearMessageHistory
+    chatTree,
+    addNode,
+    updateNode,
+    setActiveThread,
+    createSiblingNode,
+    addResponseNode,
+    navigateToThread,
+    clearAll
   } = useAIChatStore();
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -190,210 +241,57 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const [composerContextFiles, setComposerContextFiles] = useState<Array<{id: string; name: string}>>([]);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [showDebugDialog, setShowDebugDialog] = useState(false);
+  const [showSaveCompositionDialog, setShowSaveCompositionDialog] = useState(false);
+  const [showClearConfirmation, setShowClearConfirmation] = useState(false);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [filteredDocuments, setFilteredDocuments] = useState<ContextDocument[]>([]);
+  const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(-1);
+  const [compositionName, setCompositionName] = useState('');
   
   // Debug messages for development
   useEffect(() => {
-    console.log("Message history state:", messageHistory);
-    console.log("Active response versions:", activeResponseVersion);
-  }, [messageHistory, activeResponseVersion]);
+    console.log("Chat tree state:", chatTree);
+  }, [chatTree]);
   
-  // Autocomplete state
-  const [showAutocomplete, setShowAutocomplete] = useState(false);
-  const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(0);
-  const [filteredDocuments, setFilteredDocuments] = useState<Array<{ id: string; name: string; content: string }>>([]);
-
-  const [showClearConfirmation, setShowClearConfirmation] = useState(false);
-  const [lastPrompt, setLastPrompt] = useState<string>("");
-  const [showDebugDialog, setShowDebugDialog] = useState(false);
-
-  // Inside the AIChat component, add a new state for the save composition dialog
-  const [showSaveCompositionDialog, setShowSaveCompositionDialog] = useState(false);
-  const [compositionName, setCompositionName] = useState("");
+  // Helper to get active thread nodes
+  const activeMessages = useMemo(() => 
+    chatTree.activeThread
+      .map(id => chatTree.nodes[id])
+      .filter(Boolean),
+    [chatTree.activeThread, chatTree.nodes]
+  );
   
-  // State for editing messages
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editedPrompt, setEditedPrompt] = useState<string>("");
-
-  // Load context files from localStorage when component mounts
-  useEffect(() => {
-    loadComposerContextFiles();
-  }, [documents]);
-  
-  // Function to load context files from localStorage
-  const loadComposerContextFiles = () => {
-    try {
-      const contextData = localStorage.getItem('aiComposerContext');
-      if (contextData) {
-        console.log("Found context data in localStorage:", contextData);
-        const parsedContext = JSON.parse(contextData) as Array<{id: string; name: string}>;
-        setComposerContextFiles(parsedContext);
-        
-        // Convert composer context files to context documents
-        const newContextDocs = parsedContext
-          .map(ref => {
-            const doc = documents.find(d => d.id === ref.id);
-            console.log(`Loading context document with id ${ref.id}, found:`, doc);
-            if (doc) {
-              return {
-                id: doc.id,
-                name: doc.name,
-                content: doc.content
-              };
-            }
-            console.warn(`Could not find document with id ${ref.id} in the current documents list`);
-            return null;
-          })
-          .filter((doc): doc is ContextDocument => doc !== null);
-        
-        console.log("Loaded context documents from localStorage:", newContextDocs);
-        
-        // Replace all context documents with the new ones
-        if (newContextDocs.length > 0) {
-          setContextDocuments(newContextDocs);
-          
-          toast({
-            title: "Context loaded",
-            description: `Loaded ${newContextDocs.length} context document(s) from previous session.`,
-            duration: 3000,
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error loading context files:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load context documents from previous session.",
-        variant: "destructive",
-        duration: 5000,
-      });
-    }
-  };
-  
-  // Listen for context updates from the Composition Composer
-  useEffect(() => {
-    const handleContextUpdate = (event: CustomEvent<{ context: Array<{id: string; name: string}> }>) => {
-      console.log("Received aiContextUpdated event with context:", event.detail.context);
-      
-      // Clear existing context documents first
-      setContextDocuments([]);
-      setComposerContextFiles(event.detail.context);
-      
-      // Convert composer context files to context documents
-      const newContextDocs = event.detail.context
-        .map(ref => {
-          const doc = documents.find(d => d.id === ref.id);
-          console.log(`Looking for document with id ${ref.id}, found:`, doc);
-          if (doc) {
-            return {
-              id: doc.id,
-              name: doc.name,
-              content: doc.content
-            };
-          }
-          return null;
-        })
-        .filter((doc): doc is ContextDocument => doc !== null);
-      
-      console.log("Converted context documents:", newContextDocs);
-      
-      // Replace all context documents with the new ones
-      setContextDocuments(newContextDocs);
-      
-      // Also update localStorage to ensure persistence
-      localStorage.setItem('aiComposerContext', JSON.stringify(event.detail.context));
-    };
-    
-    // Add event listener
-    window.addEventListener('aiContextUpdated', handleContextUpdate as EventListener);
-    
-    // Clean up
-    return () => {
-      window.removeEventListener('aiContextUpdated', handleContextUpdate as EventListener);
-    };
-  }, [documents]);
-
-  // Listen for messages loaded from a composition
-  useEffect(() => {
-    const handleMessagesLoaded = (event: CustomEvent<{ messages: Array<{role: 'user' | 'assistant', content: string, model?: string, provider?: string}> }>) => {
-      console.log("Received aiChatMessagesLoaded event with messages:", event.detail.messages);
-      
-      // Convert the messages to the format expected by the AI Chat component
-      const formattedMessages = event.detail.messages.map(msg => ({
-        id: generateId(),
-        role: msg.role,
-        content: msg.content,
-        model: msg.model,
-        provider: msg.provider
-      }));
-      
-      console.log("Formatted messages for AI Chat:", formattedMessages);
-      
-      // Clear existing messages and set the new ones
-      setMessages(formattedMessages);
-      
-      // Scroll to the bottom of the chat
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-      
-      toast({
-        title: "Composition loaded",
-        description: "The composition has been loaded into the AI Composer.",
-        duration: 3000,
-      });
-    };
-    
-    // Add event listener
-    window.addEventListener('aiChatMessagesLoaded', handleMessagesLoaded as EventListener);
-    
-    // Clean up
-    return () => {
-      window.removeEventListener('aiChatMessagesLoaded', handleMessagesLoaded as EventListener);
-    };
-  }, []);
-
   // Scroll to bottom of messages when new messages are added
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // Load messages from localStorage when component mounts
-  useEffect(() => {
-    const savedMessages = localStorage.getItem('aiChatMessages');
-    if (savedMessages) {
-      try {
-        const parsedMessages = JSON.parse(savedMessages) as EnhancedChatMessage[];
-        console.log('Loading messages from localStorage:', parsedMessages);
-        setMessages(parsedMessages);
-      } catch (error) {
-        console.error('Error loading chat messages:', error);
-      }
-    }
-  }, []);
-
-  // Save messages to localStorage whenever they change
-  useEffect(() => {
-    console.log('Saving messages to localStorage:', messages);
-    localStorage.setItem('aiChatMessages', JSON.stringify(messages));
-  }, [messages]);
-
-  const generateId = () => `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  }, [activeMessages]);
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!input.trim() || isLoading) return;
     
-    // Create a new user message with the updated structure
-    const userMessage: EnhancedChatMessage = {
-      id: generateId(),
+    // Generate a unique ID for the user message node
+    const userNodeId = generateId();
+    
+    // Create a user message node
+    const userNode: ChatMessageNode = {
+      id: userNodeId,
       role: 'user',
-      content: input, // Keep for backward compatibility
-      userContent: input, // New structure
+      content: input,
+      userContent: input,
+      parentId: chatTree.activeThread.length > 0 
+        ? chatTree.activeThread[chatTree.activeThread.length - 1] 
+        : null,
+      childrenIds: [],
+      siblingIds: [],
+      isActive: true,
+      threadPosition: chatTree.activeThread.length
     };
     
-    // Add user message to the chat
-    addMessage(userMessage);
+    // Add user node to the chat tree
+    addNode(userNode);
     
     // Clear input
     setInput("");
@@ -402,9 +300,21 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     setIsLoading(true);
     
     try {
+      // Get history messages from the active thread, excluding the one we just added
+      const historyMessages = prepareMessagesForAPI(
+        chatTree.activeThread.length > 1 
+          ? chatTree.activeThread.slice(0, -1).map(nodeId => chatTree.nodes[nodeId] || null)
+          : []
+      );
+      
+      // Add the user message as the final message
+      const apiMessages = [...historyMessages, convertToLLMMessage(userNode)];
+      
+      console.log("Sending messages to API:", apiMessages);
+      
       // Call the server action with all messages for context
       const response = await generateChatResponse({
-        messages: [...messages, userMessage] as ChatMessage[],
+        messages: apiMessages,
         contextDocuments: contextDocuments.map(doc => ({
           id: doc.id,
           title: doc.name,
@@ -420,45 +330,13 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       
       // Make sure response and response.message exist before creating assistantMessage
       if (response && response.message) {
-        // Add the assistant's response to the chat with updated structure
-        const assistantMessage: EnhancedChatMessage = {
-          id: generateId(),
-          role: 'assistant',
-          content: response.message.content, // Keep for backward compatibility
-          assistantContent: response.message.content, // New structure
-          model: response.model,
-          provider: response.provider
-        };
-        
-        // Update message history with the new assistant message
-        if (userMessage.id) {
-          // Only track history if the user message has an ID
-          setMessageHistory(prev => {
-            const updatedHistory = {...prev};
-            const msgId = userMessage.id as string; // Safe assertion since we checked above
-            
-            // Always ensure we have the most recent message pair at the start of the array
-            // We can have different cases:
-            if (!updatedHistory[msgId]) {
-              // Case 1: No history yet - create a new entry with message and response
-              updatedHistory[msgId] = [userMessage, assistantMessage];
-              console.log("Created new complete history entry with message and response:", updatedHistory[msgId]);
-            } else if (updatedHistory[msgId].length % 2 === 1) {
-              // Case 2: We only have a message stored - add the message and response
-              updatedHistory[msgId] = [userMessage, assistantMessage, ...updatedHistory[msgId]];
-              console.log("Added message and response to history:", updatedHistory[msgId]);
-            } else {
-              // Case 3: We already have complete pairs - add the new pair at the beginning
-              updatedHistory[msgId] = [userMessage, assistantMessage, ...updatedHistory[msgId]];
-              console.log("Added new message pair to existing history:", updatedHistory[msgId]);
-            }
-            
-            return updatedHistory;
-          });
-        }
-        
-        // Add the message to the chat
-        addMessage(assistantMessage as ChatMessage);
+        // Add the assistant's response to the chat tree
+        addResponseNode(
+          userNodeId,
+          response.message.content,
+          response.model,
+          response.provider
+        );
       } else {
         // Handle case where response or response.message is undefined
         throw new Error("Received invalid response from AI service");
@@ -476,131 +354,186 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     }
   };
 
-  // Filter out documents that are already in context
-  const getAvailableDocuments = () => {
-    return documents.filter(doc => 
-      !contextDocuments.some(contextDoc => contextDoc.id === doc.id)
-    );
-  };
-
-  // Handle input change to detect @ symbol for autocomplete
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    setInput(value);
+  // Function to save the edited message and create a new branch
+  const handleSaveEdit = async (messageId: string | undefined) => {
+    // Check if messageId is defined
+    if (!messageId) return;
     
-    // Check if we should show autocomplete
-    const lastAtIndex = value.lastIndexOf('@');
+    console.log("Starting handleSaveEdit for message ID:", messageId);
     
-    if (lastAtIndex !== -1 && (lastAtIndex === 0 || /\s/.test(value[lastAtIndex - 1]))) {
-      // Get the query text after the @ symbol
-      const query = value.slice(lastAtIndex + 1).split(/\s/)[0].toLowerCase();
+    // Get the original node from the chat tree
+    const originalNode = chatTree.nodes[messageId];
+    if (!originalNode) {
+      console.error("Node not found:", messageId);
+      return;
+    }
+    
+    // Immediately clear editing state to dismiss the edit field
+    setEditingMessageId(null);
+    setEditedPrompt("");
+    
+    // Create a new sibling node with the edited content and focus on it
+    const newNodeId = createSiblingNode(messageId, editedPrompt);
+    
+    // Set loading state
+    setIsLoading(true);
+    
+    try {
+      // Get the path to the parent node (excluding the newly created node)
+      const pathToParent: string[] = [];
+      let currentNodeId = chatTree.nodes[newNodeId]?.parentId;
       
-      // Filter documents based on the query
-      const availableDocs = getAvailableDocuments();
-      const filtered = availableDocs.filter(doc => 
-        query ? doc.name.toLowerCase().includes(query) : true
+      while (currentNodeId) {
+        pathToParent.unshift(currentNodeId);
+        currentNodeId = chatTree.nodes[currentNodeId]?.parentId;
+      }
+      
+      // Convert path to messages
+      const pathMessages = prepareMessagesForAPI(
+        pathToParent.map(nodeId => chatTree.nodes[nodeId] || null)
       );
       
-      setFilteredDocuments(filtered);
+      // Create a new user message with the edited content for the API call
+      const editedUserMessage = {
+        role: 'user' as const,
+        content: editedPrompt
+      };
       
-      if (filtered.length > 0) {
-        // Position the autocomplete dropdown
-        if (textareaRef.current) {
-          // Set autocomplete visible
-          setShowAutocomplete(true);
-        } else {
-          setShowAutocomplete(true);
-        }
-        
-        setSelectedAutocompleteIndex(0);
-      } else {
-        setShowAutocomplete(false);
-      }
-    } else {
-      setShowAutocomplete(false);
-    }
-  };
-  
-  // Handle keyboard navigation in autocomplete
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Directly detect @ key press to trigger autocomplete
-    if (e.key === '@') {
-      // Get available documents for autocomplete
-      const availableDocs = getAvailableDocuments();
+      // Add the edited user message as the final message
+      const apiMessages = [...pathMessages, editedUserMessage];
       
-      if (availableDocs.length > 0) {
-        setFilteredDocuments(availableDocs);
-        setShowAutocomplete(true);
-        setSelectedAutocompleteIndex(0);
-        
-        // We still need to let the @ character be typed
-        setTimeout(() => {
-          if (textareaRef.current) {
-            const cursorPos = textareaRef.current.selectionStart;
-            if (input[cursorPos - 1] === '@') {
-              console.log('@ character confirmed at position', cursorPos - 1);
-            }
-          }
-        }, 0);
-        
-        return;
+      console.log("Sending edited messages to API:", apiMessages);
+      
+      // Call the server action with the history messages + edited message
+      const response = await generateChatResponse({
+        messages: apiMessages,
+        contextDocuments: contextDocuments.map(doc => ({
+          id: doc.id,
+          title: doc.name,
+          content: doc.content
+        })),
+        stream: false
+      });
+      
+      // Check if response and debugPrompt exist before using them
+      if (response && response.debugPrompt) {
+        setLastPrompt(response.debugPrompt);
       }
-    }
-    
-    // Handle autocomplete navigation
-    if (showAutocomplete) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedAutocompleteIndex(prev => 
-          prev < filteredDocuments.length - 1 ? prev + 1 : prev
+      
+      // Make sure response and response.message exist before creating assistant node
+      if (response && response.message) {
+        // Add the assistant's response to the chat tree
+        addResponseNode(
+          newNodeId,
+          response.message.content,
+          response.model,
+          response.provider
         );
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedAutocompleteIndex(prev => prev > 0 ? prev - 1 : 0);
-      } else if (e.key === 'Enter' && filteredDocuments.length > 0) {
-        e.preventDefault();
-        selectAutocompleteDocument(filteredDocuments[selectedAutocompleteIndex]);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setShowAutocomplete(false);
-      } else if (e.key === 'Tab') {
-        e.preventDefault();
-        if (filteredDocuments.length > 0) {
-          selectAutocompleteDocument(filteredDocuments[selectedAutocompleteIndex]);
-        }
+      } else {
+        // Handle case where response or response.message is undefined
+        throw new Error("Received invalid response from AI service");
       }
-    } else if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
-    }
-  };
-  
-  // Select a document from autocomplete
-  const selectAutocompleteDocument = (document: { id: string; name: string; content: string }) => {
-    // Add document to context
-    handleAddContextDocument(document);
-    
-    // Replace the @query with the document name
-    const lastAtIndex = input.lastIndexOf('@');
-    if (lastAtIndex !== -1) {
-      const beforeAt = input.substring(0, lastAtIndex);
-      const afterAt = input.substring(lastAtIndex).split(' ');
-      afterAt.shift(); // Remove the @query part
-      
-      // Set the new input value
-      setInput(beforeAt + document.name + ' ' + afterAt.join(' '));
-    }
-    
-    // Hide autocomplete
-    setShowAutocomplete(false);
-    
-    // Focus back on textarea
-    if (textareaRef.current) {
-      textareaRef.current.focus();
+    } catch (error) {
+      console.error('Error in AI chat:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate response",
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleInsertResponse = (content: string) => {
+  // Add a button to insert a system message for demonstration
+  const addSystemMessage = () => {
+    const systemNodeId = generateId();
+    const systemNode: ChatMessageNode = {
+      id: systemNodeId,
+      role: 'system',
+      content: "I'll help you analyze and improve your documents. You can ask me to summarize, edit, or give feedback on your writing.",
+      systemContent: "I'll help you analyze and improve your documents. You can ask me to summarize, edit, or give feedback on your writing.",
+      parentId: null,
+      childrenIds: [],
+      siblingIds: [],
+      isActive: true,
+      threadPosition: 0
+    };
+    
+    // Add the system node to the chat tree
+    addNode(systemNode);
+    
+    // Update the active thread to include the system message at the beginning
+    const newActiveThread = chatTree.rootId 
+      ? [systemNodeId, ...chatTree.activeThread]
+      : [systemNodeId];
+    
+    setActiveThread(newActiveThread);
+    
+    toast({
+      title: "System message added",
+      description: "A system message has been added to the conversation.",
+      duration: 3000,
+    });
+  };
+
+  // State for editing messages
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editedPrompt, setEditedPrompt] = useState<string>("");
+  const [lastPrompt, setLastPrompt] = useState<string>("");
+
+  // Add handler functions
+  function handleClearChat() {
+    setShowClearConfirmation(false);
+    clearAll();
+    toast({
+      title: "Chat cleared",
+      description: "All chat messages have been cleared.",
+      duration: 3000,
+    });
+  }
+
+  function handleClearAllContextDocuments() {
+    // Clear context documents
+    toast({
+      title: "Context cleared",
+      description: "All context documents have been removed.",
+      duration: 3000,
+    });
+  }
+
+  function handleRemoveContextDocument(documentId: string) {
+    // Remove document from context
+    toast({
+      title: "Document removed",
+      description: "The document has been removed from context.",
+      duration: 3000,
+    });
+  }
+
+  function handleAddContextDocument(document: { id: string; name: string; content: string }) {
+    // Add document to context
+    toast({
+      title: "Document added",
+      description: `"${document.name}" has been added to the conversation context.`,
+      duration: 3000,
+    });
+  }
+
+  function handleEditMessage(message: { id: string; userContent?: string; content: string }) {
+    if (message.id) {
+      setEditingMessageId(message.id);
+      setEditedPrompt(message.userContent || message.content);
+    }
+  }
+
+  function handleCancelEdit() {
+    setEditingMessageId(null);
+    setEditedPrompt("");
+  }
+
+  function handleInsertResponse(content: string) {
     if (onInsertText) {
       onInsertText(content);
       toast({
@@ -615,477 +548,132 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         duration: 3000,
       });
     }
-  };
+  }
+  
+  function navigateToSibling(nodeId: string) {
+    if (!nodeId || !chatTree.nodes[nodeId]) {
+      console.error("Node not found:", nodeId);
+      return;
+    }
+    
+    console.log("Navigating to sibling:", nodeId);
+    
+    try {
+      // Perform a single navigation operation to avoid state update loops
+      navigateToThread(nodeId);
+      
+      // Show toast notification only after navigation is complete
+      toast({
+        title: "Viewing alternate branch",
+        description: "Showing the selected conversation branch.",
+        duration: 1500
+      });
+    } catch (error) {
+      console.error("Error navigating to thread:", error);
+      toast({
+        title: "Navigation Error",
+        description: "Failed to navigate to the selected branch.",
+        variant: "destructive",
+        duration: 3000
+      });
+    }
+  }
 
-  const handleCopyToClipboard = (content: string, id: string) => {
+  function handleCopyToClipboard(content: string, id: string) {
     navigator.clipboard.writeText(content);
     setIsCopied(id);
     
     toast({
       title: "Copied to clipboard",
       description: "The content has been copied to your clipboard.",
-      duration: 2000, // Auto-dismiss after 2 seconds
+      duration: 2000,
     });
     
     setTimeout(() => {
       setIsCopied(null);
     }, 2000);
-  };
+  }
 
-  const handleAddContextDocument = (document: { id: string; name: string; content: string }) => {
-    // Check if document is already in context
-    if (contextDocuments.some(doc => doc.id === document.id)) {
-      toast({
-        title: "Document already in context",
-        description: `"${document.name}" is already added to the context.`,
-        duration: 3000, // Auto-dismiss after 3 seconds
-      });
-      return;
-    }
-    
-    // Add document to context
-    setContextDocuments(prev => [...prev, document]);
-    
-    toast({
-      title: "Document added to context",
-      description: `"${document.name}" has been added to the conversation context.`,
-      duration: 3000, // Auto-dismiss after 3 seconds
-    });
-    
-    // Close the dropdown
-    setIsContextMenuOpen(false);
-  };
+  function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setInput(e.target.value);
+  }
 
-  const handleRemoveContextDocument = (documentId: string) => {
-    // Remove from context documents
-    setContextDocuments(prev => prev.filter(doc => doc.id !== documentId));
-    
-    // Also remove from composer context files in localStorage
-    const updatedComposerContext = composerContextFiles.filter(ref => ref.id !== documentId);
-    setComposerContextFiles(updatedComposerContext);
-    localStorage.setItem('aiComposerContext', JSON.stringify(updatedComposerContext));
-    
-    // Dispatch event to notify other components
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('aiContextUpdated', { 
-        detail: { context: updatedComposerContext }
-      });
-      window.dispatchEvent(event);
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
     }
-  };
-  
-  const handleClearAllContextDocuments = () => {
-    // Clear context documents
-    setContextDocuments([]);
-    
-    // Clear composer context files in localStorage
-    setComposerContextFiles([]);
-    localStorage.removeItem('aiComposerContext');
-    
-    // Dispatch event to notify other components
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('aiContextUpdated', { 
-        detail: { context: [] }
-      });
-      window.dispatchEvent(event);
-    }
-  };
+  }
 
-  // Add a focus event handler for the textarea
-  const handleFocus = () => {
+  function handleFocus() {
     // Set focus state to true
     setIsInputFocused(true);
-    
-    // Check if the input already contains an @ symbol
-    const lastAtIndex = input.lastIndexOf('@');
-    if (lastAtIndex !== -1 && (lastAtIndex === 0 || /\s/.test(input[lastAtIndex - 1]))) {
-      // Get the query text after the @ symbol
-      const query = input.slice(lastAtIndex + 1).split(/\s/)[0].toLowerCase();
-      
-      // Show autocomplete if there's an @ symbol
-      const availableDocs = getAvailableDocuments();
-      const filtered = availableDocs.filter(doc => 
-        query ? doc.name.toLowerCase().includes(query) : true
-      );
-      
-      if (filtered.length > 0) {
-        setFilteredDocuments(filtered);
-        setShowAutocomplete(true);
-        setSelectedAutocompleteIndex(0);
-      }
-    }
-  };
-  
-  // Add a blur event handler for the textarea
-  const handleBlur = () => {
-    // Add a small delay to ensure other interactions (like clicking autocomplete) complete first
+  }
+
+  function handleBlur() {
+    // Add a small delay to ensure other interactions complete first
     setTimeout(() => {
-      if (!showAutocomplete) {
-        setIsInputFocused(false);
-      }
+      setIsInputFocused(false);
     }, 100);
-  };
+  }
 
-  // Add a function to handle clearing the chat
-  const handleClearChat = () => {
-    setShowClearConfirmation(false);
-    clearMessages();
-    clearMessageHistory(); // Also clear message history
-    toast({
-      title: "Chat cleared",
-      description: "All chat messages have been cleared.",
-      duration: 3000,
-    });
-  };
+  function selectAutocompleteDocument(doc: ContextDocument) {
+    // Add the selected document to the context
+    addContextDocument(doc);
+    // Clear the autocomplete
+    setShowAutocomplete(false);
+    setFilteredDocuments([]);
+    setSelectedAutocompleteIndex(-1);
+  }
 
-  // Function to start editing a user message
-  const handleEditMessage = (message: EnhancedChatMessage) => {
-    if (message.id) {
-      setEditingMessageId(message.id);
-      // Use userContent if available, otherwise fall back to content
-      setEditedPrompt(message.userContent || message.content);
-    }
-  };
-
-  // Function to cancel editing
-  const handleCancelEdit = () => {
-    setEditingMessageId(null);
-    setEditedPrompt("");
-  };
-
-  // Function to save the edited message and regenerate the response
-  const handleSaveEdit = async (messageId: string | undefined) => {
-    // Check if messageId is defined
-    if (!messageId) return;
-    
-    console.log("Starting handleSaveEdit for message ID:", messageId);
-    
-    // Find the original message and its index
-    const messageIndex = messages.findIndex(m => m.id === messageId);
-    if (messageIndex === -1) return;
-    
-    // Find the subsequent assistant message (if exists)
-    const nextMessageIndex = messageIndex + 1;
-    const hasAssistantResponse = nextMessageIndex < messages.length && 
-                               messages[nextMessageIndex].role === 'assistant';
-    
-    // Keep the original messages for history
-    const originalMessage = messages[messageIndex] as EnhancedChatMessage;
-    let originalAssistantMessage: EnhancedChatMessage | undefined;
-    
-    if (hasAssistantResponse) {
-      originalAssistantMessage = messages[nextMessageIndex] as EnhancedChatMessage;
-      console.log("Original assistant message:", originalAssistantMessage);
-    }
-    
-    // Create updated message with edited content
-    const updatedMessage = {
-      ...originalMessage, 
-      content: editedPrompt,
-      userContent: editedPrompt
-    } as EnhancedChatMessage;
-    
-    console.log("Original message:", originalMessage);
-    console.log("Updated message:", updatedMessage);
-    
-    // Update the user message in the messages list
-    const updatedMessages = [...messages];
-    updatedMessages[messageIndex] = updatedMessage as ChatMessage;
-    
-    // If there was an assistant response, remove it (will be regenerated)
-    if (hasAssistantResponse) {
-      updatedMessages.splice(nextMessageIndex, 1);
-    }
-    
-    // Update messages state
-    setMessages(updatedMessages);
-    
-    // Clear editing state
-    setEditingMessageId(null);
-    setEditedPrompt("");
-    
-    // Generate new response
-    // Set loading state
-    setIsLoading(true);
-    
-    try {
-      // Call the server action with all messages up to and including the edited message
-      const response = await generateChatResponse({
-        messages: updatedMessages,
-        contextDocuments: contextDocuments.map(doc => ({
-          id: doc.id,
-          title: doc.name,
-          content: doc.content
-        })),
-        stream: false
-      });
-      
-      // Check if response and debugPrompt exist before using them
-      if (response && response.debugPrompt) {
-        setLastPrompt(response.debugPrompt);
-      }
-      
-      // Make sure response and response.message exist before creating assistantMessage
-      if (response && response.message) {
-        // Add the assistant's response to the chat with updated structure
-        const assistantMessage: EnhancedChatMessage = {
-          id: generateId(),
-          role: 'assistant',
-          content: response.message.content, // Keep for backward compatibility
-          assistantContent: response.message.content, // New structure
-          model: response.model,
-          provider: response.provider
-        };
-        
-        // NOW update the message history with both the original and new messages
-        // This is the only place where we update message history in this function
-        const updatedHistory = [...(messageHistory[messageId] || [])];
-        
-        // First, check if we had a previous assistant response
-        if (originalAssistantMessage) {
-          // Check if the history already contains the original message pair
-          const containsOriginalMessage = updatedHistory.some(
-            msg => msg.id === originalMessage.id && msg.content === originalMessage.content
-          );
-          
-          if (!containsOriginalMessage) {
-            // Add the original message pair if it's not already there
-            updatedHistory.push(originalMessage, originalAssistantMessage);
-          }
-        }
-        
-        // Then, add the new edited message and response at the beginning
-        // This ensures the most recent is always first
-        updatedHistory.unshift(updatedMessage, assistantMessage);
-        
-        // Update message history
-        updateMessageHistory(messageId, updatedHistory);
-        console.log("Updated message history:", messageHistory);
-        
-        // Reset active version counter to 0 (most recent)
-        updateActiveResponseVersion(messageId, 0);
-        
-        // Add the message to the chat
-        addMessage(assistantMessage as ChatMessage);
-      } else {
-        // Handle case where response or response.message is undefined
-        throw new Error("Received invalid response from AI service");
-      }
-    } catch (error) {
-      console.error('Error in AI chat:', error);
+  // Add handleSaveComposition function
+  async function handleSaveComposition() {
+    if (!compositionName.trim()) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate response",
+        description: "Please enter a name for the composition",
         variant: "destructive",
-        duration: 5000,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Function to browse message history for a given message ID
-  const browseMessageHistory = (messageId: string, direction: 'prev' | 'next') => {
-    console.log("Browse history called for message ID:", messageId);
-    
-    if (!messageHistory[messageId]) {
-      console.log("No message history found for this message");
-      return;
-    }
-    
-    // Get current version index
-    const currentVersion = activeResponseVersion[messageId] || 0;
-    console.log("Current version:", currentVersion);
-    
-    // Calculate new version based on direction
-    let newVersion = currentVersion;
-    
-    if (direction === 'prev') {
-      // Going back in history (to an older version)
-      newVersion = Math.min(currentVersion + 1, (messageHistory[messageId].length / 2) - 1);
-    } else {
-      // Going forward in history (to a newer version)
-      newVersion = Math.max(currentVersion - 1, 0);
-    }
-    
-    console.log("New version:", newVersion);
-    
-    if (newVersion === currentVersion) {
-      console.log("Already at the limit of history");
-      return;
-    }
-    
-    // Find the message in the current messages list
-    const messageIndex = messages.findIndex(m => m.id === messageId);
-    if (messageIndex === -1) {
-      console.log("Message not found in current messages list");
-      return;
-    }
-    
-    // Calculate indices in the history array
-    // Each version consists of a user message and an assistant message
-    const historyUserIndex = newVersion * 2;
-    const historyAssistantIndex = historyUserIndex + 1;
-    
-    // Make sure we have both messages
-    if (!messageHistory[messageId][historyUserIndex] || !messageHistory[messageId][historyAssistantIndex]) {
-      console.log("Missing user or assistant message in history");
-      return;
-    }
-    
-    // Get the historical messages
-    const historicalUserMsg = messageHistory[messageId][historyUserIndex] as EnhancedChatMessage;
-    const historicalAssistantMsg = messageHistory[messageId][historyAssistantIndex] as EnhancedChatMessage;
-    
-    // Update active version
-    updateActiveResponseVersion(messageId, newVersion);
-    
-    console.log("Retrieved historical messages:", {
-      user: historicalUserMsg.content.substring(0, 20) + "...",
-      assistant: historicalAssistantMsg.content.substring(0, 20) + "..."
-    });
-    
-    // Update the messages with historical versions
-    const updatedMessages = [...messages];
-    updatedMessages[messageIndex] = historicalUserMsg;
-    updatedMessages[messageIndex + 1] = historicalAssistantMsg;
-    
-    console.log("Updating messages with historical versions");
-    setMessages(updatedMessages);
-  };
-
-  const createAndSaveComposition = async (
-    name: string, 
-    contextDocs: ContextDocument[], 
-    chatMessages: EnhancedChatMessage[],
-    customIntro?: string
-  ) => {
-    try {
-      console.log(`Creating composition "${name}" with ${contextDocs.length} context documents and ${chatMessages.length} messages`);
-      console.log("Context documents:", contextDocs.map(doc => ({ id: doc.id, name: doc.name })));
-      
-      // Format the chat transcript
-      let content = `# ${name}\n\n`;
-      
-      // Add custom intro if provided, otherwise use default
-      if (customIntro) {
-        content += `${customIntro}\n\n`;
-      } else if (contextDocs.length > 0 && chatMessages.length === 0) {
-        // If there are only context documents but no messages, add a default intro
-        content += `Composition created with context documents.\n\n`;
-      }
-      
-      // Add chat messages if they exist
-      if (chatMessages.length > 0) {
-        content += "## Chat Thread\n\n";
-        chatMessages.forEach((message) => {
-          const role = message.role === 'user' ? 'User' : 'AI';
-          content += `### ${role}\n\n${message.content}\n\n`;
-        });
-      }
-      
-      // Don't save if there are no context documents and no messages
-      if (contextDocs.length === 0 && chatMessages.length === 0) {
-        toast({
-          title: "Cannot save empty composition",
-          description: "Please add context documents or start a conversation first.",
-          variant: "destructive",
-          duration: 3000,
-        });
-        return false;
-      }
-      
-      // Create a clean array of context document references
-      const contextDocRefs = contextDocs.map(doc => ({ 
-        id: doc.id, 
-        name: doc.name 
-      }));
-      
-      // Add the composition to the store
-      await useDocumentStore.getState().addComposition(
-        name,
-        content,
-        contextDocRefs
-      );
-      
-      toast({
-        title: "Composition saved",
-        description: `"${name}" has been saved to your compositions with ${contextDocs.length} context document(s).`,
         duration: 3000,
       });
+      return;
+    }
+
+    try {
+      // Get the active messages from the chat tree
+      const messages = chatTree.activeThread.map(id => chatTree.nodes[id]).filter(Boolean);
       
-      return true;
+      // Create the composition content
+      const compositionContent = messages.map(msg => {
+        const role = msg.role === 'system' ? '[System]' : msg.role === 'user' ? '[User]' : '[Assistant]';
+        return `${role}\n${msg.content}\n`;
+      }).join('\n');
+
+      // Add the composition
+      await useDocumentStore.getState().addComposition(
+        compositionName,
+        compositionContent,
+        contextDocuments.map(doc => ({ id: doc.id, name: doc.name }))
+      );
+
+      // Close the dialog and show success message
+      setShowSaveCompositionDialog(false);
+      setCompositionName('');
+
+      toast({
+        title: "Success",
+        description: "Composition saved successfully",
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error saving composition:', error);
       toast({
         title: "Error",
-        description: "Failed to save composition.",
-        variant: "destructive",
-        duration: 5000,
-      });
-      
-      return false;
-    }
-  };
-
-  // Add a function to handle saving the composition from the dialog
-  const handleSaveComposition = async () => {
-    if (!compositionName.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a name for the composition.",
+        description: "Failed to save composition",
         variant: "destructive",
         duration: 3000,
       });
-      return;
     }
-    
-    // Check if there's anything to save
-    if (contextDocuments.length === 0 && messages.length === 0) {
-      toast({
-        title: "Nothing to save",
-        description: "Please add context documents or start a conversation first.",
-        variant: "destructive",
-        duration: 3000,
-      });
-      return;
-    }
-    
-    // Ensure we're using the current context documents
-    const currentContextDocs = [...contextDocuments];
-    console.log("Saving composition with context documents:", currentContextDocs);
-    
-    const success = await createAndSaveComposition(
-      compositionName,
-      currentContextDocs,
-      messages as EnhancedChatMessage[]
-    );
-    
-    if (success) {
-      // Reset state
-      setCompositionName("");
-      setShowSaveCompositionDialog(false);
-    }
-  };
-
-  // Add a button to insert a system message for demonstration
-  const addSystemMessage = () => {
-    const systemMessage: EnhancedChatMessage = {
-      id: generateId(),
-      role: 'system' as 'user' | 'assistant', // Type assertion to work with the API
-      content: "I'll help you analyze and improve your documents. You can ask me to summarize, edit, or give feedback on your writing.",
-      systemContent: "I'll help you analyze and improve your documents. You can ask me to summarize, edit, or give feedback on your writing."
-    };
-    
-    // Insert the system message at the beginning of the messages array
-    setMessages([systemMessage as ChatMessage, ...messages]);
-    
-    toast({
-      title: "System message added",
-      description: "A system message has been added to the conversation.",
-      duration: 3000,
-    });
-  };
+  }
 
   return (
     <Card className={cn(
@@ -1314,7 +902,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       <CardContent className="flex-1 p-0 overflow-hidden">
         <ScrollArea className="h-full">
           <div className="p-3 space-y-3">
-            {messages.length === 0 ? (
+            {chatTree.activeThread.length === 0 ? (
               <div className="text-center text-muted-foreground py-4">
                 <Sparkles className="h-5 w-5 mx-auto mb-1.5 opacity-50" />
                 <p className="text-xs">Ask me anything about your document(s)</p>
@@ -1343,16 +931,17 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 </div>
               </div>
             ) : (
-              messages.map((message, index) => {
-                // Cast the message to EnhancedChatMessage to access the new fields
-                const enhancedMessage = message as EnhancedChatMessage;
+              // Use the active messages from the tree
+              activeMessages.map((node) => {
+                if (!node) return null;
+                
                 return (
                   <div 
-                    key={message.id || index} 
+                    key={node.id} 
                     className={`flex ${
-                      hasRole(message as EnhancedChatMessage, 'user') 
+                      hasRole(node, 'user') 
                         ? 'justify-end' 
-                        : hasRole(message as EnhancedChatMessage, 'system') 
+                        : hasRole(node, 'system') 
                           ? 'justify-center' 
                           : 'justify-start'
                     }`}
@@ -1360,22 +949,22 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                     <div 
                       className={cn(
                         "max-w-[90%] rounded-lg p-2 group",
-                        hasRole(message as EnhancedChatMessage, 'user')
+                        hasRole(node, 'user')
                           ? 'bg-muted text-foreground'
-                          : hasRole(message as EnhancedChatMessage, 'system')
+                          : hasRole(node, 'system')
                           ? 'bg-primary/10 text-foreground'
-                          : message.model && MODEL_COLORS[message.model as keyof typeof MODEL_COLORS]
-                            ? MODEL_COLORS[message.model as keyof typeof MODEL_COLORS]
+                          : node.model && MODEL_COLORS[node.model as keyof typeof MODEL_COLORS]
+                            ? MODEL_COLORS[node.model as keyof typeof MODEL_COLORS]
                             : 'bg-muted/70'
                       )}
                     >
                       {/* Display role badge for system messages */}
-                      {hasRole(message as EnhancedChatMessage, 'system') && (
+                      {hasRole(node, 'system') && (
                         <Badge variant="outline" className="mb-1 text-[10px] bg-primary/10">System</Badge>
                       )}
                       
                       {/* Editing mode for user messages */}
-                      {hasRole(message as EnhancedChatMessage, 'user') && editingMessageId === message.id ? (
+                      {hasRole(node, 'user') && editingMessageId === node.id ? (
                         <div className="space-y-2">
                           <Textarea
                             value={editedPrompt}
@@ -1395,29 +984,29 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                             <Button
                               variant="default"
                               size="sm"
-                              onClick={() => handleSaveEdit(message.id)}
+                              onClick={() => handleSaveEdit(node.id)}
                               className="h-7 text-xs"
                               disabled={!editedPrompt.trim()}
                             >
-                              Regenerate
+                              Create Branch
                             </Button>
                           </div>
                         </div>
                       ) : (
                         <div className="whitespace-pre-wrap text-xs">
-                          {getDisplayContent(enhancedMessage)}
+                          {getDisplayContent(node)}
                         </div>
                       )}
                       
                       {/* Show buttons for user messages when not editing */}
-                      {hasRole(message as EnhancedChatMessage, 'user') && editingMessageId !== message.id && (
+                      {hasRole(node, 'user') && editingMessageId !== node.id && (
                         <div className="mt-1.5 pt-0.5 border-t border-border flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-5 w-5"
-                            onClick={() => handleEditMessage(enhancedMessage)}
-                            title="Edit prompt"
+                            onClick={() => handleEditMessage(node)}
+                            title="Edit prompt & create branch"
                           >
                             <Pencil className="h-2.5 w-2.5" />
                           </Button>
@@ -1425,67 +1014,61 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                       )}
                       
                       {/* Show buttons for assistant messages */}
-                      {hasRole(message as EnhancedChatMessage, 'assistant') && (
+                      {hasRole(node, 'assistant') && (
                         <div className="mt-1.5 pt-0.5 border-t border-border flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                          {/* Version navigation buttons */}
+                          {/* Branch navigator section */}
                           {(() => {
-                            // Safe access to previous message and its history
-                            const prevMessage = index > 0 ? messages[index-1] as EnhancedChatMessage : null;
-                            const prevMessageId = prevMessage?.id || '';
-                            const msgHistory = prevMessageId ? messageHistory[prevMessageId] : null;
-                            const hasHistory = !!msgHistory && msgHistory.length > 0;
+                            // First check if this is an AI response with a parent user message
+                            if (!node.parentId) return null;
                             
-                            if (!hasHistory) return null;
+                            // Get the parent user message
+                            const parentUserNode = chatTree.nodes[node.parentId];
+                            if (!parentUserNode || parentUserNode.role !== 'user') return null;
                             
-                            const historyPairs = Math.floor(msgHistory.length / 2); // Ensure integer division
+                            // Check if the parent has siblings (indicating branch options)
+                            const siblingIds = parentUserNode.siblingIds || [];
                             
-                            // Only show if we have at least 2 versions (otherwise navigation makes no sense)
-                            if (historyPairs <= 1) return null;
-                            
-                            const currentVersion = activeResponseVersion[prevMessageId] || 0;
-                            const hasOlderVersions = currentVersion < historyPairs - 1;
-                            const hasNewerVersions = currentVersion > 0;
-                            
-                            console.log(`Version navigation: ${currentVersion}/${historyPairs}, older: ${hasOlderVersions}, newer: ${hasNewerVersions}`);
-                            
-                            return (
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() => browseMessageHistory(prevMessageId, 'prev')}
-                                  title="View older version"
-                                  disabled={!hasOlderVersions}
-                                >
-                                  <ChevronUp className="h-2.5 w-2.5" />
-                                </Button>
-                                
-                                <span className="text-[10px] text-muted-foreground">
-                                  v{historyPairs - currentVersion}/{historyPairs}
-                                </span>
-                                
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() => browseMessageHistory(prevMessageId, 'next')}
-                                  title="View newer version"
-                                  disabled={!hasNewerVersions}
-                                >
-                                  <ChevronDown className="h-2.5 w-2.5" />
-                                </Button>
-                              </div>
+                            // Filter out siblings that don't exist and exclude parent itself
+                            const validSiblingIds = siblingIds.filter(id => 
+                              id !== parentUserNode.id && 
+                              chatTree.nodes[id] && 
+                              chatTree.nodes[id].role === 'user'
                             );
+                            
+                            // Only show branch navigation if there are valid siblings
+                            if (validSiblingIds.length === 0) return null;
+                            
+                            // Get all branches including the current one
+                            const allBranchIds = [parentUserNode.id, ...validSiblingIds];
+                            const branchCount = allBranchIds.length;
+                            
+                            // Find current branch index
+                            const currentBranchIndex = allBranchIds.indexOf(parentUserNode.id);
+                            
+                            // If there are multiple branches, show the branch menu
+                            if (branchCount > 1) {
+                              return (
+                                <BranchMenu
+                                  currentBranchIndex={currentBranchIndex}
+                                  branchCount={branchCount}
+                                  allBranchIds={allBranchIds}
+                                  chatNodes={chatTree.nodes}
+                                  currentBranchId={parentUserNode.id}
+                                  onBranchSelect={navigateToSibling}
+                                />
+                              );
+                            }
+                            
+                            return null;
                           })()}
                           
-                          {/* Existing action buttons */}
+                          {/* Action buttons */}
                           <div className="flex items-center ml-auto">
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-5 w-5"
-                              onClick={() => handleInsertResponse(getDisplayContent(enhancedMessage))}
+                              onClick={() => handleInsertResponse(getDisplayContent(node))}
                               title="Add to document"
                             >
                               <ArrowLeft className="h-2.5 w-2.5" />
@@ -1495,10 +1078,10 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                               variant="ghost"
                               size="icon"
                               className="h-5 w-5"
-                              onClick={() => handleCopyToClipboard(getDisplayContent(enhancedMessage), `msg-${index}`)}
+                              onClick={() => handleCopyToClipboard(getDisplayContent(node), node.id)}
                               title="Copy to clipboard"
                             >
-                              {isCopied === `msg-${index}` ? (
+                              {isCopied === node.id ? (
                                 <Check className="h-2.5 w-2.5" />
                               ) : (
                                 <Copy className="h-2.5 w-2.5" />
@@ -1669,8 +1252,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 Messages
               </span>
               <div className="col-span-3 text-sm text-muted-foreground">
-                {messages.length > 0 
-                  ? `${messages.length} messages will be saved` 
+                {chatTree.activeThread.length > 0 
+                  ? `${chatTree.activeThread.length} messages will be saved` 
                   : "No messages to save (only context documents will be saved)"}
               </div>
             </div>
