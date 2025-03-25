@@ -467,6 +467,26 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
     });
   };
 
+  const handleKeepBothChanges = () => {
+    if (!editor || !selection || !insertedTextRange) return;
+    
+    const model = editor.getModel();
+    if (!model) return;
+    
+    // Remove decorations but keep both texts
+    if (decorations.length > 0) {
+      model.deltaDecorations(decorations, []);
+      setDecorations([]);
+    }
+    
+    setShowConfirmation(false);
+    
+    toast({
+      title: "Both texts kept",
+      description: "Both the original and generated text have been kept.",
+    });
+  };
+
   // Handle key down events for the prompt input
   const handleInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -668,7 +688,7 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
       
       {showConfirmation && (
         <div 
-          className="fixed z-50 bg-background border rounded-lg shadow-lg p-4 w-80"
+          className="fixed z-50 bg-background border rounded-lg shadow-lg p-4 w-[300px]"
           style={{
             left: `${editorLeftPosition + 100}px`,
             top: '50%',
@@ -680,13 +700,22 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
             <div className="text-sm text-muted-foreground">
               Do you want to apply the generated text and remove the original selection?
             </div>
-            <div className="flex justify-end space-x-2 pt-2">
-              <Button variant="outline" onClick={handleRejectChanges} className="h-8 px-3 text-xs">
-                <X className="h-3 w-3 mr-2" />
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button variant="outline" onClick={handleRejectChanges} className="h-8 px-2 text-xs flex-1">
+                <X className="h-3 w-3 mr-1" />
                 Reject
               </Button>
-              <Button onClick={handleAcceptChanges} className="h-8 px-3 text-xs">
-                <Check className="h-3 w-3 mr-2" />
+              <Button 
+                variant="secondary" 
+                onClick={handleKeepBothChanges} 
+                className="h-8 px-2 text-xs flex-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50"
+                aria-label="Keep Both"
+              >
+                <FileText className="h-3 w-3 mr-1" />
+                Keep Both
+              </Button>
+              <Button onClick={handleAcceptChanges} className="h-8 px-2 text-xs flex-1">
+                <Check className="h-3 w-3 mr-1" />
                 Accept
               </Button>
             </div>
