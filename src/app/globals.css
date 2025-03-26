@@ -46,68 +46,74 @@
 }
 
 :root {
-  --background: oklch(1 0 0);             /* Pure white background */
-  --foreground: oklch(0.2 0.01 280);      /* Dark gray text */
-  --card: oklch(1 0 0);                   /* Pure white */
-  --card-foreground: oklch(0.2 0.01 280);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.01 280);
-  --primary: oklch(0.45 0.08 280);        /* More muted purple for primary actions */
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.98 0.01 280);      /* Very light purple */
-  --secondary-foreground: oklch(0.2 0.01 280);
-  --muted: oklch(0.98 0.01 280);
-  --muted-foreground: oklch(0.45 0.06 280);
-  --accent: oklch(0.96 0.02 280);
-  --accent-foreground: oklch(0.2 0.01 280);
-  --destructive: oklch(0.6 0.15 30);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.9 0.01 280);
-  --input: oklch(0.9 0.01 280);
-  --ring: oklch(0.45 0.08 280);
-  --radius: 0.5rem;
-  
-  /* Control panel specific colors */
-  --sidebar: oklch(0.98 0.001 0);         /* Very subtle gray for sidebar */
-  --sidebar-foreground: oklch(0.2 0.01 280);
-  --sidebar-primary: oklch(0.45 0.08 280);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.96 0.02 280);
-  --sidebar-accent-foreground: oklch(0.2 0.01 280);
-  --sidebar-border: oklch(0.9 0.01 280);
-  --sidebar-ring: oklch(0.45 0.08 280);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
-  --background: oklch(0.15 0.02 280);     /* Dark purple-gray background */
-  --foreground: oklch(0.98 0.002 85);     /* Light cream text */
-  --card: oklch(0.18 0.02 280);           /* Slightly lighter dark background */
-  --card-foreground: oklch(0.98 0.002 85);
-  --popover: oklch(0.18 0.02 280);
-  --popover-foreground: oklch(0.98 0.002 85);
-  --primary: oklch(0.7 0.1 280);          /* Lighter purple for dark mode */
-  --primary-foreground: oklch(0.15 0.02 280);
-  --secondary: oklch(0.25 0.03 280);
-  --secondary-foreground: oklch(0.98 0.002 85);
-  --muted: oklch(0.25 0.03 280);
-  --muted-foreground: oklch(0.6 0.05 280);
-  --accent: oklch(0.25 0.03 280);
-  --accent-foreground: oklch(0.98 0.002 85);
-  --destructive: oklch(0.6 0.2 30);
-  --destructive-foreground: oklch(0.98 0.002 85);
-  --border: oklch(0.25 0.03 280);
-  --input: oklch(0.25 0.03 280);
-  --ring: oklch(0.4 0.08 280);
-  
-  /* Control panel specific colors */
-  --sidebar: oklch(0.12 0.02 280);        /* Darker background for sidebar */
-  --sidebar-foreground: oklch(0.98 0.002 85);
-  --sidebar-primary: oklch(0.7 0.1 280);
-  --sidebar-primary-foreground: oklch(0.15 0.02 280);
-  --sidebar-accent: oklch(0.25 0.03 280);
-  --sidebar-accent-foreground: oklch(0.98 0.002 85);
-  --sidebar-border: oklch(0.25 0.03 280);
-  --sidebar-ring: oklch(0.4 0.08 280);
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
 }
 
 @layer base {
@@ -306,64 +312,15 @@
   z-index: 100;
 }
 
-/* Update the grid pattern to be more subtle */
+/* Add the grid background pattern */
 @layer utilities {
-  .bg-grid {
+  .bg-grid-small-black {
     background-size: 40px 40px;
-    background-image: 
-      linear-gradient(to right, oklch(0 0 0 / 0.02) 1px, transparent 1px),
-      linear-gradient(to bottom, oklch(0 0 0 / 0.02) 1px, transparent 1px);
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
   }
 
-  .bg-grid-small {
-    background-size: 16px 16px;
-    background-image: 
-      linear-gradient(to right, oklch(0 0 0 / 0.02) 1px, transparent 1px),
-      linear-gradient(to bottom, oklch(0 0 0 / 0.02) 1px, transparent 1px);
+  .bg-gradient-radial {
+    background-image: radial-gradient(var(--tw-gradient-stops));
   }
-
-  .dark .bg-grid {
-    background-image: 
-      linear-gradient(to right, oklch(1 0 0 / 0.02) 1px, transparent 1px),
-      linear-gradient(to bottom, oklch(1 0 0 / 0.02) 1px, transparent 1px);
-  }
-
-  .dark .bg-grid-small {
-    background-image: 
-      linear-gradient(to right, oklch(1 0 0 / 0.02) 1px, transparent 1px),
-      linear-gradient(to bottom, oklch(1 0 0 / 0.02) 1px, transparent 1px);
-  }
-}
-
-/* Update control panel styles */
-.control-panel {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 1px;
-  background-color: oklch(0 0 0 / 0.03);
-  border-radius: 0.5rem;
-  overflow: hidden;
-  border: 1px solid oklch(0 0 0 / 0.06);
-}
-
-.control-panel-sidebar {
-  background-color: oklch(0.98 0.001 0);
-  padding: 1rem;
-}
-
-.control-panel-main {
-  background-color: oklch(1 0 0);
-  padding: 1rem;
-}
-
-/* Update status bar styles */
-.status-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 1rem;
-  background-color: oklch(0.98 0.001 0);
-  border-top: 1px solid oklch(0 0 0 / 0.06);
-  font-size: 0.75rem;
-  color: oklch(0.35 0.03 280);
 }

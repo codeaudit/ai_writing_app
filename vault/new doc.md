@@ -2,7 +2,7 @@
 id: doc-1742923303428
 name: new doc
 createdAt: '2025-03-25T17:21:43.428Z'
-updatedAt: '2025-03-25T18:13:18.590Z'
+updatedAt: '2025-03-25T17:24:53.774Z'
 versions:
   - id: ver-1742923303428-initial
     createdAt: '2025-03-25T17:21:43.428Z'
@@ -15,7 +15,7 @@ annotations: []
 
 The Art of War is a book written by Sun Tzu, an ancient Chinese military general and philosopher. It is considered one of the most important works on military strategy in history.
 
-    The Art of War is a collection of 13 chapters, each focusing on a different aspect of military strategy. The book is structured as a series of aphorisms, or short, pithy statements, that are meant to be both inspiring and to convey practical advice.
+The Art of War is a collection of 13 chapters, each focusing on a different aspect of military strategy. The book is structured as a series of aphorisms, or short, pithy statements, that are meant to be both inspiring and to convey practical advice.
 
 The book is divided into three main parts. The first part discusses the art of war in general, including the importance of strategy, planning, and leadership. The second part focuses on the different types of warfare, such as offensive and defensive tactics, and their respective advantages and disadvantages. The third and final part of the book is devoted to specific military campaigns and battles, and provides advice for how to win them.
 
