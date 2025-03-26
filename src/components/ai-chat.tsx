@@ -7,7 +7,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  ArrowLeft,
   AtSign,
   Bot,
   Bug, 
@@ -746,10 +745,14 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   // UI Components
   // ============================================================================
   return (
-    <Card className={cn(
-      "w-full h-full flex flex-col border rounded-lg overflow-hidden shadow-md transition-all duration-200",
-      isExpanded ? "fixed inset-4 z-50" : "relative"
-    )}>
+    <Card
+      className={cn(
+        "shadow-md w-full transition-all duration-300 ease-in-out",
+        isExpanded 
+          ? "fixed inset-0 h-screen z-50 rounded-none flex flex-col"  // Full screen with flex layout
+          : "relative"
+      )}
+    >
       {/* Header Section */}
       <CardHeader className="px-3 py-1.5 border-b">
         <div className="flex items-center justify-between">
@@ -971,11 +974,26 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       )}
       
       {/* Main Chat Content Area */}
-      <CardContent className="flex-1 p-0 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="p-3 space-y-3">
+      <CardContent className={cn(
+        "flex-1 p-0 overflow-hidden",
+        isExpanded && "h-[calc(100vh-12rem)]" // Set explicit height in expanded view
+      )}>
+        <ScrollArea 
+          className={cn(
+            "h-full", 
+            isExpanded && "ai-chat-expanded-scrollbar"
+          )} 
+          type="auto"
+        >
+          <div className={cn(
+            "px-4 pt-2",
+            isExpanded ? "pb-6" : "pb-2" // More padding at bottom when expanded
+          )}>
             {chatTree.activeThread.length === 0 ? (
-              <div className="text-center text-muted-foreground py-4">
+              <div className={cn(
+                "text-center text-muted-foreground py-4",
+                isExpanded && "max-w-3xl mx-auto"
+              )}>
                 <Sparkles className="h-5 w-5 mx-auto mb-1.5 opacity-50" />
                 <p className="text-xs">Ask me anything about your document(s)</p>
                 <div className="mt-2 grid grid-cols-1 gap-1.5 mx-auto max-w-md">
@@ -1004,323 +1022,358 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
               </div>
             ) : (
               // Use the active messages from the tree
-              activeMessages.map((message, index) => (
-                <div key={message.id} className="flex flex-col gap-1">
-                  {/* User message bubble */}
-                  {message.userContent && (
-                    <div className="flex items-start gap-2">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="w-4 h-4 text-primary" />
+              <div className={cn(
+                "space-y-4",
+                isExpanded && "max-w-3xl mx-auto"
+              )}>
+                {activeMessages.map((message) => (
+                  <div key={message.id} className="flex flex-col gap-1">
+                    {/* User message bubble */}
+                    {message.userContent && (
+                      <div className="flex justify-end pl-10">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            {editingMessageId === message.id ? (
+                              <div className="bg-primary/5 rounded-lg p-3 text-sm">
+                                <div className="relative">
+                                  <Textarea
+                                    value={editedPrompt}
+                                    onChange={(e) => setEditedPrompt(e.target.value)}
+                                    className="w-full resize-y min-h-[60px] max-h-[200px] text-xs px-2 py-1.5 pr-12 bg-background border-primary/50"
+                                    placeholder="Edit your message..."
+                                    autoFocus
+                                  />
+                                  <div className={cn(
+                                    "absolute left-1.5 bottom-1.5 text-[10px] text-muted-foreground bg-background px-0.5 rounded transition-opacity",
+                                    isInputFocused || isExpanded ? "opacity-70" : "opacity-50"
+                                  )}>
+                                    <span className="font-bold">@</span> <span>to add documents</span>
+                                  </div>
+                                  <div className="absolute right-1 bottom-1 w-3 h-3 cursor-ns-resize opacity-60 hover:opacity-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                                      <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" transform="rotate(45 8 8)"/>
+                                    </svg>
+                                  </div>
+                                </div>
+                                <div className="mt-2 flex justify-end gap-1 border-t pt-2">
+                                  <PromptEnhancementButtons 
+                                    prompt={editedPrompt}
+                                    onPromptUpdate={(newPrompt) => setEditedPrompt(newPrompt)}
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={handleCancelEdit}
+                                    title="Cancel"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="rounded-sm bg-primary/10 hover:bg-primary/20 h-6 w-6"
+                                    onClick={() => handleSaveEdit(message.id, editedPrompt)}
+                                    disabled={!editedPrompt.trim()}
+                                    title="Update message"
+                                  >
+                                    <Send className="h-3 w-3 text-primary" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="bg-primary/10 rounded-lg p-3 text-sm">
+                                {message.userContent}
+                                <div className="mt-2 flex justify-end gap-1 border-t pt-2">
+                                  <BookmarkMessage messageContent={message.userContent} />
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleEditMessage({ id: message.id, userContent: message.userContent || '' })}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  {hasSiblings(message.id) && (
+                                    <BranchMenu
+                                      currentBranchIndex={getCurrentBranchIndex(message.id)}
+                                      branchCount={getSiblingCount(message.id)}
+                                      allBranchIds={chatTree.nodes[message.parentId!].childrenIds}
+                                      chatNodes={chatTree.nodes}
+                                      currentBranchId={message.id}
+                                      onBranchSelect={navigateToSibling}
+                                    />
+                                  )}
+                                  <DebugTreeDialog tree={chatTree} />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="w-4 h-4 text-primary" />
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        {editingMessageId === message.id ? (
-                          <div className="bg-primary/5 rounded-lg p-3 text-sm">
-                            <div className="relative">
-                              <Textarea
-                                value={editedPrompt}
-                                onChange={(e) => setEditedPrompt(e.target.value)}
-                                className="w-full resize-y min-h-[60px] max-h-[200px] text-xs px-2 py-1.5 pr-12 bg-background border-primary/50"
-                                placeholder="Edit your message..."
-                                autoFocus
-                              />
-                              <div className="absolute right-1.5 bottom-1.5 text-[10px] text-muted-foreground bg-background px-0.5 rounded opacity-70">
-                                <span className="font-bold">@</span> <span>to add documents</span>
+                    )}
+                    
+                    {/* Assistant message bubble */}
+                    {message.assistantContent && (
+                      <div className="flex justify-start pr-10">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Bot className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="bg-muted rounded-lg p-3 text-sm">
+                              {message.assistantContent}
+                              <div className="mt-2 flex justify-end gap-1 border-t pt-2">
+                                <BookmarkMessage messageContent={message.assistantContent} />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => handleCopyToClipboard(message.assistantContent || '', message.id)}
+                                >
+                                  {isCopied === message.id ? (
+                                    <Check className="h-3 w-3" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => handleInsertResponse(message.assistantContent || '')}
+                                >
+                                  <FileText className="h-3 w-3" />
+                                </Button>
+                                {hasSiblings(message.id) && (
+                                  <BranchMenu
+                                    currentBranchIndex={getCurrentBranchIndex(message.id)}
+                                    branchCount={getSiblingCount(message.id)}
+                                    allBranchIds={chatTree.nodes[message.parentId!].childrenIds}
+                                    chatNodes={chatTree.nodes}
+                                    currentBranchId={message.id}
+                                    onBranchSelect={navigateToSibling}
+                                  />
+                                )}
+                                <DebugTreeDialog tree={chatTree} />
                               </div>
-                              <div className="absolute right-1 bottom-1 w-3 h-3 cursor-ns-resize opacity-60 hover:opacity-100">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
-                                  <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" transform="rotate(45 8 8)"/>
-                                </svg>
-                              </div>
-                            </div>
-                            <div className="mt-2 flex justify-end gap-1 border-t pt-2">
-                              <PromptEnhancementButtons 
-                                prompt={editedPrompt}
-                                onPromptUpdate={(newPrompt) => setEditedPrompt(newPrompt)}
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={handleCancelEdit}
-                                title="Cancel"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="rounded-sm bg-primary/10 hover:bg-primary/20 h-6 w-6"
-                                onClick={() => handleSaveEdit(message.id, editedPrompt)}
-                                disabled={!editedPrompt.trim()}
-                                title="Update message"
-                              >
-                                <Send className="h-3 w-3 text-primary" />
-                              </Button>
                             </div>
                           </div>
-                        ) : (
-                          <div className="bg-primary/10 rounded-lg p-3 text-sm">
-                            {message.userContent}
-                            <div className="mt-2 flex justify-end gap-1 border-t pt-2">
-                              <BookmarkMessage messageContent={message.userContent} />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => handleEditMessage({ id: message.id, userContent: message.userContent || '' })}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                              {hasSiblings(message.id) && (
-                                <BranchMenu
-                                  currentBranchIndex={getCurrentBranchIndex(message.id)}
-                                  branchCount={getSiblingCount(message.id)}
-                                  allBranchIds={chatTree.nodes[message.parentId!].childrenIds}
-                                  chatNodes={chatTree.nodes}
-                                  currentBranchId={message.id}
-                                  onBranchSelect={navigateToSibling}
-                                />
-                              )}
-                              <DebugTreeDialog tree={chatTree} />
-                            </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Assistant message bubble */}
-                {message.assistantContent && (
-                  <div className="flex items-start gap-2">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Bot className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="bg-muted rounded-lg p-3 text-sm">
-                        {message.assistantContent}
-                        <div className="mt-2 flex justify-end gap-1 border-t pt-2">
-                          <BookmarkMessage messageContent={message.assistantContent} />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => handleCopyToClipboard(message.assistantContent || '', message.id)}
-                          >
-                            {isCopied === message.id ? (
-                              <Check className="h-3 w-3" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => handleInsertResponse(message.assistantContent || '')}
-                          >
-                            <FileText className="h-3 w-3" />
-                          </Button>
-                          {hasSiblings(message.id) && (
-                            <BranchMenu
-                              currentBranchIndex={getCurrentBranchIndex(message.id)}
-                              branchCount={getSiblingCount(message.id)}
-                              allBranchIds={chatTree.nodes[message.parentId!].childrenIds}
-                              chatNodes={chatTree.nodes}
-                              currentBranchId={message.id}
-                              onBranchSelect={navigateToSibling}
-                            />
-                          )}
-                          <DebugTreeDialog tree={chatTree} />
                         </div>
                       </div>
+                    )}
                   </div>
+                ))}
+              </div>
+            )}
+            
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-lg p-2 bg-muted/70 flex items-center text-xs">
+                  <RefreshCw className="h-2.5 w-2.5 animate-spin mr-1.5" />
+                  Thinking...
                 </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+      </CardContent>
+      
+      {/* Input Area */}
+      <CardFooter className={cn(
+        "p-2 pt-1.5 border-t flex-shrink-0 transition-all duration-200",
+        isExpanded ? "pb-4 px-4" : "pb-2"
+      )}>
+        <div className="flex items-start gap-1.5 w-full relative">
+          <div className="flex-1 relative">
+            <Textarea
+              ref={textareaRef}
+              placeholder="Ask ..."
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              className={cn(
+                "flex-1 resize-y text-xs px-2 py-1.5 pr-12 transition-all duration-200",
+                isExpanded 
+                  ? "min-h-[150px] max-h-[500px] border-primary/50 text-sm"
+                  : isInputFocused 
+                    ? "min-h-[80px] max-h-[300px] border-primary/50" 
+                    : "min-h-[40px] max-h-[200px]"
+              )}
+              disabled={isLoading}
+            />
+            <div className={cn(
+              "absolute left-1.5 bottom-1.5 text-[10px] text-muted-foreground bg-background px-0.5 rounded transition-opacity",
+              isInputFocused || isExpanded ? "opacity-70" : "opacity-50"
+            )}>
+              <span className="font-bold">@</span> <span>to add documents</span>
+            </div>
+            <div className={cn(
+              "absolute right-3 bottom-8 flex items-center gap-1 cursor-pointer bg-background/80 px-2 py-1 rounded border border-border/30 shadow-sm transition-opacity",
+              isInputFocused || isExpanded ? "opacity-70 hover:opacity-100" : "opacity-40 hover:opacity-70"
+            )}>
+              <button 
+                onClick={() => {
+                  if (textareaRef.current) {
+                    const textarea = textareaRef.current;
+                    textarea.style.height = `${Math.max(textarea.offsetHeight - 50, 80)}px`;
+                  }
+                }}
+                className="text-muted-foreground hover:text-foreground"
+                title="Decrease height"
+              >
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              <button 
+                onClick={() => {
+                  if (textareaRef.current) {
+                    const textarea = textareaRef.current;
+                    textarea.style.height = `${textarea.offsetHeight + 50}px`;
+                  }
+                }}
+                className="text-muted-foreground hover:text-foreground"
+                title="Increase height"
+              >
+                <ChevronUp className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1 items-end shrink-0">
+            <div className={cn(
+              "transition-all duration-200",
+              isInputFocused ? "w-[90px]" : "w-[80px]"
+            )}>
+              <AIRoleSwitcher 
+                className={cn(
+                  "text-[10px] rounded-sm bg-muted/30 hover:bg-muted/50 transition-all duration-200",
+                  isInputFocused ? "h-[24px]" : "h-[20px]"
+                )}
+              />
+            </div>
+            <div className="flex gap-1">
+              <PromptEnhancementButtons 
+                prompt={input}
+                onPromptUpdate={(newPrompt) => setInput(newPrompt)}
+              />
+              <Button 
+                type="submit" 
+                size="icon" 
+                variant="ghost"
+                className={cn(
+                  "rounded-sm bg-primary/10 hover:bg-primary/20 transition-all duration-200",
+                  isInputFocused ? "h-[24px] w-[24px]" : "h-[20px] w-[20px]"
+                )}
+                disabled={isLoading || !input.trim()}
+                onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
+              >
+                <Send className={cn(
+                  "text-primary transition-all duration-200",
+                  isInputFocused ? "w-3.5 h-3.5" : "w-3 h-3"
+                )} />
+              </Button>
+            </div>
+          </div>
+          
+          {/* Autocomplete dropdown */}
+          {showAutocomplete && (
+            <div className="absolute bottom-full left-0 mb-1 bg-popover border rounded-md shadow-md w-full max-h-[200px] overflow-auto z-50">
+              <div className="p-1">
+                <div className="text-xs font-bold mb-1">Documents</div>
+                {filteredDocuments.length > 0 ? (
+                  filteredDocuments.map((doc, index) => (
+                    <div
+                      key={doc.id}
+                      className={`px-2 py-1 text-xs cursor-pointer hover:bg-muted rounded ${
+                        index === selectedAutocompleteIndex ? "bg-accent" : ""
+                      }`}
+                      onClick={() => selectAutocompleteDocument(doc)}
+                    >
+                      {doc.name}
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-2 py-1 text-xs text-muted-foreground">No documents found</div>
                 )}
               </div>
-            ))
+            </div>
           )}
-          
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-lg p-2 bg-muted/70 flex items-center text-xs">
-                <RefreshCw className="h-2.5 w-2.5 animate-spin mr-1.5" />
-                Thinking...
+        </div>
+      </CardFooter>
+      
+      {/* Save Composition Dialog */}
+      <Dialog open={showSaveCompositionDialog} onOpenChange={setShowSaveCompositionDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save as Composition</DialogTitle>
+            <DialogDescription>
+              Save this chat conversation and context documents as a composition.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="composition-name" className="text-right text-sm font-medium">
+                Name
+              </label>
+              <input
+                id="composition-name"
+                value={compositionName}
+                onChange={(e) => setCompositionName(e.target.value)}
+                className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Enter a name for this composition"
+              />
+            </div>
+            
+            <div className="grid grid-cols-4 items-start gap-4">
+              <span className="text-right text-sm font-medium">
+                Context
+              </span>
+              <div className="col-span-3">
+                {contextDocuments.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {contextDocuments.map((doc) => (
+                      <Badge key={doc.id} variant="secondary" className="text-xs">
+                        {doc.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No context documents added
+                  </div>
+                )}
               </div>
             </div>
-          )}
-          
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
-    </CardContent>
-    
-    {/* Input Area */}
-    <CardFooter className={cn(
-      "p-2 pt-1.5 border-t flex-shrink-0 transition-all duration-200",
-      isInputFocused ? "pb-3" : ""
-    )}>
-      <div className="flex items-start gap-1.5 w-full relative">
-        <div className="flex-1 relative">
-          <Textarea
-            ref={textareaRef}
-            placeholder="Ask ..."
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            className={cn(
-              "flex-1 resize-y text-xs px-2 py-1.5 pr-12 transition-all duration-200",
-              isInputFocused 
-                ? "min-h-[80px] max-h-[300px] border-primary/50" 
-                : "min-h-[40px] max-h-[200px]"
-            )}
-            disabled={isLoading}
-          />
-          <div className={cn(
-            "absolute right-1.5 bottom-1.5 text-[10px] text-muted-foreground bg-background px-0.5 rounded transition-opacity",
-            isInputFocused ? "opacity-70" : "opacity-50"
-          )}>
-            <span className="font-bold">@</span> <span>to add documents</span>
+            
+            <div className="grid grid-cols-4 items-start gap-4">
+              <span className="text-right text-sm font-medium">
+                Messages
+              </span>
+              <div className="col-span-3 text-sm text-muted-foreground">
+                {chatTree.activeThread.length > 0 
+                  ? `${chatTree.activeThread.length} messages will be saved` 
+                  : "No messages to save (only context documents will be saved)"}
+              </div>
+            </div>
           </div>
-          <div className={cn(
-            "absolute right-1 bottom-1 w-3 h-3 cursor-ns-resize transition-opacity",
-            isInputFocused ? "opacity-60 hover:opacity-100" : "opacity-30 hover:opacity-100"
-          )}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" transform="rotate(45 8 8)"/>
-            </svg>
-          </div>
-        </div>
-        <div className="flex flex-col gap-1 items-end shrink-0">
-          <div className={cn(
-            "transition-all duration-200",
-            isInputFocused ? "w-[90px]" : "w-[80px]"
-          )}>
-            <AIRoleSwitcher 
-              className={cn(
-                "text-[10px] rounded-sm bg-muted/30 hover:bg-muted/50 transition-all duration-200",
-                isInputFocused ? "h-[24px]" : "h-[20px]"
-              )}
-            />
-          </div>
-          <div className="flex gap-1">
-            <PromptEnhancementButtons 
-              prompt={input}
-              onPromptUpdate={(newPrompt) => setInput(newPrompt)}
-            />
-            <Button 
-              type="submit" 
-              size="icon" 
-              variant="ghost"
-              className={cn(
-                "rounded-sm bg-primary/10 hover:bg-primary/20 transition-all duration-200",
-                isInputFocused ? "h-[24px] w-[24px]" : "h-[20px] w-[20px]"
-              )}
-              disabled={isLoading || !input.trim()}
-              onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
-            >
-              <Send className={cn(
-                "text-primary transition-all duration-200",
-                isInputFocused ? "w-3.5 h-3.5" : "w-3 h-3"
-              )} />
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setShowSaveCompositionDialog(false)}>
+              Cancel
             </Button>
-          </div>
-        </div>
-        
-        {/* Autocomplete dropdown */}
-        {showAutocomplete && (
-          <div className="absolute bottom-full left-0 mb-1 bg-popover border rounded-md shadow-md w-full max-h-[200px] overflow-auto z-50">
-            <div className="p-1">
-              <div className="text-xs font-bold mb-1">Documents</div>
-              {filteredDocuments.length > 0 ? (
-                filteredDocuments.map((doc, index) => (
-                  <div
-                    key={doc.id}
-                    className={`px-2 py-1 text-xs cursor-pointer hover:bg-muted rounded ${
-                      index === selectedAutocompleteIndex ? "bg-accent" : ""
-                    }`}
-                    onClick={() => selectAutocompleteDocument(doc)}
-                  >
-                    {doc.name}
-                  </div>
-                ))
-              ) : (
-                <div className="px-2 py-1 text-xs text-muted-foreground">No documents found</div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </CardFooter>
-    
-    {/* Save Composition Dialog */}
-    <Dialog open={showSaveCompositionDialog} onOpenChange={setShowSaveCompositionDialog}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Save as Composition</DialogTitle>
-          <DialogDescription>
-            Save this chat conversation and context documents as a composition.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <label htmlFor="composition-name" className="text-right text-sm font-medium">
-              Name
-            </label>
-            <input
-              id="composition-name"
-              value={compositionName}
-              onChange={(e) => setCompositionName(e.target.value)}
-              className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Enter a name for this composition"
-            />
-          </div>
-          
-          <div className="grid grid-cols-4 items-start gap-4">
-            <span className="text-right text-sm font-medium">
-              Context
-            </span>
-            <div className="col-span-3">
-              {contextDocuments.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
-                  {contextDocuments.map((doc) => (
-                    <Badge key={doc.id} variant="secondary" className="text-xs">
-                      {doc.name}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">
-                  No context documents added
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-4 items-start gap-4">
-            <span className="text-right text-sm font-medium">
-              Messages
-            </span>
-            <div className="col-span-3 text-sm text-muted-foreground">
-              {chatTree.activeThread.length > 0 
-                ? `${chatTree.activeThread.length} messages will be saved` 
-                : "No messages to save (only context documents will be saved)"}
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="secondary" onClick={() => setShowSaveCompositionDialog(false)}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={handleSaveComposition}>
-            Save Composition
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  </Card>
-);
+            <Button type="button" onClick={handleSaveComposition}>
+              Save Composition
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
 }
 
 // ============================================================================

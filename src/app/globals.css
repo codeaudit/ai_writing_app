@@ -386,3 +386,29 @@
 .animate-sparkle {
   animation: sparkle-pulse 1.5s infinite ease-in-out;
 }
+
+/* Add scrollbar styles for AI chat expanded view */
+
+.ai-chat-expanded-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ai-chat-expanded-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-chat-expanded-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+.ai-chat-expanded-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Ensure scrollbar is always visible in expanded view */
+.ai-chat-expanded-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
