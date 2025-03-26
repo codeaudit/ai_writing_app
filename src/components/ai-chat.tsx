@@ -518,15 +518,18 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   function handleClearChat() {
     setShowClearConfirmation(false);
     clearAll();
-      toast({
+    // Also clear context documents when clearing chat
+    setContextDocuments([]);
+    toast({
       title: "Chat cleared",
-      description: "All chat messages have been cleared.",
-        duration: 3000,
-      });
-    }
+      description: "All chat messages and context documents have been cleared.",
+      duration: 3000,
+    });
+  }
 
   function handleClearAllContextDocuments() {
     // Clear context documents
+    setContextDocuments([]);
     toast({
       title: "Context cleared",
       description: "All context documents have been removed.",
@@ -536,7 +539,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
 
   function handleRemoveContextDocument(documentId: string) {
     // Remove document from context
-      toast({
+    setContextDocuments(prevDocs => prevDocs.filter(doc => doc.id !== documentId));
+    toast({
       title: "Document removed",
       description: "The document has been removed from context.",
       duration: 3000,
@@ -544,7 +548,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   }
 
   function handleAddContextDocument(document: { id: string; name: string; content: string }) {
-    // Add document to context
+    // Use the addContextDocument function
+    addContextDocument(document);
+    
     toast({
       title: "Document added",
       description: `"${document.name}" has been added to the conversation context.`,

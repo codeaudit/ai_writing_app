@@ -328,7 +328,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013589398-9dsmdwd",
+    "id": "doc-1743013958298-n8yn4e4",
     "name": "add_evidence",
     "content": "# Add Supporting Evidence Template\n\nStrengthen the following text by adding relevant supporting evidence, examples, statistics, or expert opinions:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. The original text with supporting evidence or examples integrated naturally\n2. A mix of different types of evidence (statistics, research findings, case studies, expert quotes)\n3. Citations or sources for the evidence when appropriate\n4. Clear connections between the evidence and the claims being supported\n5. Proper transitions to introduce the supporting material\n6. A brief explanation of how the evidence strengthens the overall argument ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -472,7 +472,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013589407-lltgw81",
+    "id": "doc-1743013958309-o2qebe6",
     "name": "improve_flow",
     "content": "# Improve Paragraph Transitions and Flow Template\n\nEnhance the following text by improving transitions between paragraphs and creating a smoother flow of ideas:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A revised version with improved transitions between paragraphs and sentences\n2. Natural connections between ideas that guide the reader through the text\n3. Consistent progression of thought that builds logically from beginning to end\n4. Elimination of any abrupt shifts or disconnected sections\n5. Appropriate transition words and phrases where needed (e.g., \"furthermore,\" \"in contrast,\" \"consequently\")\n6. A brief explanation of how the improved flow enhances readability and coherence ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -490,11 +490,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013589408-3k38du2",
+    "id": "doc-1743013958311-14y095v",
     "name": "llm-demo",
     "content": "\n# LLM Extension Demo\n\nThis template demonstrates the capabilities of the LLM extension in Nunjucks templates.\n\n## Basic Example\n\n### Prompt: Generate a short paragraph about climate change\n\n{% llm \"Generate a short paragraph about climate change\" %}\n\n## Using Parameters\n\n### Prompt: Generate a creative story with high temperature\n\n{% llm \"Generate a short creative story about a robot discovering emotions\", \n   temperature: 0.9, \n   maxTokens: 500\n%}\n\n## Using Context Variables\n\n### Prompt: Answer a question about {{ topic | default('artificial intelligence') }}\n\n{% llm \"Write a short explanation about \" + topic | default('artificial intelligence') %}\n\n## Using AI Roles\n\n### Prompt: Write as a poet\n\n{% llm \"Write a poem about the ocean\", \n   aiRole: \"creative\"\n%}\n\n## Content Transformation\n\n### Original Content:\n```\n{{ content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.') }}\n```\n\n### LLM-Enhanced Content:\n{% llm \"Improve the following content to make it more engaging and descriptive: \" + content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.'),\n   temperature: 0.7,\n   maxTokens: 300\n%}\n\n## Custom Context Documents (when provided)\n\n{% if contextDocuments and contextDocuments.length > 0 %}\n### Summary of Context Documents:\n\n{% llm \"Summarize the following documents in a few paragraphs:\", \n   contextDocuments: contextDocuments,\n   temperature: 0.5\n%}\n{% else %}\n*No context documents provided. To see this feature in action, provide context documents when processing this template.*\n{% endif %}\n\n## Chat Mode Example\n\n{% llm \"Provide a conclusion based on this conversation\", \n   chat: true,\n   messages: [\n     { role: \"user\", content: \"What are the benefits of exercise?\" },\n     { role: \"assistant\", content: \"Exercise has many benefits including improved cardiovascular health, better mood through endorphin release, increased strength and flexibility, better sleep quality, and reduced risk of chronic diseases.\" },\n     { role: \"user\", content: \"What about the mental health benefits specifically?\" }\n   ]\n%}\n\n---\n\n*This template was rendered at {{ date | dateFormat('PP') }} {{ date | timeFormat }}* ",
-    "createdAt": "2025-03-26T18:26:29.408Z",
-    "updatedAt": "2025-03-26T18:26:29.408Z",
+    "createdAt": "2025-03-26T18:32:38.311Z",
+    "updatedAt": "2025-03-26T18:32:38.311Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -537,11 +537,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013589412-4ke2mbw",
+    "id": "doc-1743013958312-0dwwgq7",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-26T18:26:29.412Z",
-    "updatedAt": "2025-03-26T18:26:29.412Z",
+    "createdAt": "2025-03-26T18:32:38.312Z",
+    "updatedAt": "2025-03-26T18:32:38.312Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -649,7 +649,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013589418-vhcx8rg",
+    "id": "doc-1743013958327-cvk8v61",
     "name": "Test Template",
     "content": "\nThis is a test template\n",
     "createdAt": "2023-07-05T12:00:00.000Z",
@@ -660,30 +660,12 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013589419-8id6kra",
+    "id": "doc-1743013958332-80vyr14",
     "name": "test_simple",
     "content": "\n# Simple LLM Test\n\nThis is a basic test of the LLM extension:\n\n{% llm \"Generate a short paragraph about climate change\" %} ",
-    "createdAt": "2025-03-26T18:26:29.419Z",
-    "updatedAt": "2025-03-26T18:26:29.419Z",
+    "createdAt": "2025-03-26T18:32:38.332Z",
+    "updatedAt": "2025-03-26T18:32:38.332Z",
     "versions": [],
-    "folderId": "folder-1742346055866-pvb3iin",
-    "annotations": [],
-    "contextDocuments": []
-  },
-  {
-    "id": "doc-1742675810894",
-    "name": "test_simple_llm",
-    "content": "{% llm \"Generate a short paragraph about climate change\" %}\n",
-    "createdAt": "2025-03-22T20:36:50.894Z",
-    "updatedAt": "2025-03-22T20:37:11.787Z",
-    "versions": [
-      {
-        "id": "ver-1742675810894-initial",
-        "content": "",
-        "createdAt": "2025-03-22T20:36:50.894Z",
-        "message": "Initial version"
-      }
-    ],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
@@ -707,7 +689,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013589425-817sbqy",
+    "id": "doc-1743013958336-o9dbzom",
     "name": "translate",
     "content": "# Prompt template\n\ntranslate this to English: '''\n{{selectedText}}\n'''\n\n\n",
     "createdAt": "2025-03-19T00:10:01.030Z",
