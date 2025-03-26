@@ -81,6 +81,7 @@ import { ContextDocumentList } from "./context-document-list";
 import type { ContextDocument } from "@/types/contextDocument";
 import { BranchMenu } from "@/components/branch-menu";
 import { ChatMessageNode } from "@/lib/store";
+import { PromptEnhancementButtons } from '@/components/prompt-enhancement';
 
 // ============================================================================
 // Constants and Configuration
@@ -162,9 +163,18 @@ function getDisplayContent(message: ChatMessageNode): string {
   return '';
 }
 
-// Type guard to check if a message has a specific role
-function hasRole(message: ChatMessageNode, role: string): boolean {
-  return message.role === role;
+// Type guard to check if a message has content of a specific type
+function hasRole(message: ChatMessageNode, role: 'user' | 'assistant' | 'system'): boolean {
+  switch (role) {
+    case 'user':
+      return !!message.userContent;
+    case 'assistant':
+      return !!message.assistantContent;
+    case 'system':
+      return !!message.systemContent;
+    default:
+      return false;
+  }
 }
 
 // Helper to check if a node has siblings
@@ -1174,22 +1184,28 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 )}
               />
             </div>
-            <Button 
-              type="submit" 
-              size="icon" 
-              variant="ghost"
-              className={cn(
-                "rounded-sm bg-primary/10 hover:bg-primary/20 transition-all duration-200",
-                isInputFocused ? "h-[24px] w-[24px]" : "h-[20px] w-[20px]"
-              )}
-              onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
-              disabled={isLoading || !input.trim()}
-            >
-              <Send className={cn(
-                "text-primary transition-all duration-200",
-                isInputFocused ? "h-3.5 w-3.5" : "h-3 w-3"
-              )} />
-            </Button>
+            <div className="flex gap-1">
+              <PromptEnhancementButtons 
+                prompt={input}
+                onPromptUpdate={(newPrompt) => setInput(newPrompt)}
+              />
+              <Button 
+                type="submit" 
+                size="icon" 
+                variant="ghost"
+                className={cn(
+                  "rounded-sm bg-primary/10 hover:bg-primary/20 transition-all duration-200",
+                  isInputFocused ? "h-[24px] w-[24px]" : "h-[20px] w-[20px]"
+                )}
+                onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
+                disabled={isLoading || !input.trim()}
+              >
+                <Send className={cn(
+                  "text-primary transition-all duration-200",
+                  isInputFocused ? "h-3.5 w-3.5" : "h-3 w-3"
+                )} />
+              </Button>
+            </div>
           </div>
           
           {/* Autocomplete dropdown */}

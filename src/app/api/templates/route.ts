@@ -1,33 +1,115 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getTemplates, processTemplate } from '@/lib/fs-service';
+import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+import { mkdir } from 'fs/promises';
+
+// Define the templates directory
+const TEMPLATES_DIR = path.join(process.cwd(), 'vault', 'templates');
+
+// Ensure templates directory exists
+async function ensureTemplatesDir() {
+  try {
+    if (!fs.existsSync(TEMPLATES_DIR)) {
+      await mkdir(TEMPLATES_DIR, { recursive: true });
+    }
+  } catch (error) {
+    console.error('Error creating templates directory:', error);
+  }
+}
 
 // GET /api/templates - Get all templates
 export async function GET() {
   try {
-    const templates = getTemplates();
+    await ensureTemplatesDir();
+    
+    // Check if the templates directory exists
+    if (!fs.existsSync(TEMPLATES_DIR)) {
+      return NextResponse.json([]);
+    }
+    
+    // Get all markdown files in the templates directory
+    const files = fs.readdirSync(TEMPLATES_DIR)
+      .filter(file => file.endsWith('.md'));
+    
+    // Map files to template objects
+    const templates = files.map(file => {
+      const filePath = path.join(TEMPLATES_DIR, file);
+      const content = fs.readFileSync(filePath, 'utf8');
+      
+      // Extract metadata from frontmatter
+      const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
+      const frontmatter = frontmatterMatch ? frontmatterMatch[1] : '';
+      
+      // Parse metadata
+      const name = frontmatter.match(/name:\s*(.*)/)?.[1]?.trim() || file.replace(/\.md$/, '');
+      const category = frontmatter.match(/category:\s*(.*)/)?.[1]?.trim() || 'General';
+      const createdAt = frontmatter.match(/createdAt:\s*(.*)/)?.[1]?.trim() || new Date().toISOString();
+      const updatedAt = frontmatter.match(/updatedAt:\s*(.*)/)?.[1]?.trim() || new Date().toISOString();
+      
+      return {
+        name,
+        category,
+        createdAt,
+        updatedAt,
+        path: filePath
+      };
+    });
+    
     return NextResponse.json(templates);
   } catch (error) {
-    console.error('Error loading templates:', error);
-    return NextResponse.json({ error: 'Failed to load templates' }, { status: 500 });
+    console.error('Error getting templates:', error);
+    return NextResponse.json({ error: 'Failed to get templates' }, { status: 500 });
   }
 }
 
-// POST /api/templates/:name - Process a template with variables
-export async function POST(request: NextRequest) {
+// POST /api/templates - Create or update a template
+export async function POST(request: Request) {
   try {
-    const url = new URL(request.url);
-    const templateName = url.searchParams.get('name');
+    await ensureTemplatesDir();
     
-    if (!templateName) {
-      return NextResponse.json({ error: 'Template name is required' }, { status: 400 });
+    // Parse request body
+    const body = await request.json();
+    const { name, content, category = 'General' } = body;
+    
+    // Validate request
+    if (!name || !content) {
+      return NextResponse.json({ error: 'Name and content are required' }, { status: 400 });
     }
     
-    const variables = await request.json() as Record<string, string>;
-    const processedTemplate = processTemplate(templateName, variables);
+    // Check if content already has frontmatter
+    const hasFrontmatter = content.trim().startsWith('---\n');
     
-    return NextResponse.json({ content: processedTemplate });
+    // Create filename from name (sanitize to prevent directory traversal)
+    const filename = name.replace(/[^a-z0-9-_]/gi, '-').toLowerCase() + '.md';
+    const filePath = path.join(TEMPLATES_DIR, filename);
+    
+    // Create or use existing content
+    let fileContent;
+    if (hasFrontmatter) {
+      fileContent = content;
+    } else {
+      // Create content with frontmatter
+      const now = new Date().toISOString();
+      fileContent = `---
+name: ${name}
+category: ${category}
+createdAt: ${now}
+updatedAt: ${now}
+---
+
+${content}`;
+    }
+    
+    // Write file
+    fs.writeFileSync(filePath, fileContent);
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Template saved successfully',
+      path: filePath 
+    });
   } catch (error) {
-    console.error('Error processing template:', error);
-    return NextResponse.json({ error: 'Failed to process template' }, { status: 500 });
+    console.error('Error saving template:', error);
+    return NextResponse.json({ error: 'Failed to save template' }, { status: 500 });
   }
 } 
