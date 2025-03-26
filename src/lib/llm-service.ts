@@ -2,11 +2,12 @@
 
 import { OpenAI } from 'openai';
 import { Anthropic } from '@anthropic-ai/sdk';
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerativeModel, Content, Part } from '@google/generative-ai';
 import { kv } from '@/lib/kv-provider';
 import { cookies } from 'next/headers';
 import { formatDebugPrompt, logAIDebug } from '@/lib/ai-debug';
 import { getAIRoleSystemPrompt, AIRole, DEFAULT_PROMPTS } from './ai-roles';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat';
 
 // Import environment variables directly
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -74,37 +75,30 @@ export interface ChatResponse {
   debugPrompt?: string;
 }
 
-// TypeScript types for message formatting
-interface FormattedMessages {
-  [key: string]: any;
-}
-
-// Update OpenAI type definitions
-interface OpenAIFormattedMessage {
-  role: 'system' | 'user' | 'assistant' | 'function' | 'tool';
-  content: string;
-  name?: string;
-}
-
-type OpenAIFormattedMessages = OpenAIFormattedMessage[];
-
-// Update Anthropic message types
-interface AnthropicMessage {
+// Interface for allowed message roles in Anthropic API
+interface AnthropicMessageParam {
   role: 'user' | 'assistant';
   content: string;
 }
 
+// TypeScript types for message formatting - simplified
+interface FormattedMessages {
+  [key: string]: unknown;
+}
+
 interface AnthropicFormattedMessages {
   systemPrompt: string;
-  messages: AnthropicMessage[];
+  messages: AnthropicMessageParam[];
 }
+
+type OpenAIFormattedMessages = ChatCompletionMessageParam[];
 
 interface GeminiMessage {
   role: 'user' | 'model';
-  parts: Array<{ text: string }>;
+  parts: Part[];
 }
 
-type GeminiFormattedMessages = GeminiMessage[];
+type GeminiFormattedMessages = Content[];
 
 // Helper function to generate a unique ID
 function generateId(): string {
@@ -159,15 +153,14 @@ function formatMessagesForProvider(
   switch (provider) {
     case 'anthropic': {
       // Anthropic uses a specific format with system prompt as a separate parameter
-      // Filter out system messages and ensure roles are only 'user' or 'assistant'
-      const anthropicMessages: AnthropicMessage[] = formattedMessages
+      // Filter out system messages and convert to Anthropic format
+      const anthropicMessages: AnthropicMessageParam[] = formattedMessages
         .filter(msg => msg.role !== 'system')
         .map(msg => ({
-          // Cast to Anthropic's supported roles
-          role: msg.role === 'user' ? 'user' : 'assistant',
+          role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
           content: msg.content
         }));
-        
+      
       const result: AnthropicFormattedMessages = {
         systemPrompt: systemMessage,
         messages: anthropicMessages
@@ -177,40 +170,50 @@ function formatMessagesForProvider(
       
     case 'gemini': {
       // Gemini doesn't support system messages directly, so we need to convert them to user messages
-      const result: GeminiFormattedMessages = formattedMessages
-        .map(msg => {
-          if (msg.role === 'system') {
-            return {
-              role: 'user',
-              parts: [{ text: `System Instructions: ${msg.content}` }]
-            };
-          } else if (msg.role === 'user') {
-            return {
-              role: 'user',
-              parts: [{ text: msg.content }]
-            };
-          } else { // assistant
-            return {
-              role: 'model',
-              parts: [{ text: msg.content }]
-            };
-          }
-        });
-      return result;
+      const geminiContents: Content[] = formattedMessages.map(msg => {
+        // Convert system messages to user messages with a special prefix
+        if (msg.role === 'system') {
+          return {
+            role: 'user',
+            parts: [{ text: `System Instructions: ${msg.content}` }]
+          };
+        } else if (msg.role === 'user') {
+          return {
+            role: 'user',
+            parts: [{ text: msg.content }]
+          };
+        } else { // assistant
+          return {
+            role: 'model',
+            parts: [{ text: msg.content }]
+          };
+        }
+      });
+      
+      return geminiContents;
     }
         
     case 'openai':
     case 'openrouter':
     case 'featherless':
     default: {
-      // Map to OpenAI's supported roles
-      const result: OpenAIFormattedMessages = formattedMessages.map(msg => ({
-        // Ensure the role is a valid OpenAI role
-        role: (msg.role === 'system' || msg.role === 'user' || msg.role === 'assistant') 
-          ? msg.role : 'user',
-        content: msg.content
-      }));
-      return result;
+      // Convert to OpenAI's specific message format
+      const openAIMessages: ChatCompletionMessageParam[] = formattedMessages.map(msg => {
+        // Validate that the role is one of OpenAI's supported roles
+        if (msg.role === 'system' || msg.role === 'user' || msg.role === 'assistant') {
+          return {
+            role: msg.role,
+            content: msg.content
+          };
+        }
+        // Default to user role for any unsupported roles
+        return {
+          role: 'user',
+          content: msg.content
+        };
+      });
+      
+      return openAIMessages;
     }
   }
 }
@@ -321,13 +324,13 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
         }
         
         // Extract system prompt and messages from formatted messages
-        const { systemPrompt, messages } = formattedMessages as AnthropicFormattedMessages;
+        const { systemPrompt, messages } = formattedMessages as unknown as AnthropicFormattedMessages;
         
         if (stream) {
           const response = await anthropicClient.messages.create({
             model: modelName,
             system: systemPrompt,
-            messages: messages,
+            messages,
             max_tokens: configMaxTokens,
             temperature: configTemperature,
             stream: true
@@ -343,7 +346,7 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
           const response = await anthropicClient.messages.create({
             model: modelName,
             system: systemPrompt,
-            messages: messages,
+            messages,
             max_tokens: configMaxTokens,
             temperature: configTemperature
           });
@@ -369,31 +372,48 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
         
         if (stream) {
           const response = await model.generateContentStream({
-            contents: formattedMessages as GeminiFormattedMessages,
+            contents: formattedMessages as unknown as Content[],
             generationConfig: {
               temperature: configTemperature,
               maxOutputTokens: configMaxTokens,
             }
           });
           
-          // Handle streaming response
+          // Use our safe helper function for streaming
           for await (const chunk of response.stream) {
-            const chunkText = chunk.text();
-            if (chunkText) {
-              responseText += chunkText;
+            const text = safeGetTextFromGeminiChunk(chunk);
+            if (text) {
+              responseText += text;
             }
           }
         } else {
           const response = await model.generateContent({
-            contents: formattedMessages as GeminiFormattedMessages,
+            contents: formattedMessages as unknown as Content[],
             generationConfig: {
               temperature: configTemperature,
               maxOutputTokens: configMaxTokens,
             }
           });
           
-          // Extract text from the response
-          responseText = response.response.text();
+          // Extract text from the response safely
+          try {
+            // Try the standard text accessor first
+            if (response.response.text) {
+              responseText = response.response.text();
+            } else {
+              // Fallback to manually extracting text from parts if available
+              responseText = Array.isArray(response.response.candidates?.[0]?.content?.parts) 
+                ? response.response.candidates[0].content.parts
+                    .filter(part => typeof part === 'object' && part && 'text' in part)
+                    .map(part => part.text || '')
+                    .join('') 
+                : '';
+            }
+          } catch (error) {
+            console.warn('Error extracting text from Gemini response:', error);
+            // If all else fails, try to toString the response or return empty
+            responseText = response.response.toString().trim() || '';
+          }
         }
         break;
       }
@@ -406,7 +426,7 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
         if (stream) {
           const response = await openRouterClient.chat.completions.create({
             model: modelName,
-            messages: formattedMessages as OpenAIFormattedMessages,
+            messages: formattedMessages as unknown as ChatCompletionMessageParam[],
             temperature: configTemperature,
             max_tokens: configMaxTokens,
             stream: true
@@ -421,7 +441,7 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
         } else {
           const response = await openRouterClient.chat.completions.create({
             model: modelName,
-            messages: formattedMessages as OpenAIFormattedMessages,
+            messages: formattedMessages as unknown as ChatCompletionMessageParam[],
             temperature: configTemperature,
             max_tokens: configMaxTokens
           });
@@ -443,7 +463,7 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
           if (stream) {
             const response = await featherlessClient.chat.completions.create({
               model: fullModelName,
-              messages: formattedMessages as OpenAIFormattedMessages,
+              messages: formattedMessages as unknown as ChatCompletionMessageParam[],
               temperature: configTemperature,
               max_tokens: Math.min(configMaxTokens, 4096), // Limit max tokens to 4096
               stream: true
@@ -458,20 +478,21 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
           } else {
             const response = await featherlessClient.chat.completions.create({
               model: fullModelName,
-              messages: formattedMessages as OpenAIFormattedMessages,
+              messages: formattedMessages as unknown as ChatCompletionMessageParam[],
               temperature: configTemperature,
               max_tokens: Math.min(configMaxTokens, 4096) // Limit max tokens to 4096
             });
             
             responseText = response.choices[0]?.message?.content || '';
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const err = error as { status?: number };
           // If we get a validation error, try with fewer tokens
-          if (error.status === 422) {
+          if (err.status === 422) {
             console.log('Featherless API validation error. Retrying with fewer tokens.');
             const response = await featherlessClient.chat.completions.create({
               model: fullModelName,
-              messages: formattedMessages as OpenAIFormattedMessages,
+              messages: formattedMessages as unknown as ChatCompletionMessageParam[],
               temperature: configTemperature,
               max_tokens: 2048 // Reduce max tokens as fallback
             });
@@ -493,7 +514,7 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
         if (stream) {
           const response = await openaiClient.chat.completions.create({
             model: modelName,
-            messages: formattedMessages as OpenAIFormattedMessages,
+            messages: formattedMessages as unknown as ChatCompletionMessageParam[],
             temperature: configTemperature,
             max_tokens: configMaxTokens,
             stream: true
@@ -508,7 +529,7 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
         } else {
           const response = await openaiClient.chat.completions.create({
             model: modelName,
-            messages: formattedMessages as OpenAIFormattedMessages,
+            messages: formattedMessages as unknown as ChatCompletionMessageParam[],
             temperature: configTemperature,
             max_tokens: configMaxTokens
           });
@@ -642,4 +663,19 @@ export async function generateTextServerAction(options: LLMRequestOptions): Prom
 
 // For backward compatibility, export alternate names
 export const generateText = generateTextServerAction;
-export const generateTextWithAI = generateTextServerAction; 
+export const generateTextWithAI = generateTextServerAction;
+
+// Improve the Gemini response handling
+function safeGetTextFromGeminiChunk(chunk: unknown): string {
+  try {
+    // This is a simplification due to typing issues
+    const textFn = (chunk as { text?: () => string }).text;
+    if (typeof textFn === 'function') {
+      return textFn() || '';
+    }
+    return '';
+  } catch (error) {
+    console.warn('Error extracting text from Gemini chunk:', error);
+    return '';
+  }
+}
