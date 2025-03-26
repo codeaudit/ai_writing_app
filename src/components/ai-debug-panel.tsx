@@ -1,26 +1,27 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bug, Copy, Check, RefreshCw } from 'lucide-react';
+import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Copy, Check } from 'lucide-react';
 import { useLLMStore } from "@/lib/store";
+import { ChatMessage } from "@/lib/llm-service";
 
 interface AIDebugPanelProps {
   lastPrompt: string;
   contextDocuments: Array<{ id: string; name: string; content: string }>;
+  apiMessages?: ChatMessage[];
 }
 
 export default function AIDebugPanel({ 
   lastPrompt, 
-  contextDocuments
+  contextDocuments,
+  apiMessages = []
 }: AIDebugPanelProps) {
   const { config } = useLLMStore();
   const [isCopied, setIsCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState('prompt');
+  const [activeTab, setActiveTab] = useState('api-messages');
   
   const handleCopyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content);
@@ -50,14 +51,46 @@ export default function AIDebugPanel({
     return formattedContent || 'No context documents available';
   };
   
+  // Format API messages for display
+  const formatApiMessages = () => {
+    if (!apiMessages || apiMessages.length === 0) {
+      return "No API messages have been sent yet.";
+    }
+    
+    return JSON.stringify(apiMessages, null, 2);
+  };
+  
   return (
     <div className="w-full">
-      <Tabs defaultValue="prompt" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-3 grid grid-cols-3 h-9">
+      <Tabs defaultValue="api-messages" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-3 grid grid-cols-4 h-9">
+          <TabsTrigger value="api-messages" className="text-xs">API Messages</TabsTrigger>
           <TabsTrigger value="prompt" className="text-xs">Prompt</TabsTrigger>
           <TabsTrigger value="context" className="text-xs">Context</TabsTrigger>
           <TabsTrigger value="config" className="text-xs">Configuration</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="api-messages" className="space-y-3">
+          <div className="border rounded-md p-3 bg-muted/30 overflow-auto max-h-[400px]">
+            <pre className="whitespace-pre-wrap text-xs font-mono">{formatApiMessages()}</pre>
+          </div>
+          <div className="flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => handleCopyToClipboard(formatApiMessages())}
+              disabled={!apiMessages || apiMessages.length === 0}
+            >
+              {isCopied && activeTab === 'api-messages' ? (
+                <Check className="h-3 w-3 mr-1" />
+              ) : (
+                <Copy className="h-3 w-3 mr-1" />
+              )}
+              Copy
+            </Button>
+          </div>
+        </TabsContent>
         
         <TabsContent value="prompt" className="space-y-3">
           <div className="border rounded-md p-3 bg-muted/30 overflow-auto max-h-[400px]">

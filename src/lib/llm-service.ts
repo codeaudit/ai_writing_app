@@ -1,17 +1,11 @@
 'use server'
 
-import { useLLMStore } from './store';
-import { generateText as aiGenerateText, streamText, wrapLanguageModel } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { anthropic } from '@ai-sdk/anthropic';
-import { google } from '@ai-sdk/google';
-import { GOOGLE_GENERATIVE_AI_API_KEY } from './config';
-import { createCacheMiddleware } from './ai-middleware';
-import { kv } from '@vercel/kv';
+import { OpenAI } from 'openai';
+import { Anthropic } from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { kv } from '@/lib/kv-provider';
 import { cookies } from 'next/headers';
 import { formatDebugPrompt, logAIDebug } from '@/lib/ai-debug';
-import { OpenAI } from 'openai';
-import { LanguageModelV1ObjectGenerationMode } from 'ai';
 import { getAIRoleSystemPrompt, AIRole, DEFAULT_PROMPTS } from './ai-roles';
 
 // Import environment variables directly
@@ -19,7 +13,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
-const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || ''
+const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || '';
 
 // Create OpenRouter client
 const openRouterClient = new OpenAI({
@@ -42,21 +36,13 @@ const openaiClient = new OpenAI({
   apiKey: OPENAI_API_KEY
 });
 
-interface LLMRequestOptions {
-  prompt: string;
-  model?: string;
-  temperature?: number;
-  maxTokens?: number;
-  contextDocuments?: Array<{ title: string; content: string }>;
-  stream?: boolean;
-  aiRole: string;
-}
+// Create Anthropic client
+const anthropicClient = new Anthropic({
+  apiKey: ANTHROPIC_API_KEY
+});
 
-interface LLMResponse {
-  text: string;
-  model: string;
-  provider: string;
-}
+// Create Google Generative AI client
+const geminiClient = new GoogleGenerativeAI(GOOGLE_API_KEY);
 
 // Define chat-related types
 export interface ChatMessage {
@@ -88,388 +74,186 @@ export interface ChatResponse {
   debugPrompt?: string;
 }
 
-// Helper function to get system message based on AI role
-async function getSystemMessageForRole(aiRole: string = 'assistant'): Promise<string> {
-  try {
-    // Get the system prompt from the API
-    return await getAIRoleSystemPrompt(aiRole);
-  } catch (error) {
-    console.error(`Error fetching system prompt for role "${aiRole}":`, error);
-    // Fall back to DEFAULT_PROMPTS if API fails
-    return DEFAULT_PROMPTS[aiRole as AIRole] || DEFAULT_PROMPTS.assistant;
+// TypeScript types for message formatting
+interface FormattedMessages {
+  [key: string]: any;
+}
+
+// Update OpenAI type definitions
+interface OpenAIFormattedMessage {
+  role: 'system' | 'user' | 'assistant' | 'function' | 'tool';
+  content: string;
+  name?: string;
+}
+
+type OpenAIFormattedMessages = OpenAIFormattedMessage[];
+
+// Update Anthropic message types
+interface AnthropicMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+interface AnthropicFormattedMessages {
+  systemPrompt: string;
+  messages: AnthropicMessage[];
+}
+
+interface GeminiMessage {
+  role: 'user' | 'model';
+  parts: Array<{ text: string }>;
+}
+
+type GeminiFormattedMessages = GeminiMessage[];
+
+// Helper function to generate a unique ID
+function generateId(): string {
+  return `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/**
+ * Logs API key information for debugging purposes
+ */
+function logApiKeyInfo(provider: string): void {
+  console.log(`Using ${provider} API`);
+  
+  switch (provider) {
+    case 'openai':
+      console.log(`OpenAI API Key available: ${!!OPENAI_API_KEY}`);
+      break;
+    case 'anthropic':
+      console.log(`Anthropic API Key available: ${!!ANTHROPIC_API_KEY}`);
+      break;
+    case 'gemini':
+      console.log(`Google API Key available: ${!!GOOGLE_API_KEY}`);
+      break;
+    case 'openrouter':
+      console.log(`OpenRouter API Key available: ${!!OPENROUTER_API_KEY}`);
+      break;
+    case 'featherless':
+      console.log(`Featherless API Key available: ${!!FEATHERLESS_API_KEY}`);
+      break;
   }
 }
 
-// Main LLM service function
-export async function generateTextServerAction(options: LLMRequestOptions): Promise<LLMResponse> {
-  const { config } = await getServerConfig();
-  const { provider, enableCache, temperature: configTemperature, maxTokens: configMaxTokens, aiRole = 'assistant' } = config;
+/**
+ * Converts chat history for the appropriate provider format
+ */
+function formatMessagesForProvider(
+  messages: ChatMessage[], 
+  systemMessage: string, 
+  provider: string
+): FormattedMessages {
+  // Ensure we have a system message at the beginning
+  const hasSystemMessage = messages.some(msg => msg.role === 'system');
+  const formattedMessages = [...messages];
   
-  // Debug API key information
-  logApiKeyInfo(provider);
-  
-  // Use the model from options or fall back to the one in config
-  const modelName = options.model || config.model;
-  const { 
-    prompt, 
-    temperature = configTemperature, 
-    maxTokens = configMaxTokens, 
-    contextDocuments = [],
-    stream = false
-  } = options;
-  
-  // Set system message based on the AI role
-  const systemMessage = await getSystemMessageForRole(aiRole);
-  
-  let userPrompt: string = ""
-  if (contextDocuments && contextDocuments.length > 0) {
-    userPrompt += ' Use the following additional context to inform your responses:\n\n';
-    contextDocuments.forEach(doc => {
-      userPrompt += `Document: ${doc.title}\n${doc.content}\n\n`;
+  if (!hasSystemMessage) {
+    formattedMessages.unshift({
+      role: 'system',
+      content: systemMessage
     });
   }
+  
+  // Format messages based on provider
+  switch (provider) {
+    case 'anthropic': {
+      // Anthropic uses a specific format with system prompt as a separate parameter
+      // Filter out system messages and ensure roles are only 'user' or 'assistant'
+      const anthropicMessages: AnthropicMessage[] = formattedMessages
+        .filter(msg => msg.role !== 'system')
+        .map(msg => ({
+          // Cast to Anthropic's supported roles
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        }));
+        
+      const result: AnthropicFormattedMessages = {
+        systemPrompt: systemMessage,
+        messages: anthropicMessages
+      };
+      return result;
+    }
+      
+    case 'gemini': {
+      // Gemini doesn't support system messages directly, so we need to convert them to user messages
+      const result: GeminiFormattedMessages = formattedMessages
+        .map(msg => {
+          if (msg.role === 'system') {
+            return {
+              role: 'user',
+              parts: [{ text: `System Instructions: ${msg.content}` }]
+            };
+          } else if (msg.role === 'user') {
+            return {
+              role: 'user',
+              parts: [{ text: msg.content }]
+            };
+          } else { // assistant
+            return {
+              role: 'model',
+              parts: [{ text: msg.content }]
+            };
+          }
+        });
+      return result;
+    }
+        
+    case 'openai':
+    case 'openrouter':
+    case 'featherless':
+    default: {
+      // Map to OpenAI's supported roles
+      const result: OpenAIFormattedMessages = formattedMessages.map(msg => ({
+        // Ensure the role is a valid OpenAI role
+        role: (msg.role === 'system' || msg.role === 'user' || msg.role === 'assistant') 
+          ? msg.role : 'user',
+        content: msg.content
+      }));
+      return result;
+    }
+  }
+}
 
-  userPrompt += prompt;
+/**
+ * Create a cache key for the request
+ */
+function createCacheKey(provider: string, model: string, messages: FormattedMessages): string {
+  // Create a cache key based on provider, model, and stringified messages
+  return `llm-cache:${provider}:${model}:${JSON.stringify(messages)}`;
+}
+
+/**
+ * Check if a response is cached
+ */
+async function getFromCache(cacheKey: string, enableCache: boolean): Promise<ChatResponse | null> {
+  if (!enableCache) return null;
   
   try {
-    // Set up provider-specific model
-    let baseModel;
-    
-    // Set API keys in environment variables
-    switch (provider) {
-      case 'anthropic':
-        // Set the API key for Anthropic
-        process.env.ANTHROPIC_API_KEY = ANTHROPIC_API_KEY;
-        baseModel = anthropic(modelName as any);
-        break;
-      case 'gemini':
-        // Set the API key for Google
-        process.env.GOOGLE_GENERATIVE_AI_API_KEY = GOOGLE_API_KEY;
-        baseModel = google(modelName as any);
-        break;
-      case 'openrouter':
-        // Use OpenRouter client directly
-        baseModel = {
-          provider: 'openrouter',
-          specificationVersion: 'v1' as const,
-          modelId: modelName,
-          defaultObjectGenerationMode: 'text' as LanguageModelV1ObjectGenerationMode,
-          async doGenerate(options: any) {
-            const { prompt, temperature = 0.7, maxTokens = 1000 } = options;
-            const messages = typeof prompt === 'string' 
-              ? [{ role: 'user', content: prompt }]
-              : prompt.map((msg: any) => ({
-                  role: msg.role,
-                  content: Array.isArray(msg.content) 
-                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
-                    : msg.content
-                }));
-
-            const response = await openRouterClient.chat.completions.create({
-              model: modelName,
-              messages,
-              temperature,
-              max_tokens: maxTokens,
-            });
-
-            return {
-              text: response.choices[0]?.message?.content ?? '',
-              model: modelName,
-              provider: 'openrouter',
-              finishReason: response.choices[0]?.finish_reason ?? 'stop',
-              usage: {
-                promptTokens: response.usage?.prompt_tokens ?? 0,
-                completionTokens: response.usage?.completion_tokens ?? 0
-              }
-            };
-          },
-          async doStream(options: any) {
-            const { prompt, temperature = 0.7, maxTokens = 1000 } = options;
-            const messages = typeof prompt === 'string' 
-              ? [{ role: 'user', content: prompt }]
-              : prompt.map((msg: any) => ({
-                  role: msg.role,
-                  content: Array.isArray(msg.content) 
-                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
-                    : msg.content
-                }));
-
-            const stream = await openRouterClient.chat.completions.create({
-              model: modelName,
-              messages,
-              temperature,
-              max_tokens: maxTokens,
-              stream: true
-            });
-
-            return {
-              stream: stream.toReadableStream()
-            };
-          }
-        };
-        break;
-      case 'featherless':
-        // Use standard OpenAI client with Featherless model format
-        baseModel = {
-          provider: 'featherless',
-          specificationVersion: 'v1' as const,
-          modelId: modelName,
-          defaultObjectGenerationMode: 'text' as LanguageModelV1ObjectGenerationMode,
-          async doGenerate(options: any) {
-            const { prompt, temperature = 0.7, maxTokens = 4096 } = options;
-            const messages = typeof prompt === 'string' 
-              ? [{ role: 'user', content: prompt }]
-              : prompt.map((msg: any) => ({
-                  role: msg.role,
-                  content: Array.isArray(msg.content) 
-                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
-                    : msg.content
-                }));
-                
-            try {
-              // Add system message if none exists
-              if (!messages.some((msg: any) => msg.role === 'system')) {
-                messages.unshift({
-                  role: 'system',
-                  content: 'You are a helpful assistant.'
-                });
-              }
-              
-              // Use the Featherless client
-              const response = await featherlessClient.chat.completions.create({
-                model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
-                messages,
-                temperature,
-                max_tokens: Math.min(maxTokens, 4096), // Limit max tokens to 4096
-              });
-
-              return {
-                text: response.choices[0]?.message?.content ?? '',
-                model: modelName,
-                provider: 'featherless',
-                finishReason: response.choices[0]?.finish_reason ?? 'stop',
-                usage: {
-                  promptTokens: response.usage?.prompt_tokens ?? 0,
-                  completionTokens: response.usage?.completion_tokens ?? 0
-                }
-              };
-            } catch (error: any) {
-              console.error(`Featherless API error: ${error.message}`, error);
-              // If we get a validation error, try with fewer tokens
-              if (error.status === 422) {
-                try {
-                  const response = await featherlessClient.chat.completions.create({
-                    model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
-                    messages,
-                    temperature,
-                    max_tokens: 2048, // Reduce max tokens as fallback
-                  });
-                  
-                  return {
-                    text: response.choices[0]?.message?.content ?? '',
-                    model: modelName,
-                    provider: 'featherless',
-                    finishReason: response.choices[0]?.finish_reason ?? 'stop',
-                    usage: {
-                      promptTokens: response.usage?.prompt_tokens ?? 0,
-                      completionTokens: response.usage?.completion_tokens ?? 0
-                    }
-                  };
-                } catch (retryError: any) {
-                  console.error(`Featherless API retry failed: ${retryError.message}`);
-                  throw retryError;
-                }
-              }
-              throw error;
-            }
-          },
-          async doStream(options: any) {
-            const { prompt, temperature = 0.7, maxTokens = 4096 } = options;
-            const messages = typeof prompt === 'string' 
-              ? [{ role: 'user', content: prompt }]
-              : prompt.map((msg: any) => ({
-                  role: msg.role,
-                  content: Array.isArray(msg.content) 
-                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
-                    : msg.content
-                }));
-
-            try {
-              // Add system message if none exists
-              if (!messages.some((msg: any) => msg.role === 'system')) {
-                messages.unshift({
-                  role: 'system',
-                  content: 'You are a helpful assistant.'
-                });
-              }
-              
-              // Use the Featherless client
-              const stream = await featherlessClient.chat.completions.create({
-                model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
-                messages,
-                temperature,
-                max_tokens: Math.min(maxTokens, 4096), // Limit max tokens to 4096
-                stream: true
-              });
-
-              return {
-                stream: stream.toReadableStream()
-              };
-            } catch (error: any) {
-              console.error(`Featherless API streaming error: ${error.message}`, error);
-              // If we get a validation error, try with fewer tokens
-              if (error.status === 422) {
-                try {
-                  const stream = await featherlessClient.chat.completions.create({
-                    model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
-                    messages,
-                    temperature,
-                    max_tokens: 2048, // Reduce max tokens as fallback
-                    stream: true
-                  });
-                  
-                  return {
-                    stream: stream.toReadableStream()
-                  };
-                } catch (retryError: any) {
-                  console.error(`Featherless API streaming retry failed: ${retryError.message}`);
-                  throw retryError;
-                }
-              }
-              throw error;
-            }
-          }
-        };
-        break;
-      case 'openai':
-      default:
-        // Set the API key for OpenAI
-        process.env.OPENAI_API_KEY = OPENAI_API_KEY;
-        baseModel = openai(modelName as any);
-        break;
-    }
-    
-    // Apply middleware conditionally based on enableCache setting
-    const model = enableCache 
-      ? wrapLanguageModel({
-          model: baseModel,
-          middleware: createCacheMiddleware(true)
-        })
-      : baseModel;
-    
-    // Generate text with or without streaming
-    if (stream) {
-      const result = await streamText({
-        model,
-        system: systemMessage,
-        prompt: userPrompt,
-        temperature,
-        maxTokens,
-      });
-      
-      // For streaming, we return a response with the stream
-      return {
-        text: '', // Initial text is empty for streaming
-        model: modelName,
-        provider,
-        stream: result.toDataStreamResponse()
-      } as any;
-    } else {
-      // For non-streaming, we return the complete text
-      const result = await aiGenerateText({
-        model,
-        system: systemMessage,
-        prompt: userPrompt,
-        temperature,
-        maxTokens,
-      });
-      
-      // Log debug information
-      try {
-        const cookieStore = await cookies();
-        const sessionId = cookieStore.get('ai-session-id')?.value || 'unknown';
-        await logAIDebug(sessionId, {
-          provider,
-          model: modelName,
-          systemMessage,
-          userPrompt,
-          responseLength: result.text.length,
-          responsePreview: result.text.substring(0, 100) + (result.text.length > 100 ? '...' : ''),
-          contextDocumentsCount: contextDocuments.length,
-        });
-      } catch (logError) {
-        console.error('Error logging AI debug info:', logError);
-      }
-      
-      return {
-        text: result.text,
-        model: modelName,
-        provider
-      };
+    const cached = await kv.get(cacheKey) as ChatResponse | null;
+    if (cached) {
+      console.log('Cache hit for', cacheKey);
+      return cached;
     }
   } catch (error) {
-    console.error('Error generating text:', error);
-    throw error;
+    console.error('Error reading from cache:', error);
   }
+  
+  return null;
 }
 
-// Helper function to get server-side config
-async function getServerConfig() {
-  const cookieStore = await cookies();
-  const configCookie = cookieStore.get('llm-config');
-  let config;
+/**
+ * Store a response in the cache
+ */
+async function storeInCache(cacheKey: string, response: ChatResponse, enableCache: boolean): Promise<void> {
+  if (!enableCache) return;
   
-  if (configCookie) {
-    try {
-      config = JSON.parse(configCookie.value);
-    } catch (e) {
-      console.error('Error parsing config cookie:', e);
-    }
+  try {
+    await kv.set(cacheKey, response, { ex: 60 * 60 }); // Cache for 1 hour
+    console.log('Stored in cache:', cacheKey);
+  } catch (error) {
+    console.error('Error writing to cache:', error);
   }
-  
-  // Fallback to default config if cookie parsing fails
-  if (!config) {
-    config = {
-      provider: process.env.DEFAULT_LLM_PROVIDER || 'openai',
-      model: process.env.DEFAULT_LLM_MODEL || 'gpt-4',
-      enableCache: process.env.ENABLE_AI_CACHE === 'true',
-      temperature: parseFloat(process.env.DEFAULT_TEMPERATURE || '0.7'),
-      maxTokens: parseInt(process.env.DEFAULT_MAX_TOKENS || '1000', 10),
-    };
-  }
-  
-  // Get API keys from cookies or environment variables
-  const openaiKeyCookie = cookieStore.get('openai-api-key');
-  const googleKeyCookie = cookieStore.get('google-api-key');
-  const anthropicKeyCookie = cookieStore.get('anthropic-api-key');
-  const featherlessKeyCoookie = cookieStore.get('featherless-api-key');
-  
-  // Always use environment API keys for server-side operations
-  config.apiKeys = {
-    openai: openaiKeyCookie?.value || OPENAI_API_KEY,
-    anthropic: anthropicKeyCookie?.value || ANTHROPIC_API_KEY,
-    google: googleKeyCookie?.value || GOOGLE_API_KEY,
-    featherless:  featherlessKeyCoookie?.value || FEATHERLESS_API_KEY
-  };
-  
-  return { config };
-}
-
-// For backward compatibility, we'll keep the old function but make it use the server action
-export const generateText = generateTextServerAction;
-export const generateTextWithAI = generateTextServerAction;
-
-// Helper function to log API key information (without revealing full keys)
-function logApiKeyInfo(provider: string) {
-  const openaiKey = process.env.OPENAI_API_KEY || '';
-  const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
-  const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '';
-  
-  console.log('API Key Debug Info:');
-  console.log(`Provider: ${provider}`);
-  console.log(`OpenAI API Key: ${openaiKey ? `${openaiKey.substring(0, 5)}...${openaiKey.substring(openaiKey.length - 4)}` : 'Not set'}`);
-  console.log(`Anthropic API Key: ${anthropicKey ? `${anthropicKey.substring(0, 5)}...${anthropicKey.substring(anthropicKey.length - 4)}` : 'Not set'}`);
-  console.log(`Google API Key: ${googleKey ? `${googleKey.substring(0, 5)}...${googleKey.substring(googleKey.length - 4)}` : 'Not set'}`);
 }
 
 // Server action for chat functionality
@@ -500,331 +284,362 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
     throw new Error("The last message is invalid or missing content");
   }
   
-  let userPrompt = '';
-  
-  // Build system message with context if provided
+  // Build system message with context
   const systemMessage = await getSystemMessageForRole(aiRole);
+  let enhancedSystemMessage = systemMessage;
   
+  // Add context to system message if provided
   if (context) {
-    userPrompt += ` Use the following context to inform your responses: <context>${context}</context>`;
+    enhancedSystemMessage += `\n\nUse the following context to inform your responses: <context>${context}</context>`;
   }
   
   if (contextDocuments && contextDocuments.length > 0) {
-    userPrompt += ' Use the following additional context documents to inform your responses:\n\n';
+    enhancedSystemMessage += '\n\nUse the following additional context documents to inform your responses:\n\n';
     contextDocuments.forEach(doc => {
-      userPrompt += `Document: ${doc.title || doc.name || "Untitled"}\n${doc.content}\n\n`;
+      enhancedSystemMessage += `Document: ${doc.title || doc.name || "Untitled"}\n${doc.content}\n\n`;
     });
   }
-
-  userPrompt += lastMessage.content
+  
+  // Format messages for the model
+  const formattedMessages = formatMessagesForProvider(messages, enhancedSystemMessage, provider);
+  
+  // Check if response is in cache
+  const cacheKey = createCacheKey(provider, modelName, formattedMessages);
+  const cachedResponse = await getFromCache(cacheKey, enableCache);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
   
   try {
-    // Set up provider-specific model
-    let baseModel;
+    let responseText = '';
     
-    // Set API keys in environment variables
+    // Generate response based on provider
     switch (provider) {
-      case 'anthropic':
-        // Set the API key for Anthropic
-        process.env.ANTHROPIC_API_KEY = ANTHROPIC_API_KEY;
-        baseModel = anthropic(modelName as any);
+      case 'anthropic': {
+        if (!ANTHROPIC_API_KEY) {
+          throw new Error("Anthropic API key is not set");
+        }
+        
+        // Extract system prompt and messages from formatted messages
+        const { systemPrompt, messages } = formattedMessages as AnthropicFormattedMessages;
+        
+        if (stream) {
+          const response = await anthropicClient.messages.create({
+            model: modelName,
+            system: systemPrompt,
+            messages: messages,
+            max_tokens: configMaxTokens,
+            temperature: configTemperature,
+            stream: true
+          });
+          
+          // Handle streaming response
+          for await (const chunk of response) {
+            if (chunk.type === 'content_block_delta' && chunk.delta.text) {
+              responseText += chunk.delta.text;
+            }
+          }
+        } else {
+          const response = await anthropicClient.messages.create({
+            model: modelName,
+            system: systemPrompt,
+            messages: messages,
+            max_tokens: configMaxTokens,
+            temperature: configTemperature
+          });
+          
+          // Extract text from the response
+          responseText = response.content.reduce((text, item) => {
+            if (item.type === 'text') {
+              return text + item.text;
+            }
+            return text;
+          }, '');
+        }
         break;
-      case 'gemini':
-        // Set the API key for Google
-        process.env.GOOGLE_GENERATIVE_AI_API_KEY = GOOGLE_API_KEY;
-        baseModel = google(modelName as any);
+      }
+      
+      case 'gemini': {
+        if (!GOOGLE_API_KEY) {
+          throw new Error("Google API key is not set");
+        }
+        
+        // Get the Gemini model
+        const model: GenerativeModel = geminiClient.getGenerativeModel({ model: modelName });
+        
+        if (stream) {
+          const response = await model.generateContentStream({
+            contents: formattedMessages as GeminiFormattedMessages,
+            generationConfig: {
+              temperature: configTemperature,
+              maxOutputTokens: configMaxTokens,
+            }
+          });
+          
+          // Handle streaming response
+          for await (const chunk of response.stream) {
+            const chunkText = chunk.text();
+            if (chunkText) {
+              responseText += chunkText;
+            }
+          }
+        } else {
+          const response = await model.generateContent({
+            contents: formattedMessages as GeminiFormattedMessages,
+            generationConfig: {
+              temperature: configTemperature,
+              maxOutputTokens: configMaxTokens,
+            }
+          });
+          
+          // Extract text from the response
+          responseText = response.response.text();
+        }
         break;
-      case 'openrouter':
-        // Use OpenRouter client directly
-        baseModel = {
-          provider: 'openrouter',
-          specificationVersion: 'v1' as const,
-          modelId: modelName,
-          defaultObjectGenerationMode: 'text' as LanguageModelV1ObjectGenerationMode,
-          async doGenerate(options: any) {
-            const { prompt, temperature = 0.7, maxTokens = 1000 } = options;
-            const messages = typeof prompt === 'string' 
-              ? [{ role: 'user', content: prompt }]
-              : prompt.map((msg: any) => ({
-                  role: msg.role,
-                  content: Array.isArray(msg.content) 
-                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
-                    : msg.content
-                }));
-
-            const response = await openRouterClient.chat.completions.create({
-              model: modelName,
-              messages,
-              temperature,
-              max_tokens: maxTokens,
-            });
-
-            return {
-              text: response.choices[0]?.message?.content ?? '',
-              model: modelName,
-              provider: 'openrouter',
-              finishReason: response.choices[0]?.finish_reason ?? 'stop',
-              usage: {
-                promptTokens: response.usage?.prompt_tokens ?? 0,
-                completionTokens: response.usage?.completion_tokens ?? 0
-              }
-            };
-          },
-          async doStream(options: any) {
-            const { prompt, temperature = 0.7, maxTokens = 1000 } = options;
-            const messages = typeof prompt === 'string' 
-              ? [{ role: 'user', content: prompt }]
-              : prompt.map((msg: any) => ({
-                  role: msg.role,
-                  content: Array.isArray(msg.content) 
-                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
-                    : msg.content
-                }));
-
-            const stream = await openRouterClient.chat.completions.create({
-              model: modelName,
-              messages,
-              temperature,
-              max_tokens: maxTokens,
+      }
+      
+      case 'openrouter': {
+        if (!OPENROUTER_API_KEY) {
+          throw new Error("OpenRouter API key is not set");
+        }
+        
+        if (stream) {
+          const response = await openRouterClient.chat.completions.create({
+            model: modelName,
+            messages: formattedMessages as OpenAIFormattedMessages,
+            temperature: configTemperature,
+            max_tokens: configMaxTokens,
+            stream: true
+          });
+          
+          // Handle streaming response
+          for await (const chunk of response) {
+            if (chunk.choices[0]?.delta?.content) {
+              responseText += chunk.choices[0].delta.content;
+            }
+          }
+        } else {
+          const response = await openRouterClient.chat.completions.create({
+            model: modelName,
+            messages: formattedMessages as OpenAIFormattedMessages,
+            temperature: configTemperature,
+            max_tokens: configMaxTokens
+          });
+          
+          responseText = response.choices[0]?.message?.content || '';
+        }
+        break;
+      }
+      
+      case 'featherless': {
+        if (!FEATHERLESS_API_KEY) {
+          throw new Error("Featherless API key is not set");
+        }
+        
+        // Make sure model name includes provider prefix
+        const fullModelName = modelName.includes('/') ? modelName : `featherless-ai/${modelName}`;
+        
+        try {
+          if (stream) {
+            const response = await featherlessClient.chat.completions.create({
+              model: fullModelName,
+              messages: formattedMessages as OpenAIFormattedMessages,
+              temperature: configTemperature,
+              max_tokens: Math.min(configMaxTokens, 4096), // Limit max tokens to 4096
               stream: true
             });
-
-            return {
-              stream: stream.toReadableStream()
-            };
-          }
-        };
-        break;
-      case 'featherless':
-        // Use standard OpenAI client with Featherless model format
-        baseModel = {
-          provider: 'featherless',
-          specificationVersion: 'v1' as const,
-          modelId: modelName,
-          defaultObjectGenerationMode: 'text' as LanguageModelV1ObjectGenerationMode,
-          async doGenerate(options: any) {
-            const { prompt, temperature = 0.7, maxTokens = 4096 } = options;
-            const messages = typeof prompt === 'string' 
-              ? [{ role: 'user', content: prompt }]
-              : prompt.map((msg: any) => ({
-                  role: msg.role,
-                  content: Array.isArray(msg.content) 
-                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
-                    : msg.content
-                }));
-                
-            try {
-              // Add system message if none exists
-              if (!messages.some((msg: any) => msg.role === 'system')) {
-                messages.unshift({
-                  role: 'system',
-                  content: 'You are a helpful assistant.'
-                });
+            
+            // Handle streaming response
+            for await (const chunk of response) {
+              if (chunk.choices[0]?.delta?.content) {
+                responseText += chunk.choices[0].delta.content;
               }
-              
-              // Use the Featherless client
-              const response = await featherlessClient.chat.completions.create({
-                model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
-                messages,
-                temperature,
-                max_tokens: Math.min(maxTokens, 4096), // Limit max tokens to 4096
-              });
-
-              return {
-                text: response.choices[0]?.message?.content ?? '',
-                model: modelName,
-                provider: 'featherless',
-                finishReason: response.choices[0]?.finish_reason ?? 'stop',
-                usage: {
-                  promptTokens: response.usage?.prompt_tokens ?? 0,
-                  completionTokens: response.usage?.completion_tokens ?? 0
-                }
-              };
-            } catch (error: any) {
-              console.error(`Featherless API error: ${error.message}`, error);
-              // If we get a validation error, try with fewer tokens
-              if (error.status === 422) {
-                try {
-                  const response = await featherlessClient.chat.completions.create({
-                    model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
-                    messages,
-                    temperature,
-                    max_tokens: 2048, // Reduce max tokens as fallback
-                  });
-                  
-                  return {
-                    text: response.choices[0]?.message?.content ?? '',
-                    model: modelName,
-                    provider: 'featherless',
-                    finishReason: response.choices[0]?.finish_reason ?? 'stop',
-                    usage: {
-                      promptTokens: response.usage?.prompt_tokens ?? 0,
-                      completionTokens: response.usage?.completion_tokens ?? 0
-                    }
-                  };
-                } catch (retryError: any) {
-                  console.error(`Featherless API retry failed: ${retryError.message}`);
-                  throw retryError;
-                }
-              }
-              throw error;
             }
-          },
-          async doStream(options: any) {
-            const { prompt, temperature = 0.7, maxTokens = 4096 } = options;
-            const messages = typeof prompt === 'string' 
-              ? [{ role: 'user', content: prompt }]
-              : prompt.map((msg: any) => ({
-                  role: msg.role,
-                  content: Array.isArray(msg.content) 
-                    ? msg.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
-                    : msg.content
-                }));
-
-            try {
-              // Add system message if none exists
-              if (!messages.some((msg: any) => msg.role === 'system')) {
-                messages.unshift({
-                  role: 'system',
-                  content: 'You are a helpful assistant.'
-                });
-              }
-              
-              // Use the Featherless client
-              const stream = await featherlessClient.chat.completions.create({
-                model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
-                messages,
-                temperature,
-                max_tokens: Math.min(maxTokens, 4096), // Limit max tokens to 4096
-                stream: true
-              });
-
-              return {
-                stream: stream.toReadableStream()
-              };
-            } catch (error: any) {
-              console.error(`Featherless API streaming error: ${error.message}`, error);
-              // If we get a validation error, try with fewer tokens
-              if (error.status === 422) {
-                try {
-                  const stream = await featherlessClient.chat.completions.create({
-                    model: modelName.includes('/') ? modelName : `featherless-ai/${modelName}`,
-                    messages,
-                    temperature,
-                    max_tokens: 2048, // Reduce max tokens as fallback
-                    stream: true
-                  });
-                  
-                  return {
-                    stream: stream.toReadableStream()
-                  };
-                } catch (retryError: any) {
-                  console.error(`Featherless API streaming retry failed: ${retryError.message}`);
-                  throw retryError;
-                }
-              }
-              throw error;
-            }
+          } else {
+            const response = await featherlessClient.chat.completions.create({
+              model: fullModelName,
+              messages: formattedMessages as OpenAIFormattedMessages,
+              temperature: configTemperature,
+              max_tokens: Math.min(configMaxTokens, 4096) // Limit max tokens to 4096
+            });
+            
+            responseText = response.choices[0]?.message?.content || '';
           }
-        };
+        } catch (error: any) {
+          // If we get a validation error, try with fewer tokens
+          if (error.status === 422) {
+            console.log('Featherless API validation error. Retrying with fewer tokens.');
+            const response = await featherlessClient.chat.completions.create({
+              model: fullModelName,
+              messages: formattedMessages as OpenAIFormattedMessages,
+              temperature: configTemperature,
+              max_tokens: 2048 // Reduce max tokens as fallback
+            });
+            
+            responseText = response.choices[0]?.message?.content || '';
+          } else {
+            throw error;
+          }
+        }
         break;
+      }
+      
       case 'openai':
-      default:
-        // Set the API key for OpenAI
-        process.env.OPENAI_API_KEY = OPENAI_API_KEY;
-        baseModel = openai(modelName as any);
+      default: {
+        if (!OPENAI_API_KEY) {
+          throw new Error("OpenAI API key is not set");
+        }
+        
+        if (stream) {
+          const response = await openaiClient.chat.completions.create({
+            model: modelName,
+            messages: formattedMessages as OpenAIFormattedMessages,
+            temperature: configTemperature,
+            max_tokens: configMaxTokens,
+            stream: true
+          });
+          
+          // Handle streaming response
+          for await (const chunk of response) {
+            if (chunk.choices[0]?.delta?.content) {
+              responseText += chunk.choices[0].delta.content;
+            }
+          }
+        } else {
+          const response = await openaiClient.chat.completions.create({
+            model: modelName,
+            messages: formattedMessages as OpenAIFormattedMessages,
+            temperature: configTemperature,
+            max_tokens: configMaxTokens
+          });
+          
+          responseText = response.choices[0]?.message?.content || '';
+        }
         break;
+      }
     }
     
-    // Apply middleware conditionally based on enableCache setting
-    const model = enableCache 
-      ? wrapLanguageModel({
-          model: baseModel,
-          middleware: createCacheMiddleware(true)
-        })
-      : baseModel;
+    // Prepare the response
+    const chatResponse: ChatResponse = {
+      message: {
+        role: 'assistant',
+        content: responseText,
+        id: generateId()
+      },
+      model: modelName,
+      provider,
+      debugPrompt: formatDebugPrompt(enhancedSystemMessage, lastMessage.content, provider, modelName)
+    };
     
-    // Generate text with or without streaming
-    if (stream) {
-      // For streaming, return a streamed response
-      const result = await streamText({
-        model,
-        system: systemMessage,
-        prompt: userPrompt,
-        temperature: configTemperature,
-        maxTokens: configMaxTokens,
-      });
-      
-      // Log debug information
-      try {
-        const cookieStore = await cookies();
-        const sessionId = cookieStore.get('ai-session-id')?.value || 'unknown';
-        await logAIDebug(sessionId, {
-          provider,
-          model: modelName,
-          systemMessage,
-          userPrompt,
-          responseLength: 0, // Length unknown for streaming
-          responsePreview: 'Streaming response',
-          contextDocumentsCount: contextDocuments.length,
-        });
-      } catch (logError) {
-        console.error('Error logging AI debug info:', logError);
-      }
-      
-      // For streaming responses, we need to handle the async text property
-      const streamedText = await result.text || 'Streamed response';
-      
-      return {
-        message: {
-          role: 'assistant',
-          content: streamedText,
-          id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-        },
-        model: modelName,
+    // Log debug information
+    try {
+      const cookieStore = await cookies();
+      const sessionId = cookieStore.get('ai-session-id')?.value || 'unknown';
+      await logAIDebug(sessionId, {
         provider,
-        debugPrompt: formatDebugPrompt(systemMessage, userPrompt, provider, modelName)
-      };
-    } else {
-      // For non-streaming, we return the complete text
-      const result = await aiGenerateText({
-        model,
-        system: systemMessage,
-        prompt: userPrompt,
-        temperature: configTemperature,
-        maxTokens: configMaxTokens,
-      });
-      
-      // Log debug information
-      try {
-        const cookieStore = await cookies();
-        const sessionId = cookieStore.get('ai-session-id')?.value || 'unknown';
-        await logAIDebug(sessionId, {
-          provider,
-          model: modelName,
-          systemMessage,
-          userPrompt,
-          responseLength: result.text.length,
-          responsePreview: result.text.substring(0, 100) + (result.text.length > 100 ? '...' : ''),
-          contextDocumentsCount: contextDocuments.length,
-        });
-      } catch (logError) {
-        console.error('Error logging AI debug info:', logError);
-      }
-      
-      return {
-        message: {
-          role: 'assistant',
-          content: result.text,
-          id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-        },
         model: modelName,
-        provider,
-        debugPrompt: formatDebugPrompt(systemMessage, userPrompt, provider, modelName)
-      };
+        systemMessage: enhancedSystemMessage,
+        userPrompt: lastMessage.content,
+        responseLength: responseText.length,
+        responsePreview: responseText.substring(0, 100) + (responseText.length > 100 ? '...' : ''),
+        contextDocumentsCount: contextDocuments.length,
+      });
+    } catch (logError) {
+      console.error('Error logging AI debug info:', logError);
     }
+    
+    // Cache the response if caching is enabled
+    await storeInCache(cacheKey, chatResponse, enableCache);
+    
+    return chatResponse;
   } catch (error) {
     console.error('Error generating chat response:', error);
     throw error;
   }
-} 
+}
+
+// Helper function to get server-side config
+async function getServerConfig() {
+  const cookieStore = await cookies();
+  const configCookie = cookieStore.get('llm-config');
+  let config;
+  
+  if (configCookie) {
+    try {
+      config = JSON.parse(configCookie.value);
+    } catch (e) {
+      console.error('Error parsing config cookie:', e);
+    }
+  }
+  
+  // Fallback to default config if cookie parsing fails
+  if (!config) {
+    config = {
+      provider: process.env.DEFAULT_LLM_PROVIDER || 'openai',
+      model: process.env.DEFAULT_LLM_MODEL || 'gpt-4',
+      enableCache: process.env.ENABLE_AI_CACHE === 'true',
+      temperature: parseFloat(process.env.DEFAULT_TEMPERATURE || '0.7'),
+      maxTokens: parseInt(process.env.DEFAULT_MAX_TOKENS || '1000', 10),
+    };
+  }
+  
+  return { config };
+}
+
+// Helper function to get system message based on AI role
+async function getSystemMessageForRole(aiRole: string = 'assistant'): Promise<string> {
+  try {
+    // Get the system prompt from the API
+    return await getAIRoleSystemPrompt(aiRole);
+  } catch (error) {
+    console.error(`Error fetching system prompt for role "${aiRole}":`, error);
+    // Fall back to DEFAULT_PROMPTS if API fails
+    return DEFAULT_PROMPTS[aiRole as AIRole] || DEFAULT_PROMPTS.assistant;
+  }
+}
+
+// For backward compatibility
+export interface LLMRequestOptions {
+  prompt: string;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  contextDocuments?: Array<{ title: string; content: string }>;
+  stream?: boolean;
+  aiRole: string;
+}
+
+export interface LLMResponse {
+  text: string;
+  model: string;
+  provider: string;
+}
+
+// For backward compatibility
+export async function generateTextServerAction(options: LLMRequestOptions): Promise<LLMResponse> {
+  const { prompt, contextDocuments = [], aiRole = 'assistant', model, temperature, maxTokens, stream } = options;
+  
+  // Convert to ChatRequest format
+  const chatRequest: ChatRequest = {
+    messages: [{ role: 'user', content: prompt }],
+    contextDocuments: contextDocuments.map(doc => ({
+      title: doc.title,
+      content: doc.content
+    })),
+    stream
+  };
+  
+  // Call generateChatResponse
+  const response = await generateChatResponse(chatRequest);
+  
+  // Convert to LLMResponse format
+  return {
+    text: response.message.content,
+    model: response.model,
+    provider: response.provider
+  };
+}
+
+// For backward compatibility, export alternate names
+export const generateText = generateTextServerAction;
+export const generateTextWithAI = generateTextServerAction; 

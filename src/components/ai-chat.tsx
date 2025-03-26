@@ -293,6 +293,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   const [filteredDocuments, setFilteredDocuments] = useState<ContextDocument[]>([]);
   const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(-1);
   const [compositionName, setCompositionName] = useState('');
+  const [lastApiMessages, setLastApiMessages] = useState<ChatMessage[]>([]);
   
   // Debug messages for development
   useEffect(() => {
@@ -352,6 +353,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       const apiMessages = [...historyMessages, convertToLLMMessage(messageNode)];
       
       console.log("Sending messages to API:", apiMessages);
+      
+      // Store the API messages for debugging
+      setLastApiMessages(apiMessages);
       
       // Call the server action with all messages for context
       const response = await generateChatResponse({
@@ -424,6 +428,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         role: 'user' as const,
         content: editedPrompt
       }];
+      
+      // Store the API messages for debugging
+      setLastApiMessages(apiMessages);
       
       // Call the server action with all messages for context
       const response = await generateChatResponse({
@@ -520,6 +527,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     clearAll();
     // Also clear context documents when clearing chat
     setContextDocuments([]);
+    // Clear debug information
+    setLastPrompt("");
+    setLastApiMessages([]);
     toast({
       title: "Chat cleared",
       description: "All chat messages and context documents have been cleared.",
@@ -998,6 +1008,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                   <AIDebugPanel 
                     lastPrompt={lastPrompt} 
                     contextDocuments={contextDocuments}
+                    apiMessages={lastApiMessages}
                   />
                 </ScrollArea>
                 
