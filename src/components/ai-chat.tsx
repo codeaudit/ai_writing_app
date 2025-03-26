@@ -82,6 +82,7 @@ import type { ContextDocument } from "@/types/contextDocument";
 import { BranchMenu } from "@/components/branch-menu";
 import { ChatMessageNode } from "@/lib/store";
 import { PromptEnhancementButtons } from '@/components/prompt-enhancement';
+import { BookmarkMessage } from '@/components/bookmark-message';
 
 // ============================================================================
 // Constants and Configuration
@@ -1044,14 +1045,15 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                           <div className="bg-primary/10 rounded-lg p-3 text-sm">
                             {message.userContent}
                             <div className="mt-2 flex justify-end gap-1 border-t pt-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
+                              <BookmarkMessage messageContent={message.userContent} />
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="h-6 w-6"
                                 onClick={() => handleEditMessage({ id: message.id, userContent: message.userContent || '' })}
-                          >
+                              >
                                 <Pencil className="h-3 w-3" />
-                          </Button>
+                              </Button>
                               {hasSiblings(message.id) && (
                                 <BranchMenu
                                   currentBranchIndex={getCurrentBranchIndex(message.id)}
@@ -1080,6 +1082,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                         <div className="bg-muted rounded-lg p-3 text-sm">
                           {message.assistantContent}
                           <div className="mt-2 flex justify-end gap-1 border-t pt-2">
+                            <BookmarkMessage messageContent={message.assistantContent} />
                             <Button
                               variant="ghost"
                               size="icon"
@@ -1197,12 +1200,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                   "rounded-sm bg-primary/10 hover:bg-primary/20 transition-all duration-200",
                   isInputFocused ? "h-[24px] w-[24px]" : "h-[20px] w-[20px]"
                 )}
-                onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
                 disabled={isLoading || !input.trim()}
+                onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
               >
                 <Send className={cn(
                   "text-primary transition-all duration-200",
-                  isInputFocused ? "h-3.5 w-3.5" : "h-3 w-3"
+                  isInputFocused ? "w-3.5 h-3.5" : "w-3 h-3"
                 )} />
               </Button>
             </div>
