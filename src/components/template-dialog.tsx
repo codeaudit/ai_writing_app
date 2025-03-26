@@ -789,28 +789,32 @@ export function TemplateDialog({
             Cancel
           </Button>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleCreateCompositionDocument} 
-              disabled={isSubmitting || isLoading || isLoadingCompositions || compositionTemplates.length === 0}
-              className="flex items-center gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              Create with Composition
-            </Button>
-            <Button 
-              onClick={handleCreateDocument} 
-              disabled={isSubmitting || isLoading}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Document"
-              )}
-            </Button>
+            {composition && (
+              <Button 
+                variant="outline" 
+                onClick={handleCreateCompositionDocument} 
+                disabled={isSubmitting || isLoading || isLoadingCompositions || compositionTemplates.length === 0}
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Create with Composition
+              </Button>
+            )}
+            {!composition && (
+              <Button 
+                onClick={handleCreateDocument} 
+                disabled={isSubmitting || isLoading}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Document"
+                )}
+              </Button>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>
