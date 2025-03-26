@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "The AI Whisperer's Toolbox",
-  description: "AI Whispere Toolbox",
+  description: "AI Whisperer Toolbox",
 };
 
 export default function RootLayout({
@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
+      <body className={`${inter.className} bg-background`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -28,9 +28,20 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ElectronProvider>
-            <ConfigInitializer />
-            {children}
-            <Toaster />
+            <div className="min-h-screen bg-grid">
+              <div className="relative">
+                {/* Background gradient effects */}
+                <div className="absolute inset-0 bg-gradient-radial from-primary/5 to-transparent blur-2xl" />
+                <div className="absolute inset-0 bg-gradient-radial from-secondary/5 to-transparent blur-2xl" />
+                
+                {/* Main content */}
+                <div className="relative">
+                  <ConfigInitializer />
+                  {children}
+                  <Toaster />
+                </div>
+              </div>
+            </div>
           </ElectronProvider>
         </ThemeProvider>
       </body>

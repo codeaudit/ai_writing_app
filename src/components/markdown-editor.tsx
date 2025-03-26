@@ -201,6 +201,58 @@ const MarkdownEditor = forwardRef<
         }
       });
       
+      // Create custom CSS for the marks gutter
+      const styleElement = document.createElement('style');
+      styleElement.innerHTML = `
+        .monaco-editor .margin-marks-gutter {
+          width: 24px;
+          background-color: var(--background);
+          border-right: 1px solid var(--border);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .mark-gutter-item {
+          cursor: pointer;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          margin: 2px 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0 6px 1px rgba(255, 215, 0, 0.4);
+          z-index: 100;
+        }
+        .mark-gutter-item:hover {
+          transform: scale(1.1);
+        }
+        .mark-gutter-icon {
+          width: 16px;
+          height: 16px;
+        }
+        .mark-gutter-menu {
+          position: absolute;
+          background-color: var(--background);
+          border: 1px solid var(--border);
+          border-radius: 4px;
+          padding: 4px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          z-index: 1000;
+        }
+        .mark-gutter-menu-item {
+          padding: 4px 8px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          border-radius: 2px;
+        }
+        .mark-gutter-menu-item:hover {
+          background-color: var(--secondary);
+        }
+      `;
+      document.head.appendChild(styleElement);
+      
       // Register custom keyboard shortcuts
       monaco.editor.addKeybindingRules([
         {
@@ -218,6 +270,11 @@ const MarkdownEditor = forwardRef<
           command: "editor.action.customTokenCounter",
           when: "editorTextFocus"
         },
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyM,
+          command: "editor.action.addMarkToGutter",
+          when: "editorTextFocus"
+        },
         // Explicitly register undo shortcut to ensure it works as expected
         {
           keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ,
@@ -225,6 +282,11 @@ const MarkdownEditor = forwardRef<
           when: "editorTextFocus && !editorReadonly"
         }
       ]);
+      
+      // Return cleanup function
+      return () => {
+        document.head.removeChild(styleElement);
+      };
     }
   }, [monaco]);
 
@@ -264,10 +326,30 @@ const MarkdownEditor = forwardRef<
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
     
+    // Add a custom gutter as a decoration
+    editor.updateOptions({
+      glyphMargin: true, // Enable the glyph margin for our marks
+      lineNumbersMinChars: 3,
+    });
+    
     // Register custom commands
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       handleSave();
     }, "editorTextFocus");
+    
+    // Add command to add mark to gutter
+    editor.addAction({
+      id: "editor.action.addMarkToGutter",
+      label: "Add Mark to Gutter",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyM],
+      contextMenuGroupId: "navigation",
+      run: (ed) => {
+        const position = ed.getPosition();
+        if (position) {
+          addMarkToGutter(position.lineNumber);
+        }
+      }
+    });
     
     // Use the same command ID as registered in the keyboard shortcuts
     editor.addAction({
@@ -967,6 +1049,38 @@ const MarkdownEditor = forwardRef<
     }
   }, [selectedDocumentId, selectedDocument, frontmatterContent, documentContent, updateDocument]);
 
+  // Function to add a mark to the gutter
+  const addMarkToGutter = useCallback((lineNumber: number) => {
+    if (!editorRef.current) return;
+    
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    
+    if (!model) return;
+    
+    // Create a decoration for the gutter mark
+    const decorations = [{
+      range: new monaco!.Range(lineNumber, 1, lineNumber, 1),
+      options: {
+        isWholeLine: true,
+        glyphMarginClassName: 'mark-gutter-item',
+        glyphMarginHoverMessage: { value: `Mark at line ${lineNumber}` },
+        stickiness: monaco!.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+      }
+    }];
+    
+    // Add the decoration to the editor
+    const decorationIds = editor.deltaDecorations([], decorations);
+    
+    toast({
+      title: "Mark Added",
+      description: `Mark added at line ${lineNumber}`,
+      duration: 2000,
+    });
+    
+    return decorationIds;
+  }, [monaco]);
+
   // Render a loading state or empty state during SSR to prevent hydration errors
   if (!isClient) {
     return (
@@ -1150,6 +1264,22 @@ const MarkdownEditor = forwardRef<
           <Button variant="ghost" size="sm" onClick={openLLMDialog} title="AI Assistant (Ctrl+K)">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
               <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
+            </svg>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const position = editorRef.current?.getPosition();
+              if (position) {
+                addMarkToGutter(position.lineNumber);
+              }
+            }}
+            title="Add Mark to Gutter (Ctrl+M)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <path d="M19 5v14H5V5h14m1-2H4c-.55 0-1 .45-1 1v16c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1z"/>
+              <path d="M9 9h6v6H9z"/>
             </svg>
           </Button>
           <Button
