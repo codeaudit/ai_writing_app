@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { enhancePrompt } from "@/lib/prompt-enhancement";
+import { cn } from "@/lib/utils";
 
 interface PromptEnhancementProps {
   prompt: string;
@@ -58,7 +59,12 @@ export function PromptEnhancementButtons({ prompt, onPromptUpdate }: PromptEnhan
       disabled={isEnhancing || !prompt.trim()}
       title="Enhance Prompt"
     >
-      <Sparkles className="h-4 w-4" />
+      <Sparkles 
+        className={cn(
+          "h-4 w-4", 
+          isEnhancing && "animate-sparkle"
+        )} 
+      />
     </Button>
   );
 } 
