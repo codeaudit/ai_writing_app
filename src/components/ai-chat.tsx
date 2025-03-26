@@ -502,7 +502,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     
     setActiveThread(newActiveThread);
     
-      toast({
+    toast({
       title: "System message added",
       description: "A system message has been added to the conversation.",
         duration: 3000,
@@ -683,12 +683,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   // Add handleSaveComposition function
   async function handleSaveComposition() {
     if (!compositionName.trim()) {
-        toast({
+      toast({
         title: "Error",
         description: "Please enter a name for the composition",
-          variant: "destructive",
-          duration: 3000,
-        });
+        variant: "destructive",
+        duration: 3000,
+      });
       return;
     }
 
@@ -696,24 +696,33 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       // Get the active messages from the chat tree
       const messages = chatTree.activeThread.map(id => chatTree.nodes[id]).filter(Boolean);
       
-      // Create the composition content
-      const compositionContent = messages.map(msg => {
-        let role = '[Unknown]';
-        let content = '';
-        
+      // Format content with a proper header and standardized format for the chat thread
+      let compositionContent = `# ${compositionName}\n\n`;
+      
+      // Add metadata if needed
+      if (contextDocuments.length > 0) {
+        compositionContent += `## Context Documents\n\n`;
+        contextDocuments.forEach(doc => {
+          compositionContent += `- ${doc.name}\n`;
+        });
+        compositionContent += '\n';
+      }
+      
+      // Add chat thread with proper formatting
+      compositionContent += `## Chat Thread\n\n`;
+      
+      // Add each message with a standardized format
+      messages.forEach(msg => {
         if (msg.systemContent) {
-          role = '[System]';
-          content = msg.systemContent;
-        } else if (msg.userContent) {
-          role = '[User]';
-          content = msg.userContent;
-        } else if (msg.assistantContent) {
-          role = '[Assistant]';
-          content = msg.assistantContent;
+          compositionContent += `### System\n\n${msg.systemContent}\n\n`;
+        } 
+        if (msg.userContent) {
+          compositionContent += `### User\n\n${msg.userContent}\n\n`;
+        } 
+        if (msg.assistantContent) {
+          compositionContent += `### AI\n\n${msg.assistantContent}\n\n`;
         }
-        
-        return `${role}\n${content}\n`;
-      }).join('\n');
+      });
 
       // Add the composition
       await useDocumentStore.getState().addComposition(
@@ -746,6 +755,119 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   const addContextDocument = (doc: ContextDocument) => {
     setContextDocuments(prev => [...prev, doc]);
   };
+
+  // Add event listener for loading messages from compositions
+  useEffect(() => {
+    // Handler for when messages are loaded from a composition
+    const handleMessagesLoaded = (event: Event) => {
+      // Clear existing chat
+      clearAll();
+      
+      // Get the messages from the event
+      const customEvent = event as CustomEvent;
+      const messages = customEvent.detail?.messages as Array<{role: 'user' | 'assistant', content: string}>;
+      
+      if (!Array.isArray(messages) || messages.length === 0) {
+        console.log("No messages to load or invalid message format");
+        return;
+      }
+      
+      console.log("Loading messages into AI chat:", messages);
+      
+      // Process messages sequentially
+      let parentId: string | null = null;
+      let position = 0;
+      
+      // Handle each message in sequence
+      messages.forEach((message, index) => {
+        const nodeId = generateId();
+        
+        // Create a node based on message role
+        const node: ChatMessageNode = {
+          id: nodeId,
+          parentId,
+          childrenIds: [],
+          isActive: true,
+          threadPosition: position
+        };
+        
+        // Add content based on role
+        if (message.role === 'user') {
+          node.userContent = message.content;
+        } else if (message.role === 'assistant') {
+          node.assistantContent = message.content;
+        } else if (message.role === 'system') {
+          node.systemContent = message.content;
+        }
+        
+        // Add the node to the chat tree
+        addNode(node);
+        
+        // Update parent for next message
+        parentId = nodeId;
+        position++;
+      });
+      
+      // Update the active thread
+      ensureActiveThread();
+      
+      toast({
+        title: "Chat Loaded",
+        description: `Loaded ${messages.length} messages from composition.`,
+        duration: 3000,
+      });
+    };
+    
+    // Add event listener for aiChatMessagesLoaded
+    window.addEventListener('aiChatMessagesLoaded', handleMessagesLoaded);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('aiChatMessagesLoaded', handleMessagesLoaded);
+    };
+  }, [clearAll, addNode]); // Dependencies needed for the effect
+  
+  // Add event listener for loading context from compositions
+  useEffect(() => {
+    // Handler for when context is updated from a composition
+    const handleContextUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const contextDocs = customEvent.detail?.context as Array<{id: string; name: string; content?: string}>;
+      
+      if (!Array.isArray(contextDocs)) {
+        console.log("No context to load or invalid context format");
+        return;
+      }
+      
+      console.log("Loading context into AI chat:", contextDocs);
+      
+      // Clear existing context documents
+      setContextDocuments([]);
+      
+      // Find full documents from the document store
+      const { documents } = useDocumentStore.getState();
+      
+      // Add each context document
+      contextDocs.forEach(contextDoc => {
+        const fullDoc = documents.find(d => d.id === contextDoc.id);
+        if (fullDoc) {
+          addContextDocument({
+            id: fullDoc.id,
+            name: fullDoc.name,
+            content: fullDoc.content
+          });
+        }
+      });
+    };
+    
+    // Add event listener for aiContextUpdated
+    window.addEventListener('aiContextUpdated', handleContextUpdated);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('aiContextUpdated', handleContextUpdated);
+    };
+  }, []);
 
   // ============================================================================
   // UI Components
@@ -1042,13 +1164,13 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                             {editingMessageId === message.id ? (
                               <div className="bg-primary/5 rounded-lg p-3 text-sm">
                                 <div className="relative">
-                                  <Textarea
-                                    value={editedPrompt}
-                                    onChange={(e) => setEditedPrompt(e.target.value)}
+                          <Textarea
+                            value={editedPrompt}
+                            onChange={(e) => setEditedPrompt(e.target.value)}
                                     className="w-full resize-y min-h-[60px] max-h-[200px] text-xs px-2 py-1.5 pr-12 bg-background border-primary/50"
                                     placeholder="Edit your message..."
-                                    autoFocus
-                                  />
+                            autoFocus
+                          />
                                   <div className={cn(
                                     "absolute left-1.5 bottom-1.5 text-[10px] text-muted-foreground bg-background px-0.5 rounded transition-opacity",
                                     isInputFocused || isExpanded ? "opacity-70" : "opacity-50"
@@ -1066,40 +1188,40 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                                     prompt={editedPrompt}
                                     onPromptUpdate={(newPrompt) => setEditedPrompt(newPrompt)}
                                   />
-                                  <Button
-                                    variant="ghost"
+                            <Button
+                              variant="ghost"
                                     size="icon"
                                     className="h-6 w-6"
-                                    onClick={handleCancelEdit}
+                              onClick={handleCancelEdit}
                                     title="Cancel"
-                                  >
+                            >
                                     <X className="h-3 w-3" />
-                                  </Button>
-                                  <Button
+                            </Button>
+                            <Button
                                     variant="ghost"
                                     size="icon"
                                     className="rounded-sm bg-primary/10 hover:bg-primary/20 h-6 w-6"
                                     onClick={() => handleSaveEdit(message.id, editedPrompt)}
-                                    disabled={!editedPrompt.trim()}
+                              disabled={!editedPrompt.trim()}
                                     title="Update message"
-                                  >
+                            >
                                     <Send className="h-3 w-3 text-primary" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
                               <div className="bg-primary/10 rounded-lg p-3 text-sm">
                                 {message.userContent}
                                 <div className="mt-2 flex justify-end gap-1 border-t pt-2">
                                   <BookmarkMessage messageContent={message.userContent} />
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
+                          <Button
+                            variant="ghost"
+                            size="icon"
                                     className="h-6 w-6"
                                     onClick={() => handleEditMessage({ id: message.id, userContent: message.userContent || '' })}
-                                  >
+                          >
                                     <Pencil className="h-3 w-3" />
-                                  </Button>
+                          </Button>
                                   {hasSiblings(message.id) && (
                                     <BranchMenu
                                       currentBranchIndex={getCurrentBranchIndex(message.id)}
@@ -1112,9 +1234,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                                   )}
                                   <DebugTreeDialog tree={chatTree} />
                                 </div>
+                        </div>
+                      )}
                               </div>
-                            )}
-                          </div>
                           <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
                             <User className="w-4 h-4 text-primary" />
                           </div>
@@ -1134,9 +1256,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                               {message.assistantContent}
                               <div className="mt-2 flex justify-end gap-1 border-t pt-2">
                                 <BookmarkMessage messageContent={message.assistantContent} />
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
+                            <Button
+                              variant="ghost"
+                              size="icon"
                                   className="h-6 w-6"
                                   onClick={() => handleCopyToClipboard(message.assistantContent || '', message.id)}
                                 >
@@ -1145,15 +1267,15 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                                   ) : (
                                     <Copy className="h-3 w-3" />
                                   )}
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                                   className="h-6 w-6"
                                   onClick={() => handleInsertResponse(message.assistantContent || '')}
                                 >
                                   <FileText className="h-3 w-3" />
-                                </Button>
+                            </Button>
                                 {hasSiblings(message.id) && (
                                   <BranchMenu
                                     currentBranchIndex={getCurrentBranchIndex(message.id)}
@@ -1168,12 +1290,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                               </div>
                             </div>
                           </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
                 ))}
-              </div>
+                  </div>
             )}
             
             {isLoading && (
@@ -1210,8 +1332,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 isExpanded 
                   ? "min-h-[150px] max-h-[500px] border-primary/50 text-sm"
                   : isInputFocused 
-                    ? "min-h-[80px] max-h-[300px] border-primary/50" 
-                    : "min-h-[40px] max-h-[200px]"
+                  ? "min-h-[80px] max-h-[300px] border-primary/50" 
+                  : "min-h-[40px] max-h-[200px]"
               )}
               disabled={isLoading}
             />
@@ -1268,22 +1390,22 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 prompt={input}
                 onPromptUpdate={(newPrompt) => setInput(newPrompt)}
               />
-              <Button 
-                type="submit" 
-                size="icon" 
-                variant="ghost"
-                className={cn(
-                  "rounded-sm bg-primary/10 hover:bg-primary/20 transition-all duration-200",
-                  isInputFocused ? "h-[24px] w-[24px]" : "h-[20px] w-[20px]"
-                )}
-                disabled={isLoading || !input.trim()}
+            <Button 
+              type="submit" 
+              size="icon" 
+              variant="ghost"
+              className={cn(
+                "rounded-sm bg-primary/10 hover:bg-primary/20 transition-all duration-200",
+                isInputFocused ? "h-[24px] w-[24px]" : "h-[20px] w-[20px]"
+              )}
+              disabled={isLoading || !input.trim()}
                 onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
-              >
-                <Send className={cn(
-                  "text-primary transition-all duration-200",
+            >
+              <Send className={cn(
+                "text-primary transition-all duration-200",
                   isInputFocused ? "w-3.5 h-3.5" : "w-3 h-3"
-                )} />
-              </Button>
+              )} />
+            </Button>
             </div>
           </div>
           
