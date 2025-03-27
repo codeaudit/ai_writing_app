@@ -424,8 +424,8 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
         }
         
         if (stream) {
-          const response = await openRouterClient.chat.completions.create({
-            model: modelName,
+            const response = await openRouterClient.chat.completions.create({
+              model: modelName,
             messages: formattedMessages as unknown as ChatCompletionMessageParam[],
             temperature: configTemperature,
             max_tokens: configMaxTokens,
@@ -440,7 +440,7 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
           }
         } else {
           const response = await openRouterClient.chat.completions.create({
-            model: modelName,
+              model: modelName,
             messages: formattedMessages as unknown as ChatCompletionMessageParam[],
             temperature: configTemperature,
             max_tokens: configMaxTokens
@@ -468,7 +468,7 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
               max_tokens: Math.min(configMaxTokens, 4096), // Limit max tokens to 4096
               stream: true
             });
-            
+
             // Handle streaming response
             for await (const chunk of response) {
               if (chunk.choices[0]?.delta?.content) {
@@ -547,28 +547,28 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
         content: responseText,
         id: generateId()
       },
-      model: modelName,
-      provider,
+        model: modelName,
+        provider,
       debugPrompt: formatDebugPrompt(enhancedSystemMessage, lastMessage.content, provider, modelName)
     };
-    
-    // Log debug information
-    try {
-      const cookieStore = await cookies();
-      const sessionId = cookieStore.get('ai-session-id')?.value || 'unknown';
-      await logAIDebug(sessionId, {
-        provider,
-        model: modelName,
+      
+      // Log debug information
+      try {
+        const cookieStore = await cookies();
+        const sessionId = cookieStore.get('ai-session-id')?.value || 'unknown';
+        await logAIDebug(sessionId, {
+          provider,
+          model: modelName,
         systemMessage: enhancedSystemMessage,
         userPrompt: lastMessage.content,
         responseLength: responseText.length,
         responsePreview: responseText.substring(0, 100) + (responseText.length > 100 ? '...' : ''),
-        contextDocumentsCount: contextDocuments.length,
-      });
-    } catch (logError) {
-      console.error('Error logging AI debug info:', logError);
-    }
-    
+          contextDocumentsCount: contextDocuments.length,
+        });
+      } catch (logError) {
+        console.error('Error logging AI debug info:', logError);
+      }
+      
     // Cache the response if caching is enabled
     await storeInCache(cacheKey, chatResponse, enableCache);
     
@@ -654,7 +654,7 @@ export async function generateTextServerAction(options: LLMRequestOptions): Prom
   const response = await generateChatResponse(chatRequest);
   
   // Convert to LLMResponse format
-  return {
+            return {
     text: response.message.content,
     model: response.model,
     provider: response.provider
@@ -678,4 +678,4 @@ function safeGetTextFromGeminiChunk(chunk: unknown): string {
     console.warn('Error extracting text from Gemini chunk:', error);
     return '';
   }
-}
+} 

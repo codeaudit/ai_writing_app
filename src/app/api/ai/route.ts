@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@/lib/kv-provider';
-import { generateText, streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { anthropic } from '@ai-sdk/anthropic';
-import { google } from '@ai-sdk/google';
-import { wrapLanguageModel } from 'ai';
 import { useLLMStore } from '@/lib/store';
 import { createCacheMiddleware } from '@/lib/ai-middleware';
-import { formatDebugPrompt, logAIDebug } from '@/lib/ai-debug';
 import { getAIRoleSystemPrompt } from '@/lib/ai-roles';
 
 // Allow streaming responses up to 30 seconds

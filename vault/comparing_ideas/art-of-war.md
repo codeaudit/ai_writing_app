@@ -2,7 +2,7 @@
 id: doc-1742376077709
 name: art-of-war
 createdAt: '2025-03-19T09:21:17.709Z'
-updatedAt: '2025-03-22T20:24:38.951Z'
+updatedAt: '2025-03-27T13:49:55.746Z'
 versions:
   - id: ver-1742376077709-initial
     createdAt: '2025-03-19T09:21:17.709Z'
@@ -40,4 +40,21 @@ While *The Art of War* focuses on military strategy, its principles can be appli
 
 In conclusion, *The Art of War* is a timeless classic that offers valuable insights into strategy, planning, and leadership. Its principles can be applied to a wide range of situations, making it a relevant and insightful read for anyone seeking to achieve their goals. It's about winning without fighting, about achieving your objectives with the least amount of conflict and disruption.
 
+
+
+The Art of War is divided into 13 chapters. They are:
+
+1.  Laying Plans
+2.  Waging War
+3.  Attack by Stratagem
+4.  Tactical Dispositions
+5.  Energy
+6.  Weak Points and Strong
+7.  Maneuvering
+8.  Variation in Tactics
+9.  The Army on the March
+10. Terrain
+11. The Nine Situations
+12. Attack by Fire
+13. Use of Spies
 

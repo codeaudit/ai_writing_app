@@ -7,20 +7,7 @@ versions:
   - id: ver-ui-test-multilingual-initial
     createdAt: '2025-03-15T19:15:00.000Z'
     message: Initial version
-annotations:
-  - id: anno-multilingual-1
-    documentId: doc-ui-test-multilingual
-    startOffset: 500
-    endOffset: 600
-    content: >-
-      This tests how the UI handles annotations on text in different languages
-      and scripts.
-    color: green
-    createdAt: '2025-03-15T19:15:10.000Z'
-    updatedAt: '2025-03-15T19:15:10.000Z'
-    tags:
-      - multilingual
-      - test
+annotations: []
 ---
 
 # Multilingual Content Test

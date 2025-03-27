@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import ConfigInitializer from "@/components/config-initializer";
 import ElectronProvider from '@/components/electron-provider';
+import { TrpcProvider } from '@/components/trpc-provider';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,20 +29,22 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ElectronProvider>
-            <div className="min-h-screen bg-grid">
-              <div className="relative">
-                {/* Background gradient effects */}
-                <div className="absolute inset-0 bg-gradient-radial from-primary/5 to-transparent blur-2xl" />
-                <div className="absolute inset-0 bg-gradient-radial from-secondary/5 to-transparent blur-2xl" />
-                
-                {/* Main content */}
+            <TrpcProvider>
+              <div className="min-h-screen bg-grid">
                 <div className="relative">
-                  <ConfigInitializer />
-                  {children}
-                  <Toaster />
+                  {/* Background gradient effects */}
+                  <div className="absolute inset-0 bg-gradient-radial from-primary/5 to-transparent blur-2xl" />
+                  <div className="absolute inset-0 bg-gradient-radial from-secondary/5 to-transparent blur-2xl" />
+                  
+                  {/* Main content */}
+                  <div className="relative">
+                    <ConfigInitializer />
+                    {children}
+                    <Toaster />
+                  </div>
                 </div>
               </div>
-            </div>
+            </TrpcProvider>
           </ElectronProvider>
         </ThemeProvider>
       </body>

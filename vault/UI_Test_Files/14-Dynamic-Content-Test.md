@@ -1,26 +1,13 @@
 ---
 id: doc-ui-test-dynamic-content
+name: 14-Dynamic-Content-Test
 createdAt: '2025-03-15T19:25:00.000Z'
 updatedAt: '2025-03-15T19:25:00.000Z'
 versions:
   - id: ver-ui-test-dynamic-content-initial
     createdAt: '2025-03-15T19:25:00.000Z'
     message: Initial version
-annotations:
-  - id: anno-dynamic-1
-    documentId: doc-ui-test-dynamic-content
-    startOffset: 500
-    endOffset: 600
-    content: "This tests how annotations work with dynamic content that might change or be generated at runtime."
-    color: orange
-    createdAt: '2025-03-15T19:25:10.000Z'
-    updatedAt: '2025-03-15T19:25:10.000Z'
-    tags: ["dynamic", "interactive"]
-tags:
-  - dynamic
-  - interactive
-  - templates
-  - variables
+annotations: []
 ---
 
 # Dynamic Content and Interactive Elements Test
