@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Popover,
   PopoverContent,
@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, RefreshCw, Check, X, FileText, Trash2, ChevronDown } from "lucide-react";
+import { Send, RefreshCw, Check, X, FileText, ChevronDown } from "lucide-react";
 import { useLLMStore, useDocumentStore } from "@/lib/store";
 import { generateText } from "@/lib/llm-service";
 import { toast } from "@/components/ui/use-toast";
@@ -41,7 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchTemplates, processTemplate } from "@/lib/api-service";
-import { isElectron, getElectronTemplates, processElectronTemplate } from "@/lib/electron-service";
+import { isElectron, getElectronTemplates, processElectronTemplate, getElectronTemplateContent } from "@/lib/electron-service";
 
 interface LLMDialogProps {
   isOpen: boolean;
@@ -226,8 +226,8 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
         try {
           // Prepare context variables for the template
           const variables: Record<string, string> = {
-            selectedText: selectedText,
-            userPrompt: prompt
+            selectedText: selectedText || "",
+            userPrompt: prompt || ""
           };
           
           // Add context files to variables if available
@@ -253,18 +253,44 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
             // Use web API for template processing
             finalPrompt = await processTemplate(selectedTemplate, variables);
           }
+          
+          // Ensure we have content - this is a critical validation step
+          if (!finalPrompt || finalPrompt.trim() === "") {
+            toast({
+              title: "Template Error",
+              description: "The processed template returned empty content. Please try a different template.",
+              variant: "destructive"
+            });
+            setIsLoading(false);
+            return; // Don't proceed with empty content
+          }
         } catch (error) {
           console.error('Error processing template:', error);
           toast({
             title: "Template Error",
-            description: "Failed to process template. Using raw prompt instead.",
+            description: "Failed to process template. Using fallback content instead.",
             variant: "destructive"
           });
-          // Continue with the original prompt on error
+          // Create a fallback prompt with essential information
+          finalPrompt = `Selected Text: ${selectedText || "(No text selected)"}\n\n`;
+          
+          // Add context files if available
+          if (contextFiles.length > 0) {
+            finalPrompt += "Context Files:\n";
+            contextFiles.forEach(file => {
+              const document = documents.find(doc => doc.id === file.id);
+              if (document) {
+                finalPrompt += `--- ${document.name} ---\n[Document content included]\n\n`;
+              }
+            });
+          }
+          
+          finalPrompt += `User Request: ${prompt || "Please analyze the provided text."}\n\n`;
+          finalPrompt += `The template "${selectedTemplate}" failed to process. Please analyze the content anyway.`;
         }
       } else {
         // Create a prompt that includes the selected text and context files
-        finalPrompt = `Selected Text: ${selectedText}\n\n`;
+        finalPrompt = `Selected Text: ${selectedText || "(No text selected)"}\n\n`;
         
         // Add context files if available
         if (contextFiles.length > 0) {
@@ -281,13 +307,25 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
           finalPrompt += "\n";
         }
         
-        finalPrompt += `User Query: ${prompt}\n\nPlease provide a helpful response based on the selected text, context files, and user query.`;
+        finalPrompt += `User Query: ${prompt || "Please help with the following task"}\n\nPlease provide a helpful response based on the selected text, context files, and user query.`;
+      }
+      
+      // Final check for empty content before sending to LLM service
+      if (!finalPrompt || finalPrompt.trim() === "") {
+        toast({
+          title: "Error",
+          description: "Cannot send empty content to the AI. Please provide some input or select a template.",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
       }
       
       // Call the server action with the final prompt
       const result = await generateText({ 
         prompt: finalPrompt,
-        stream: false // We don't support streaming in the dialog yet
+        stream: false, // We don't support streaming in the dialog yet
+        aiRole: config.aiRole || 'assistant' // Include the AI role from config
       });
       
       // Update the response and model info
@@ -533,6 +571,87 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
     
     // Find the template in the templates array
     const template = templates.find((t) => t.name === templateId);
+    if (template) {
+      // Attempt to load the template preview
+      const loadTemplatePreview = async () => {
+        try {
+          setIsLoading(true);
+          
+          // Prepare basic variables for preview - these will just be placeholders
+          const variables: Record<string, string> = {
+            selectedText: selectedText || "[Selected text will appear here]",
+            userPrompt: prompt || "[Your input will go here]"
+          };
+          
+          // Add context files to variables if available
+          if (contextFiles.length > 0) {
+            let contextFilesContent = "Context Files:\n";
+            
+            // Find the actual document content for each context file
+            for (const contextFile of contextFiles) {
+              const document = documents.find(doc => doc.id === contextFile.id);
+              if (document) {
+                contextFilesContent += `--- ${document.name} ---\n[Document content will be included]\n\n`;
+              }
+            }
+            
+            variables.contextFiles = contextFilesContent;
+          }
+          
+          let previewContent = "";
+          
+          if (isElectron()) {
+            // For Electron, first get the raw content, then process with basic variables
+            previewContent = await getElectronTemplateContent(templateId);
+            
+            // Show a simplified preview or try to process it with placeholder variables
+            if (previewContent) {
+              try {
+                previewContent = await processElectronTemplate(templateId, variables);
+              } catch (error) {
+                // If processing fails, just show raw content with a note
+                previewContent = `Template Preview (unprocessed):\n\n${previewContent}`;
+              }
+            }
+          } else {
+            // For web, try to get the raw content first
+            try {
+              const response = await fetch(`/api/templates/preview?name=${encodeURIComponent(templateId)}`);
+              if (response.ok) {
+                const data = await response.json();
+                previewContent = data.content;
+                
+                // Try to process the template with placeholder variables
+                try {
+                  previewContent = await processTemplate(templateId, variables);
+                } catch (error) {
+                  // If processing fails, just show raw content with a note
+                  previewContent = `Template Preview (unprocessed):\n\n${previewContent}`;
+                }
+              }
+            } catch (error) {
+              console.error('Error loading template preview:', error);
+              setTemplateError("Couldn't load template preview");
+            }
+          }
+          
+          // Set the preview as the prompt text (don't include placeholder text when empty)
+          if (previewContent && previewContent.trim() !== "") {
+            setPrompt(previewContent);
+          } else {
+            setPrompt(`[Template: ${templateId}] (No preview available)`);
+          }
+        } catch (error) {
+          console.error('Error loading template preview:', error);
+          setTemplateError("Couldn't load template preview");
+          setPrompt(`[Template: ${templateId}] (Preview failed to load)`);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      loadTemplatePreview();
+    }
   };
 
   return (
@@ -642,6 +761,7 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
                       <button 
                         className="ml-1 rounded-full hover:bg-muted p-0.5" 
                         onClick={() => removeContextFile(file.id)}
+                        aria-label="Remove context file"
                       >
                         <X className="h-2 w-2" />
                       </button>

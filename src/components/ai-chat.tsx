@@ -583,11 +583,11 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   function handleInsertResponse(content: string) {
     if (onInsertText) {
       onInsertText(content);
-    toast({
+      toast({
         title: "Text inserted",
         description: "The AI response has been inserted into the editor.",
-      duration: 3000,
-    });
+        duration: 3000,
+      });
     } else {
       toast({
         title: "Cannot insert text",
@@ -677,7 +677,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   function handleBlur() {
     // Add a small delay to ensure other interactions complete first
     setTimeout(() => {
-      setIsInputFocused(false);
+        setIsInputFocused(false);
     }, 100);
   }
 
@@ -693,12 +693,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   // Add handleSaveComposition function
   async function handleSaveComposition() {
     if (!compositionName.trim()) {
-      toast({
+    toast({
         title: "Error",
         description: "Please enter a name for the composition",
         variant: "destructive",
-        duration: 3000,
-      });
+      duration: 3000,
+    });
       return;
     }
 
@@ -779,9 +779,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       
       if (!Array.isArray(messages) || messages.length === 0) {
         console.log("No messages to load or invalid message format");
-        return;
-      }
-      
+      return;
+    }
+    
       console.log("Loading messages into AI chat:", messages);
       
       // Process messages sequentially
@@ -846,9 +846,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       
       if (!Array.isArray(contextDocs)) {
         console.log("No context to load or invalid context format");
-        return;
-      }
-      
+      return;
+    }
+    
       console.log("Loading context into AI chat:", contextDocs);
       
       // Clear existing context documents

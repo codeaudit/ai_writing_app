@@ -248,19 +248,41 @@ export const fetchTemplates = async (): Promise<{ name: string; path: string }[]
 // Process a template with variables
 export const processTemplate = async (templateName: string, variables: Record<string, string>): Promise<string> => {
   try {
-    const response = await fetch(`/api/templates?name=${encodeURIComponent(templateName)}`, {
+    // First, get the template content
+    let templateContent = "";
+    
+    try {
+      // Get template content via preview API
+      const previewResponse = await fetch(`/api/templates/preview?name=${encodeURIComponent(templateName)}`);
+      if (previewResponse.ok) {
+        const data = await previewResponse.json();
+        templateContent = data.content;
+      } else {
+        throw new Error(`Could not find template: ${templateName}`);
+      }
+    } catch (error) {
+      console.error(`Error fetching template content for ${templateName}:`, error);
+      throw new Error(`Failed to get template content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+    
+    // Now process the template with the content and variables
+    const processResponse = await fetch('/api/templates/process', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(variables),
+      body: JSON.stringify({
+        template: templateContent,
+        variables: variables
+      }),
     });
     
-    if (!response.ok) {
-      throw new Error('Failed to process template');
+    if (!processResponse.ok) {
+      const errorData = await processResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to process template: ${processResponse.statusText}`);
     }
     
-    const data = await response.json();
+    const data = await processResponse.json();
     return data.content;
   } catch (error) {
     console.error('Error processing template:', error);
