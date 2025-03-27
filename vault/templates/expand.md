@@ -2,14 +2,12 @@
 id: doc-1742343001043
 name: expand
 createdAt: '2025-03-19T01:03:01.030Z'
-updatedAt: '2025-03-19T01:03:01.030Z'
+updatedAt: 2025-03-27T00:53:18.591Z
 versions:
   - id: ver-1742343001043-initial
     createdAt: '2025-03-19T01:03:01.030Z'
     message: Initial version
-annotations: []
----
-# Text Expansion Template
+annotations: []---
 
 Expand on the following text to make it more detailed, comprehensive, and informative:
 
