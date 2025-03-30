@@ -33,30 +33,50 @@ declare global {
 /**
  * Function to enhance a prompt using the LLM
  * @param prompt The original prompt to enhance
+ * @param activeThreadMessages Optional array of previous messages for context
  * @returns The enhanced prompt
  */
-export async function enhancePrompt(prompt: string): Promise<string> {
+export async function enhancePrompt(
+  prompt: string, 
+  activeThreadMessages: ChatMessage[] = []
+): Promise<string> {
   try {
-    // Create system and user messages
-    const messages: ChatMessage[] = [
-      {
-        role: 'system',
-        content: `You are an expert at improving and enhancing writing prompts. 
-        Your task is to take a user's prompt and make it more effective, clear, and likely to produce better results.
-        Analyze the prompt for clarity, specificity, and structure.
-        Improve the prompt by:
-        1. Adding more specific details and parameters
-        2. Clarifying any ambiguous instructions
-        3. Structuring the prompt for better organization
-        4. Adding relevant context if missing
-        
-        Output ONLY the improved prompt, without explanations, introductions, or anything else.`
-      },
-      {
-        role: 'user',
-        content: `Enhance this prompt: ${prompt}`
-      }
-    ];
+    // Create system message with clear instructions
+    const systemMessage: ChatMessage = {
+      role: 'system',
+      content: `You are an expert at improving and enhancing writing prompts. 
+      Your task is to take a user's prompt and make it more effective, clear, and likely to produce better results.
+      
+      Analyze the prompt for clarity, specificity, and structure.
+      Improve the prompt by:
+      1. Adding more specific details and parameters
+      2. Clarifying any ambiguous instructions
+      3. Structuring the prompt for better organization
+      4. Adding relevant context if missing
+      
+      IMPORTANT FORMATTING INSTRUCTIONS:
+      - Output ONLY the improved prompt text
+      - Do not include explanations, reasoning, or introductions
+      - Do not use phrases like "Here's an enhanced prompt:" or "Improved prompt:"
+      - Do not include any text before or after the prompt
+      - Your entire response should be the enhanced prompt itself and nothing else`
+    };
+    
+    // Create the messages array with the system message first
+    const messages: ChatMessage[] = [systemMessage];
+    
+    // Add the active thread messages for context if provided
+    // Filter out system messages to avoid conflicting instructions
+    if (activeThreadMessages.length > 0) {
+      const contextMessages = activeThreadMessages.filter(msg => msg.role !== 'system');
+      messages.push(...contextMessages);
+    }
+    
+    // Add the user message with the prompt to enhance
+    messages.push({
+      role: 'user',
+      content: `Enhance this prompt: ${prompt}`
+    });
 
     // Call the LLM service to generate the enhanced prompt
     const response = await generateChatResponse({
@@ -65,7 +85,16 @@ export async function enhancePrompt(prompt: string): Promise<string> {
     });
 
     if (response && response.message) {
-      return response.message.content;
+      const enhancedContent = response.message.content.trim();
+      
+      // Additional clean-up to remove any potential explanatory text
+      // Look for patterns like "Enhanced prompt:" or "Here's the improved prompt:"
+      const cleanedContent = enhancedContent
+        .replace(/^(here'?s?|enhanced|improved|better|the|your|modified|updated|revised|rewritten|new|suggested)[\s\w]*prompt[:\-]*\s*/i, '')
+        .replace(/^\s*["'](.+)["']\s*$/g, '$1') // Remove surrounding quotes if present
+        .trim();
+      
+      return cleanedContent;
     } else {
       throw new Error("Failed to generate enhanced prompt");
     }

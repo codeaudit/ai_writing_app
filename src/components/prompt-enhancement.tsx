@@ -6,6 +6,8 @@ import { Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { enhancePrompt } from "@/lib/prompt-enhancement";
 import { cn } from "@/lib/utils";
+import { useAIChatStore, ChatMessageNode } from "@/lib/store";
+import { ChatMessage } from "@/lib/llm-service";
 
 interface PromptEnhancementProps {
   prompt: string;
@@ -15,7 +17,31 @@ interface PromptEnhancementProps {
 export function PromptEnhancementButtons({ prompt, onPromptUpdate }: PromptEnhancementProps) {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const { toast } = useToast();
-
+  const chatTree = useAIChatStore(state => state.chatTree);
+  
+  // Helper function to convert nodes to chat messages
+  const convertToLLMMessage = (node: ChatMessageNode): ChatMessage => {
+    let role: 'user' | 'assistant' | 'system' = 'user';
+    let content = '';
+    
+    if (node.systemContent) {
+      role = 'system';
+      content = node.systemContent;
+    } else if (node.userContent) {
+      role = 'user';
+      content = node.userContent;
+    } else if (node.assistantContent) {
+      role = 'assistant';
+      content = node.assistantContent;
+    }
+    
+    return {
+      role,
+      content,
+      model: node.model
+    };
+  };
+  
   // Handle enhancement button click
   const handleEnhancePrompt = async () => {
     if (!prompt.trim()) {
@@ -30,7 +56,14 @@ export function PromptEnhancementButtons({ prompt, onPromptUpdate }: PromptEnhan
     setIsEnhancing(true);
     
     try {
-      const enhancedPrompt = await enhancePrompt(prompt);
+      // Get messages from the active thread for context
+      const activeThreadMessages: ChatMessage[] = chatTree.activeThread
+        .map(nodeId => chatTree.nodes[nodeId])
+        .filter(node => node !== undefined)
+        .map(convertToLLMMessage);
+      
+      // Call the enhanced prompt function with the active thread context
+      const enhancedPrompt = await enhancePrompt(prompt, activeThreadMessages);
       onPromptUpdate(enhancedPrompt);
       
       toast({
@@ -57,7 +90,7 @@ export function PromptEnhancementButtons({ prompt, onPromptUpdate }: PromptEnhan
       className="text-blue-500 hover:text-blue-700 hover:bg-blue-100"
       onClick={handleEnhancePrompt}
       disabled={isEnhancing || !prompt.trim()}
-      title="Enhance Prompt"
+      title="Enhance Prompt with Context from Conversation"
     >
       <Sparkles 
         className={cn(
