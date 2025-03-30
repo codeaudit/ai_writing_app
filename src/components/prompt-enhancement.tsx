@@ -12,9 +12,16 @@ import { ChatMessage } from "@/lib/llm-service";
 interface PromptEnhancementProps {
   prompt: string;
   onPromptUpdate: (prompt: string) => void;
+  className?: string; // Add className prop to allow customizing from parent
+  size?: "default" | "sm" | "icon"; // Add size prop for flexibility
 }
 
-export function PromptEnhancementButtons({ prompt, onPromptUpdate }: PromptEnhancementProps) {
+export function PromptEnhancementButtons({ 
+  prompt, 
+  onPromptUpdate, 
+  className,
+  size = "icon" 
+}: PromptEnhancementProps) {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const { toast } = useToast();
   const chatTree = useAIChatStore(state => state.chatTree);
@@ -82,12 +89,18 @@ export function PromptEnhancementButtons({ prompt, onPromptUpdate }: PromptEnhan
     }
   };
 
-  // Return just the enhancement button
+  // Return enhancement button with consistent sizing
   return (
     <Button
       variant="ghost"
-      size="icon"
-      className="text-blue-500 hover:text-blue-700 hover:bg-blue-100"
+      size={size}
+      className={cn(
+        "text-blue-500 hover:text-blue-700 hover:bg-blue-100 flex items-center justify-center",
+        // In message bubbles, ensure consistent sizing with other buttons
+        size === "icon" && "h-6 w-6",
+        // In the input area, match the Send button size
+        className
+      )}
       onClick={handleEnhancePrompt}
       disabled={isEnhancing || !prompt.trim()}
       title="Enhance Prompt with Context from Conversation"
@@ -95,6 +108,7 @@ export function PromptEnhancementButtons({ prompt, onPromptUpdate }: PromptEnhan
       <Sparkles 
         className={cn(
           "h-4 w-4", 
+          size === "icon" && "h-3 w-3", // Smaller icon for message bubbles
           isEnhancing && "animate-sparkle"
         )} 
       />

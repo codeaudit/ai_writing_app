@@ -1198,6 +1198,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                                   <PromptEnhancementButtons 
                                     prompt={editedPrompt}
                                     onPromptUpdate={(newPrompt) => setEditedPrompt(newPrompt)}
+                                    size="icon"
                                   />
                             <Button
                               variant="ghost"
@@ -1400,6 +1401,11 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
               <PromptEnhancementButtons 
                 prompt={input}
                 onPromptUpdate={(newPrompt) => setInput(newPrompt)}
+                className={cn(
+                  "rounded-sm transition-all duration-200",
+                  isInputFocused ? "h-[24px] w-[24px]" : "h-[20px] w-[20px]"
+                )}
+                size="icon"
               />
             <Button 
               type="submit" 
