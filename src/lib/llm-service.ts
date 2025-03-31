@@ -8,7 +8,22 @@ import { cookies } from 'next/headers';
 import { formatDebugPrompt, logAIDebug } from '@/lib/ai-debug';
 import { getAIRoleSystemPrompt, AIRole, DEFAULT_PROMPTS } from './ai-roles';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat';
-import { experimental_createMCPClient } from "ai";
+import { MultiClient, createTransport } from '@smithery/sdk';
+import { OpenAIChatAdapter } from '@smithery/sdk';
+import { AnthropicChatAdapter } from '@smithery/sdk';
+import { LLM_MODELS } from '@/lib/config';
+
+// Define the SmitheryClient interface here instead of importing it
+interface SmitheryClient {
+  clients: {
+    mcp: {
+      request: (requestParams: { 
+        method: string; 
+        params?: Record<string, unknown>; 
+      }) => Promise<Record<string, unknown>>;
+    }
+  };
+}
 
 // Tool support types
 export interface Tool {
@@ -57,8 +72,6 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || '';
-const MCP_API_KEY = process.env.MCP_API_KEY || '';
-const MCP_PROJECT_ID = process.env.MCP_PROJECT_ID || '';
 
 // Create OpenRouter client
 const openRouterClient = new OpenAI({
@@ -89,36 +102,72 @@ const anthropicClient = new Anthropic({
 // Create Google Generative AI client
 const geminiClient = new GoogleGenerativeAI(GOOGLE_API_KEY);
 
-// Define MCP client interface
-interface MCPClient {
-  tools: () => Promise<Record<string, unknown>>;
-  executeOperation?: (operation: MCPOperation) => Promise<Record<string, unknown>>;
-  close: () => Promise<void>;
-}
+// Create MCP client using Smithery SDK
+let smitheryClient: SmitheryClient | null = null;
 
-// Create MCP client
-let mcpClient: MCPClient | null = null;
+// Provider-specific adapters
+let openaiOpenAIAdapter: any = null;
+let openrouterOpenAIAdapter: any = null;
+let featherlessOpenAIAdapter: any = null;
+let anthropicAdapter: any = null;
 
-if (MCP_API_KEY && MCP_PROJECT_ID) {
-  try {
-    // Initialize the MCP client with SSE transport
-    experimental_createMCPClient({
-      transport: {
-        type: 'sse',
-        url: `https://api.mcp.vercel.ai/api/v1/projects/${MCP_PROJECT_ID}/sse`,
-        headers: {
-          'Authorization': `Bearer ${MCP_API_KEY}`
-        }
-      },
-    }).then(client => {
-      mcpClient = client;
-      console.log('MCP client initialized successfully');
-    }).catch(error => {
-      console.error('Error initializing MCP client:', error);
-    });
-  } catch (error) {
-    console.error('Error setting up MCP client:', error);
-  }
+// Initialize Smithery client
+try {
+  // Initialize the Smithery MultiClient directly
+  const mcpTransport = createTransport(`https://smithery.ai/api/mcp`, {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  // Create client
+  const client = new MultiClient();
+  
+  // Connect to Smithery
+  client.connectAll({
+    mcp: mcpTransport,
+  }).then(async () => {
+    console.log('Smithery client initialized successfully');
+    
+    // Store the configured client
+    smitheryClient = client as any;
+    
+    // Initialize adapters - still using dynamic imports just for these adapter modules
+    // to avoid TypeScript path resolution issues with these specific modules
+    try {
+      // 1. OpenAI adapter
+      if (OPENAI_API_KEY) {
+        openaiOpenAIAdapter = new OpenAIChatAdapter(client);
+        console.log('OpenAI adapter initialized successfully');
+      }
+      
+      // 2. OpenRouter adapter
+      if (OPENROUTER_API_KEY) {
+        openrouterOpenAIAdapter = new OpenAIChatAdapter(client);
+        console.log('OpenRouter adapter initialized successfully');
+      }
+      
+      // 3. Featherless adapter
+      if (FEATHERLESS_API_KEY) {
+        featherlessOpenAIAdapter = new OpenAIChatAdapter(client);
+        console.log('Featherless adapter initialized successfully');
+      }
+      
+      // 4. Anthropic adapter
+      if (ANTHROPIC_API_KEY) {
+        anthropicAdapter = new AnthropicChatAdapter(client);
+        console.log('Anthropic adapter initialized successfully');
+      }
+      
+      console.log('All Smithery adapters initialized successfully');
+    } catch (adapterError) {
+      console.error('Error initializing Smithery adapters:', adapterError);
+    }
+  }).catch(error => {
+    console.error('Error initializing Smithery client:', error);
+  });
+} catch (error) {
+  console.error('Error setting up Smithery client:', error);
 }
 
 // Define chat-related types
@@ -336,26 +385,37 @@ async function storeInCache(cacheKey: string, response: ChatResponse, enableCach
 }
 
 /**
- * Execute a multi-step operation using MCP
+ * Execute a multi-step operation using MCP with Smithery SDK
  */
 export async function executeMCPOperation(operation: MCPOperation): Promise<Record<string, unknown>> {
-  if (!mcpClient) {
-    throw new Error("MCP client is not configured or still initializing. Please set MCP_API_KEY and MCP_PROJECT_ID.");
+  if (!smitheryClient) {
+    throw new Error("Smithery client is not configured or still initializing. Please set MCP_API_KEY and MCP_PROJECT_ID.");
   }
   
   try {
     console.log(`Executing MCP operation: ${operation.name}`);
     
-    // First get available tools from the MCP client
-    const tools = await mcpClient.tools();
+    // Prepare the request parameters for the operation
+    const params: Record<string, unknown> = {
+      name: operation.name,
+      steps: operation.steps.map(step => ({
+        name: step.name,
+        prompt: step.prompt,
+        model: step.model,
+        temperature: step.temperature,
+      })),
+    };
     
-    // Check if the client supports executeOperation
-    if (!mcpClient.executeOperation) {
-      throw new Error("This MCP client does not support executeOperation method");
+    // Add metadata if provided
+    if (operation.metadata) {
+      params.metadata = operation.metadata;
     }
     
-    // Then use the tools to execute the operation
-    const result = await mcpClient.executeOperation(operation);
+    // Execute the operation using the Smithery client
+    const result = await smitheryClient.clients.mcp.request({
+      method: "executeOperation",
+      params,
+    });
     
     return result || { success: true, message: "Operation executed but no result returned" };
   } catch (error) {
@@ -368,6 +428,220 @@ export async function executeMCPOperation(operation: MCPOperation): Promise<Reco
   }
 }
 
+/**
+ * Get available tools from Smithery client
+ */
+export async function getAvailableTools(): Promise<Tool[]> {
+  if (!smitheryClient) {
+    console.warn("Smithery client is not configured. No tools available.");
+    return [];
+  }
+  
+  try {
+    // Get tools directly from the client
+    const rawTools = await smitheryClient.clients.mcp.request({
+      method: "tools",
+    });
+    
+    // Transform raw tools to our Tool interface format
+    return Object.entries(rawTools).map(([name, tool]) => ({
+      type: 'function',
+      function: {
+        name,
+        description: (tool as any).description || `Tool: ${name}`,
+        parameters: (tool as any).parameters || {},
+      }
+    }));
+  } catch (error) {
+    console.error('Error getting available tools:', error);
+    return [];
+  }
+}
+
+/**
+ * Process OpenAI-compatible provider with Smithery
+ */
+async function processWithOpenAISmithery(
+  provider: 'openai' | 'openrouter' | 'featherless',
+  options: Record<string, any>,
+  tools: Tool[],
+  toolChoice: any
+): Promise<{ text: string; toolCalls?: ToolCall[] }> {
+  // Get the appropriate adapter based on provider
+  let adapter: any;
+  let client: any;
+  
+  switch (provider) {
+    case 'openai':
+      adapter = openaiOpenAIAdapter;
+      client = openaiClient;
+      if (!adapter) {
+        throw new Error("Smithery OpenAI adapter is not initialized");
+      }
+      break;
+    case 'openrouter':
+      adapter = openrouterOpenAIAdapter;
+      client = openRouterClient;
+      if (!adapter) {
+        throw new Error("Smithery OpenRouter adapter is not initialized");
+      }
+      break;
+    case 'featherless':
+      adapter = featherlessOpenAIAdapter;
+      client = featherlessClient;
+      if (!adapter) {
+        throw new Error("Smithery Featherless adapter is not initialized");
+      }
+      break;
+  }
+  
+  // Get smithery tools for this specific adapter
+  const smitheryTools = await adapter.listTools();
+  
+  // Handle model name for OpenRouter and Featherless
+  if (provider === 'openrouter' && options.model) {
+    // If the model name doesn't exist in the OpenRouter models list, use it as is
+    // OpenRouter models already have their provider prefixes in the config
+    const models = LLM_MODELS['openrouter'];
+    const modelFound = models.find(m => m.value === options.model || m.label === options.model);
+    
+    // Only use the model name directly from config if found
+    if (modelFound) {
+      options.model = modelFound.value;
+      console.log(`Using OpenRouter with model: ${options.model}`);
+    }
+  }
+  
+  // For Featherless, use model names directly from config
+  if (provider === 'featherless' && options.model) {
+    // Featherless models already have their provider prefixes in the config
+    const models = LLM_MODELS['featherless'];
+    const modelFound = models.find(m => m.value === options.model || m.label === options.model);
+    
+    // Only use the model name directly from config if found
+    if (modelFound) {
+      options.model = modelFound.value;
+      console.log(`Using Featherless with model: ${options.model}`);
+    }
+  }
+  
+  // Make the initial request with all required parameters
+  const response = await client.chat.completions.create({
+    ...options,
+    tools: smitheryTools,
+    tool_choice: toolChoice !== 'auto' ? toolChoice : undefined
+  });
+  
+  // Check if there are tool calls to process
+  const message = response.choices[0].message;
+  
+  if (message.tool_calls && message.tool_calls.length > 0) {
+    // Use the specific adapter to handle the tool calls
+    const toolMessages = await adapter.callTool(response);
+    
+    // For simplicity, we'll return the first tool result as our response
+    // In a full implementation, you'd consider multiple tool calls and conversation loops
+    if (toolMessages.length > 0) {
+      return {
+        text: toolMessages[0].content,
+        toolCalls: message.tool_calls.map(tc => ({
+          id: tc.id,
+          type: 'function' as const,
+          function: {
+            name: tc.function.name,
+            arguments: tc.function.arguments
+          }
+        }))
+      };
+    }
+  }
+  
+  // If no tool calls or no results, just return the text
+  return {
+    text: message.content || '',
+    toolCalls: message.tool_calls
+  };
+}
+
+/**
+ * Process Anthropic provider with Smithery
+ */
+async function processWithAnthropicSmithery(
+  options: Record<string, any>,
+  tools: Tool[]
+): Promise<{ text: string; toolCalls?: ToolCall[] }> {
+  if (!anthropicAdapter || !smitheryClient) {
+    throw new Error("Smithery Anthropic adapter is not initialized");
+  }
+  
+  // Get smithery tools from the anthropic adapter
+  const smitheryTools = await anthropicAdapter.listTools();
+  
+  // For Anthropic, we need to add tools through the adapter
+  // and handle their different format for tool calls
+  const response = await anthropicClient.messages.create({
+    ...options,
+    tools: smitheryTools
+  });
+  
+  // Check if there are tool calls to process
+  const toolCalls = response.content.filter(item => 
+    item.type === 'tool_use'
+  ).map(item => {
+    const toolUse = (item as any).tool_use;
+    return {
+      id: toolUse.id,
+      type: 'function' as const,
+      function: {
+        name: toolUse.name,
+        arguments: JSON.stringify(toolUse.input)
+      }
+    };
+  });
+  
+  if (toolCalls.length > 0) {
+    // Use the specific anthropic adapter to handle tool calls if available
+    try {
+      // Here we'd ideally use the Anthropic adapter's method for handling tool calls
+      // For now, we'll use our manual approach
+      const toolResponses = await Promise.all(
+        toolCalls.map(async (toolCall) => {
+          try {
+            const result = await smitheryClient?.clients.mcp.request({
+              method: toolCall.function.name,
+              params: JSON.parse(toolCall.function.arguments)
+            });
+            return result;
+          } catch (error) {
+            console.error('Error executing tool call:', error);
+            return { error: 'Tool execution failed' };
+          }
+        })
+      );
+      
+      // Combine tool responses into a text
+      const toolResponseText = toolResponses
+        .map((response, i) => `Tool ${toolCalls[i].function.name}: ${JSON.stringify(response)}`)
+        .join('\n\n');
+      
+      return {
+        text: toolResponseText,
+        toolCalls
+      };
+    } catch (error) {
+      console.error('Error using Anthropic adapter for tool calls:', error);
+    }
+  }
+  
+  // If no tool calls, just return the text content
+  const textContent = response.content
+    .filter(item => item.type === 'text')
+    .map(item => (item as any).text)
+    .join('');
+  
+  return { text: textContent };
+}
+
 // Server action for chat functionality
 export async function generateChatResponse(request: ChatRequest | ChatRequestWithTools): Promise<ChatResponse> {
   const { config } = await getServerConfig();
@@ -377,7 +651,34 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
   logApiKeyInfo(provider);
   
   // Use the model from config
-  const modelName = config.model;
+  let modelName = config.model;
+  
+  // Format the model name for OpenRouter - models already have provider prefixes in config
+  if (provider === 'openrouter' && modelName) {
+    // If the model name doesn't exist in the OpenRouter models list, use it as is
+    const models = LLM_MODELS['openrouter'];
+    const modelFound = models.find(m => m.value === modelName || m.label === modelName);
+    
+    // Only use the model name directly from config if found
+    if (modelFound) {
+      modelName = modelFound.value;
+      console.log(`Using OpenRouter with model: ${modelName}`);
+    }
+  }
+  
+  // For Featherless, use model names directly from config
+  if (provider === 'featherless' && modelName) {
+    // Featherless models already have their provider prefixes in the config
+    const models = LLM_MODELS['featherless'];
+    const modelFound = models.find(m => m.value === modelName || m.label === modelName);
+    
+    // Only use the model name directly from config if found
+    if (modelFound) {
+      modelName = modelFound.value;
+      console.log(`Using Featherless with model: ${modelName}`);
+    }
+  }
+  
   const { 
     messages, 
     context, 
@@ -441,7 +742,23 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
         // Extract system prompt and messages from formatted messages
         const { systemPrompt, messages } = formattedMessages as unknown as AnthropicFormattedMessages;
         
-        if (stream) {
+        if (tools.length > 0 && smitheryClient && anthropicAdapter) {
+          // Use Smithery for tool-enabled requests
+          const result = await processWithAnthropicSmithery(
+            {
+              model: modelName,
+              system: systemPrompt,
+              messages,
+              max_tokens: configMaxTokens,
+              temperature: configTemperature
+            },
+            tools
+          );
+          
+          responseText = result.text;
+          toolCalls = result.toolCalls;
+        } else if (stream) {
+          // Regular streaming, no tools
           const response = await anthropicClient.messages.create({
             model: modelName,
             system: systemPrompt,
@@ -458,6 +775,7 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
             }
           }
         } else {
+          // Regular non-streaming, no tools
           const response = await anthropicClient.messages.create({
             model: modelName,
             system: systemPrompt,
@@ -533,97 +851,15 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
         break;
       }
       
-      case 'openrouter': {
-        if (!OPENROUTER_API_KEY) {
-          throw new Error("OpenRouter API key is not set");
-        }
-        
-        if (stream) {
-            const response = await openRouterClient.chat.completions.create({
-              model: modelName,
-            messages: formattedMessages as unknown as ChatCompletionMessageParam[],
-            temperature: configTemperature,
-            max_tokens: configMaxTokens,
-            stream: true
-          });
-          
-          // Handle streaming response
-          for await (const chunk of response) {
-            if (chunk.choices[0]?.delta?.content) {
-              responseText += chunk.choices[0].delta.content;
-            }
-          }
-        } else {
-          const response = await openRouterClient.chat.completions.create({
-              model: modelName,
-            messages: formattedMessages as unknown as ChatCompletionMessageParam[],
-            temperature: configTemperature,
-            max_tokens: configMaxTokens
-          });
-          
-          responseText = response.choices[0]?.message?.content || '';
-        }
-        break;
-      }
-      
+      case 'openai': 
+      case 'openrouter':
       case 'featherless': {
-        if (!FEATHERLESS_API_KEY) {
-          throw new Error("Featherless API key is not set");
-        }
+        const apiKey = provider === 'openai' ? OPENAI_API_KEY : 
+                       provider === 'openrouter' ? OPENROUTER_API_KEY : 
+                       FEATHERLESS_API_KEY;
         
-        // Make sure model name includes provider prefix
-        const fullModelName = modelName.includes('/') ? modelName : `featherless-ai/${modelName}`;
-        
-        try {
-          if (stream) {
-            const response = await featherlessClient.chat.completions.create({
-              model: fullModelName,
-              messages: formattedMessages as unknown as ChatCompletionMessageParam[],
-              temperature: configTemperature,
-              max_tokens: Math.min(configMaxTokens, 4096), // Limit max tokens to 4096
-              stream: true
-            });
-
-            // Handle streaming response
-            for await (const chunk of response) {
-              if (chunk.choices[0]?.delta?.content) {
-                responseText += chunk.choices[0].delta.content;
-              }
-            }
-          } else {
-            const response = await featherlessClient.chat.completions.create({
-              model: fullModelName,
-              messages: formattedMessages as unknown as ChatCompletionMessageParam[],
-              temperature: configTemperature,
-              max_tokens: Math.min(configMaxTokens, 4096) // Limit max tokens to 4096
-            });
-            
-            responseText = response.choices[0]?.message?.content || '';
-          }
-        } catch (error: unknown) {
-          const err = error as { status?: number };
-          // If we get a validation error, try with fewer tokens
-          if (err.status === 422) {
-            console.log('Featherless API validation error. Retrying with fewer tokens.');
-            const response = await featherlessClient.chat.completions.create({
-              model: fullModelName,
-              messages: formattedMessages as unknown as ChatCompletionMessageParam[],
-              temperature: configTemperature,
-              max_tokens: 2048 // Reduce max tokens as fallback
-            });
-            
-            responseText = response.choices[0]?.message?.content || '';
-          } else {
-            throw error;
-          }
-        }
-        break;
-      }
-      
-      case 'openai':
-      default: {
-        if (!OPENAI_API_KEY) {
-          throw new Error("OpenAI API key is not set");
+        if (!apiKey) {
+          throw new Error(`${provider.charAt(0).toUpperCase() + provider.slice(1)} API key is not set`);
         }
         
         // Prepare OpenAI options with tools support
@@ -634,20 +870,28 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
           max_tokens: configMaxTokens,
         };
         
-        // Add tools if provided and we're using a supported model (e.g., gpt-4-turbo, gpt-3.5-turbo)
-        if (tools.length > 0 && ['gpt-4-turbo', 'gpt-4-1106-preview', 'gpt-4-0613', 'gpt-3.5-turbo-0613'].some(model => modelName.includes(model))) {
-          openAIOptions.tools = tools;
-          
-          if (toolChoice !== 'auto') {
-            openAIOptions.tool_choice = toolChoice;
-          }
-        }
+        // Select the appropriate client based on provider
+        const client = provider === 'openai' ? openaiClient :
+                       provider === 'openrouter' ? openRouterClient :
+                       featherlessClient;
         
-        if (stream) {
-          // Add streaming option
-          openAIOptions.stream = true;
+        if (tools.length > 0 && smitheryClient) {
+          // Use Smithery for tool-enabled requests
+          const result = await processWithOpenAISmithery(
+            provider, 
+            openAIOptions, 
+            tools, 
+            toolChoice
+          );
           
-          const response = await openaiClient.chat.completions.create(openAIOptions);
+          responseText = result.text;
+          toolCalls = result.toolCalls;
+        } else if (stream) {
+          // Regular streaming, no tools
+          const response = await client.chat.completions.create({
+            ...openAIOptions,
+            stream: true
+          });
           
           // Handle streaming response
           for await (const chunk of response) {
@@ -686,7 +930,8 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
             }
           }
         } else {
-          const response = await openaiClient.chat.completions.create(openAIOptions);
+          // Regular non-streaming, no tools
+          const response = await client.chat.completions.create(openAIOptions);
           
           responseText = response.choices[0]?.message?.content || '';
           
@@ -704,6 +949,9 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
         }
         break;
       }
+      
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
     }
     
     // Prepare the response
