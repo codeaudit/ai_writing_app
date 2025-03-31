@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import ConfigInitializer from "@/components/config-initializer";
 import ElectronProvider from '@/components/electron-provider';
 import { TrpcProvider } from '@/components/trpc-provider';
+import { MainNav } from '@/components/main-nav';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,6 +40,7 @@ export default function RootLayout({
                   {/* Main content */}
                   <div className="relative">
                     <ConfigInitializer />
+                    <MainNav />
                     {children}
                     <Toaster />
                   </div>

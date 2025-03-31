@@ -8,6 +8,48 @@ import { cookies } from 'next/headers';
 import { formatDebugPrompt, logAIDebug } from '@/lib/ai-debug';
 import { getAIRoleSystemPrompt, AIRole, DEFAULT_PROMPTS } from './ai-roles';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat';
+import { experimental_createMCPClient } from "ai";
+
+// Tool support types
+export interface Tool {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+export interface ChatMessageWithTools extends ChatMessage {
+  tool_calls?: ToolCall[];
+}
+
+export interface ChatRequestWithTools extends ChatRequest {
+  tools?: Tool[];
+  tool_choice?: string | { type: 'function'; function: { name: string } };
+}
+
+export interface MCPStep {
+  name: string;
+  prompt: string;
+  model: string;
+  temperature?: number;
+}
+
+export interface MCPOperation {
+  name: string;
+  steps: MCPStep[];
+  metadata?: Record<string, unknown>;
+}
 
 // Import environment variables directly
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -15,6 +57,8 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || '';
+const MCP_API_KEY = process.env.MCP_API_KEY || '';
+const MCP_PROJECT_ID = process.env.MCP_PROJECT_ID || '';
 
 // Create OpenRouter client
 const openRouterClient = new OpenAI({
@@ -44,6 +88,38 @@ const anthropicClient = new Anthropic({
 
 // Create Google Generative AI client
 const geminiClient = new GoogleGenerativeAI(GOOGLE_API_KEY);
+
+// Define MCP client interface
+interface MCPClient {
+  tools: () => Promise<Record<string, unknown>>;
+  executeOperation?: (operation: MCPOperation) => Promise<Record<string, unknown>>;
+  close: () => Promise<void>;
+}
+
+// Create MCP client
+let mcpClient: MCPClient | null = null;
+
+if (MCP_API_KEY && MCP_PROJECT_ID) {
+  try {
+    // Initialize the MCP client with SSE transport
+    experimental_createMCPClient({
+      transport: {
+        type: 'sse',
+        url: `https://api.mcp.vercel.ai/api/v1/projects/${MCP_PROJECT_ID}/sse`,
+        headers: {
+          'Authorization': `Bearer ${MCP_API_KEY}`
+        }
+      },
+    }).then(client => {
+      mcpClient = client;
+      console.log('MCP client initialized successfully');
+    }).catch(error => {
+      console.error('Error initializing MCP client:', error);
+    });
+  } catch (error) {
+    console.error('Error setting up MCP client:', error);
+  }
+}
 
 // Define chat-related types
 export interface ChatMessage {
@@ -259,8 +335,41 @@ async function storeInCache(cacheKey: string, response: ChatResponse, enableCach
   }
 }
 
+/**
+ * Execute a multi-step operation using MCP
+ */
+export async function executeMCPOperation(operation: MCPOperation): Promise<Record<string, unknown>> {
+  if (!mcpClient) {
+    throw new Error("MCP client is not configured or still initializing. Please set MCP_API_KEY and MCP_PROJECT_ID.");
+  }
+  
+  try {
+    console.log(`Executing MCP operation: ${operation.name}`);
+    
+    // First get available tools from the MCP client
+    const tools = await mcpClient.tools();
+    
+    // Check if the client supports executeOperation
+    if (!mcpClient.executeOperation) {
+      throw new Error("This MCP client does not support executeOperation method");
+    }
+    
+    // Then use the tools to execute the operation
+    const result = await mcpClient.executeOperation(operation);
+    
+    return result || { success: true, message: "Operation executed but no result returned" };
+  } catch (error) {
+    console.error('Error executing MCP operation:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      operation: operation.name
+    };
+  }
+}
+
 // Server action for chat functionality
-export async function generateChatResponse(request: ChatRequest): Promise<ChatResponse> {
+export async function generateChatResponse(request: ChatRequest | ChatRequestWithTools): Promise<ChatResponse> {
   const { config } = await getServerConfig();
   const { provider, enableCache, temperature: configTemperature, maxTokens: configMaxTokens, aiRole = 'assistant' } = config;
   
@@ -275,6 +384,11 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
     contextDocuments = [],
     stream = false
   } = request;
+  
+  // Extract tools if provided
+  const toolsRequest = request as ChatRequestWithTools;
+  const tools = toolsRequest.tools || [];
+  const toolChoice = toolsRequest.tool_choice || 'auto';
   
   // Check if there are any messages
   if (!messages || messages.length === 0) {
@@ -315,6 +429,7 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
   
   try {
     let responseText = '';
+    let toolCalls: ToolCall[] | undefined;
     
     // Generate response based on provider
     switch (provider) {
@@ -511,30 +626,81 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
           throw new Error("OpenAI API key is not set");
         }
         
+        // Prepare OpenAI options with tools support
+        const openAIOptions: any = {
+          model: modelName,
+          messages: formattedMessages as unknown as ChatCompletionMessageParam[],
+          temperature: configTemperature,
+          max_tokens: configMaxTokens,
+        };
+        
+        // Add tools if provided and we're using a supported model (e.g., gpt-4-turbo, gpt-3.5-turbo)
+        if (tools.length > 0 && ['gpt-4-turbo', 'gpt-4-1106-preview', 'gpt-4-0613', 'gpt-3.5-turbo-0613'].some(model => modelName.includes(model))) {
+          openAIOptions.tools = tools;
+          
+          if (toolChoice !== 'auto') {
+            openAIOptions.tool_choice = toolChoice;
+          }
+        }
+        
         if (stream) {
-          const response = await openaiClient.chat.completions.create({
-            model: modelName,
-            messages: formattedMessages as unknown as ChatCompletionMessageParam[],
-            temperature: configTemperature,
-            max_tokens: configMaxTokens,
-            stream: true
-          });
+          // Add streaming option
+          openAIOptions.stream = true;
+          
+          const response = await openaiClient.chat.completions.create(openAIOptions);
           
           // Handle streaming response
           for await (const chunk of response) {
             if (chunk.choices[0]?.delta?.content) {
               responseText += chunk.choices[0].delta.content;
             }
+            
+            // Handle tool calls in streaming
+            if (chunk.choices[0]?.delta?.tool_calls) {
+              if (!toolCalls) {
+                toolCalls = [];
+              }
+              
+              // Process each tool call in the chunk
+              for (const toolCallDelta of chunk.choices[0].delta.tool_calls) {
+                const id = toolCallDelta.index;
+                const existingCall = toolCalls.find(call => call.id === id);
+                
+                if (existingCall) {
+                  // Update function arguments if they exist
+                  if (toolCallDelta.function?.arguments) {
+                    existingCall.function.arguments += toolCallDelta.function.arguments;
+                  }
+                } else if (toolCallDelta.function) {
+                  // Create new tool call
+                  toolCalls.push({
+                    id: id || `call-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                    type: 'function',
+                    function: {
+                      name: toolCallDelta.function.name || '',
+                      arguments: toolCallDelta.function.arguments || ''
+                    }
+                  });
+                }
+              }
+            }
           }
         } else {
-          const response = await openaiClient.chat.completions.create({
-            model: modelName,
-            messages: formattedMessages as unknown as ChatCompletionMessageParam[],
-            temperature: configTemperature,
-            max_tokens: configMaxTokens
-          });
+          const response = await openaiClient.chat.completions.create(openAIOptions);
           
           responseText = response.choices[0]?.message?.content || '';
+          
+          // Handle tool calls in non-streaming
+          if (response.choices[0]?.message?.tool_calls) {
+            toolCalls = response.choices[0].message.tool_calls.map(call => ({
+              id: call.id,
+              type: 'function',
+              function: {
+                name: call.function.name,
+                arguments: call.function.arguments
+              }
+            }));
+          }
         }
         break;
       }
@@ -545,10 +711,11 @@ export async function generateChatResponse(request: ChatRequest): Promise<ChatRe
       message: {
         role: 'assistant',
         content: responseText,
-        id: generateId()
-      },
-        model: modelName,
-        provider,
+        id: generateId(),
+        tool_calls: toolCalls
+      } as ChatMessageWithTools,
+      model: modelName,
+      provider,
       debugPrompt: formatDebugPrompt(enhancedSystemMessage, lastMessage.content, provider, modelName)
     };
       
@@ -665,6 +832,36 @@ export async function generateTextServerAction(options: LLMRequestOptions): Prom
 export const generateText = generateTextServerAction;
 export const generateTextWithAI = generateTextServerAction;
 
+/**
+ * Execute a tool call and return the result
+ */
+export async function executeToolCall(toolCall: ToolCall, availableTools: Record<string, Function>): Promise<string> {
+  try {
+    const { function: { name, arguments: argsString } } = toolCall;
+    
+    // Check if the function exists
+    if (!availableTools[name]) {
+      throw new Error(`Function ${name} is not implemented`);
+    }
+    
+    // Parse the arguments
+    const args = JSON.parse(argsString);
+    
+    // Call the function
+    const result = await availableTools[name](args);
+    
+    // Return the result as a string
+    return typeof result === 'string' 
+      ? result 
+      : JSON.stringify(result);
+  } catch (error) {
+    console.error('Error executing tool call:', error);
+    return JSON.stringify({ 
+      error: `Failed to execute tool call: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    });
+  }
+}
+
 // Improve the Gemini response handling
 function safeGetTextFromGeminiChunk(chunk: unknown): string {
   try {
@@ -678,4 +875,94 @@ function safeGetTextFromGeminiChunk(chunk: unknown): string {
     console.warn('Error extracting text from Gemini chunk:', error);
     return '';
   }
+}
+
+/**
+ * Direct LLM call with tool pattern (as shown in the plan)
+ */
+export async function analyzeWritingStyle({ content, style = 'general' }: { content: string; style?: string }) {
+  const chatRequest: ChatRequestWithTools = {
+    messages: [
+      {
+        role: 'user',
+        content: `Analyze the following text and provide feedback on its writing style.
+Focus on: clarity, conciseness, tone, and engagement.
+
+Text: ${content}
+Style: ${style}`,
+      }
+    ],
+    tools: [
+      {
+        type: 'function',
+        function: {
+          name: 'provideStyleAnalysis',
+          description: 'Provide detailed analysis of writing style',
+          parameters: {
+            type: 'object',
+            properties: {
+              clarity: {
+                type: 'object',
+                properties: {
+                  score: { type: 'number', description: 'Score from 1-10' },
+                  feedback: { type: 'string', description: 'Feedback on clarity' }
+                },
+                required: ['score', 'feedback']
+              },
+              conciseness: {
+                type: 'object',
+                properties: {
+                  score: { type: 'number', description: 'Score from 1-10' },
+                  feedback: { type: 'string', description: 'Feedback on conciseness' }
+                },
+                required: ['score', 'feedback']
+              },
+              tone: {
+                type: 'object',
+                properties: {
+                  score: { type: 'number', description: 'Score from 1-10' },
+                  feedback: { type: 'string', description: 'Feedback on tone' }
+                },
+                required: ['score', 'feedback']
+              },
+              engagement: {
+                type: 'object',
+                properties: {
+                  score: { type: 'number', description: 'Score from 1-10' },
+                  feedback: { type: 'string', description: 'Feedback on engagement' }
+                },
+                required: ['score', 'feedback']
+              },
+              overall: {
+                type: 'object',
+                properties: {
+                  score: { type: 'number', description: 'Score from 1-10' },
+                  summary: { type: 'string', description: 'Overall summary' }
+                },
+                required: ['score', 'summary']
+              }
+            },
+            required: ['clarity', 'conciseness', 'tone', 'engagement', 'overall']
+          }
+        }
+      }
+    ],
+    tool_choice: { type: 'function', function: { name: 'provideStyleAnalysis' } }
+  };
+
+  const response = await generateChatResponse(chatRequest);
+  
+  if (response.message.tool_calls && response.message.tool_calls.length > 0) {
+    const toolCall = response.message.tool_calls[0];
+    if (toolCall.function.name === 'provideStyleAnalysis') {
+      return JSON.parse(toolCall.function.arguments);
+    }
+  }
+  
+  // Fallback in case there's no tool call
+  return {
+    overall: {
+      summary: response.message.content
+    }
+  };
 } 
