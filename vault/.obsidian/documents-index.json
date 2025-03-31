@@ -18,6 +18,24 @@
     "contextDocuments": []
   },
   {
+    "id": "doc-1743020878197",
+    "name": "Test 2",
+    "content": "\n#This is default template for composition\n\n# Test 2\n\nCreated on March 26, 2025 at 4:27:57 PM\n\n## Context Documents\n\n- art-of-peace\n- The Art of Peace, as conceived by Morihei Ueshiba, the founder of Aikido, is more than just a martial art technique; it's a philosophy, a way of life, and a path towards self-cultivation and harmonious existence. It's about resolving conflict peacefully, both within oneself and in the world around us. Here's a detailed look into the art of peace:\n\n**Core Principles and Philosophy:**\n\n*   **Non-Violence and Harmony:** At its heart, the Art of Peace emphasizes non-violence as the ultimate goal. It's about finding solutions that avoid direct confrontation and harm. This doesn't mean passivity, but rather a proactive search for harmony and reconciliation. The ideal is to resolve conflict before it escalates into violence.\n*   **Love and Compassion:** Ueshiba believed that love and compassion are the foundations of peace. Understanding, empathy, and a genuine concern for the well-being of others are essential for creating a peaceful world. This extends even to adversaries, recognizing their shared humanity.\n*   **Self-Mastery and Self-Cultivation:** The Art of Peace begins with oneself. One must strive for self-mastery, controlling one's emotions, thoughts, and actions. This involves continuous self-reflection, discipline, and ethical conduct. By cultivating inner peace, one becomes a beacon of peace in the world.\n*   **Connection to Nature and the Universe:** Ueshiba saw a deep connection between humanity and the natural world. He believed that by understanding and living in harmony with the principles of nature, we can find peace and balance. This involves respecting all living things and recognizing our interconnectedness.\n*   **The Importance of Training (Physical and Spiritual):** The Art of Peace requires rigorous training, both physical and spiritual. Physical training in Aikido develops strength, flexibility, and coordination. Spiritual training cultivates awareness, mindfulness, and a sense of inner peace.\n*   **Positive Mindset and Intention:** The Art of Peace emphasizes the importance of having a positive mindset and pure intentions. By focusing on solutions and acting with kindness and compassion, we can create positive outcomes.\n*   **Constant Learning and Growth:** The path to peace is a lifelong journey of learning and growth. One must remain open to new ideas, perspectives, and experiences, and continuously strive to improve oneself.\n\n**Practical Applications and Techniques:**\n\n*   **Aikido Techniques as Metaphors:** While Aikido is a martial art with specific techniques, Ueshiba saw these techniques as metaphors for resolving conflict in everyday life. The principles of blending with an opponent's energy, redirecting their force, and neutralizing their attack can be applied to interpersonal conflicts, business negotiations, and political disputes.\n*   **Meditation and Mindfulness:** Meditation and mindfulness practices are often incorporated into the Art of Peace to cultivate inner peace and awareness. These practices help to quiet the mind, reduce stress, and increase one's ability to respond to situations calmly and effectively.\n*   **Communication Skills:** Effective communication is essential for resolving conflicts peacefully. This involves active listening, empathy, and the ability to express oneself clearly and respectfully.\n*   **Conflict Resolution Strategies:** The Art of Peace provides a framework for approaching conflict in a constructive manner. This involves identifying the root causes of the conflict, finding common ground, and seeking solutions that benefit all parties involved.\n*   **Embracing Change and Uncertainty:** The Art of Peace teaches us to embrace change and uncertainty. By adapting to new situations and remaining flexible in our thinking, we can navigate life's challenges with greater ease and resilience.\n*   **Leadership by Example:** The Art of Peace also emphasizes the importance of leadership by example. By living a life of peace, compassion, and integrity, we can inspire others to do the same.\n\n**The Art of Peace in Practice:**\n\nThe Art of Peace is not just a theoretical concept; it's a way of life that can be applied to all aspects of our lives. Here are some examples:\n\n*   **Personal Relationships:** In our relationships with family and friends, we can practice the Art of Peace by communicating openly, resolving conflicts peacefully, and treating others with kindness and respect.\n*   **Workplace:** In the workplace, we can promote a culture of peace and collaboration by fostering teamwork, resolving disputes constructively, and leading by example.\n*   **Community:** In our communities, we can work to build bridges between different groups, address social injustices, and promote peace and understanding.\n*   **Global Issues:** On a global scale, the Art of Peace can inspire efforts to resolve international conflicts, promote human rights, and protect the environment.\n\n**In summary, the Art of Peace is a comprehensive philosophy and practice that offers a path towards personal transformation and a more peaceful world. It's a lifelong journey that requires dedication, discipline, and a genuine desire to live in harmony with oneself, others, and the universe.**\n\n\n## Chat History\n\n### User\n\nWhat is the art of war?\n\n### Assistant\n\nThe Art of War is an ancient Chinese military treatise attributed to Sun Tzu, a high-ranking military official, strategist, and tactician. It is believed to have been written during the late Spring and Autumn period (roughly 5th century BC).\n\nThe Art of War is a philosophical work that focuses on military strategy and tactics. It emphasizes the importance of planning, deception, and discipline in warfare. The text is divided into 13 chapters, each of which addresses a different aspect of warfare, such as:\n\n*   **Planning:** Emphasizes the importance of careful planning and preparation before engaging in battle.\n*   **Waging War:** Discusses the importance of economy of force and the efficient use of resources.\n*   **Attack by Stratagem:** Focuses on the use of deception and surprise to gain an advantage over the enemy.\n*   **Military Disposition:** Addresses the importance of adapting to the terrain and the enemy's strengths and weaknesses.\n*   **Energy:** Discusses the importance of timing and momentum in warfare.\n*   **Weak Points and Strong:** Focuses on identifying the enemy's weaknesses and exploiting them.\n*   **Maneuvering:** Addresses the importance of flexibility and adaptability in warfare.\n*   **Variation in Tactics:** Discusses the importance of adapting to changing circumstances.\n*   **The March:** Focuses on the importance of discipline and organization in the march.\n*   **Terrain:** Addresses the importance of understanding the terrain and using it to one's advantage.\n*   **The Nine Situations:** Discusses the importance of understanding the different types of terrain and how to use them to one's advantage.\n*   **Attack by Fire:** Focuses on the use of fire as a weapon.\n*   **The Use of Spies:** Addresses the importance of gathering intelligence and using it to one's advantage.\n\nThe Art of War has been studied by military leaders and strategists for centuries and is still relevant today. Its principles can be applied to various fields, including business, politics, and personal relationships.\n\n### User\n\nWhat are its chapters?\n\n### Assistant\n\nI am ready to help. Please share the text you would like me to review. I can help with grammar, spelling, style, and clarity, or I can provide general feedback.\n\n\n## New Content\n\nStart writing here...\n",
+    "createdAt": "2025-03-26T20:27:58.197Z",
+    "updatedAt": "2025-03-26T20:27:58.197Z",
+    "versions": [
+      {
+        "id": "ver-1743020878197-initial",
+        "content": "",
+        "createdAt": "2025-03-26T20:27:58.197Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": null,
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
     "id": "doc-ui-test-multilingual",
     "name": "12-Multilingual-Content",
     "content": "\n# Multilingual Content Test\n\nThis document tests how the UI handles content in multiple languages, scripts, and writing systems. It includes text in various languages to test rendering, font support, and bidirectional text handling.\n\n## Languages with Latin Script\n\n### English\n\nThe quick brown fox jumps over the lazy dog. All human beings are born free and equal in dignity and rights. They are endowed with reason and conscience and should act towards one another in a spirit of brotherhood.\n\n### French (Français)\n\nLe vif renard brun saute par-dessus le chien paresseux. Tous les êtres humains naissent libres et égaux en dignité et en droits. Ils sont doués de raison et de conscience et doivent agir les uns envers les autres dans un esprit de fraternité.\n\n\nOkay, I understand. Please specify the language you want the text translated into. For example, you could say:\n\n\"Translate this into **English**:\"\n\nOnce you tell me the target language, I will translate the provided French text.\n\n\nOkay, here's the translation of the selected text, broken down for clarity:\n\n**French:**\n\n*   Le vif renard brun saute par-dessus le chien paresseux.\n*   Tous les êtres humains naissent libres et égaux en dignité et en droits. Ils sont doués de raison et de conscience et doivent agir les uns envers les autres dans un esprit de fraternité.\n\n**English Translation:**\n\n*   The quick brown fox jumps over the lazy dog.\n*   All human beings are born free and equal in dignity and rights. They are endowed with reason and conscience and should act towards one another in a spirit of brotherhood.\n\n### Spanish (Español)\n\nEl rápido zorro marrón salta sobre el perro perezoso. Todos los seres humanos nacen libres e iguales en dignidad y derechos. Están dotados de razón y conciencia y deben comportarse fraternalmente los unos con los otros.\n\n### German (Deutsch)\n\nDer schnelle braune Fuchs springt über den faulen Hund. Alle Menschen sind frei und gleich an Würde und Rechten geboren. Sie sind mit Vernunft und Gewissen begabt und sollen einander im Geist der Brüderlichkeit begegnen.\n\n### Portuguese (Português)\n\nA rápida raposa marrom pula sobre o cão preguiçoso. Todos os seres humanos nascem livres e iguais em dignidade e direitos. São dotados de razão e consciência e devem agir em relação uns aos outros com espírito de fraternidade.\n\n## East Asian Languages\n\n### Chinese Simplified (简体中文)\n\n快速的棕色狐狸跳过懒狗。人人生而自由，在尊严和权利上一律平等。他们赋有理性和良心，并应以兄弟关系的精神相对待。\n\n### Chinese Traditional (繁體中文)\n\n快速的棕色狐狸跳過懶狗。人人生而自由，在尊嚴和權利上一律平等。他們賦有理性和良心，並應以兄弟關係的精神相對待。\n\n### Japanese (日本語)\n\n素早い茶色のキツネは怠け者の犬を飛び越えます。すべての人間は、生まれながらにして自由であり、尊厳と権利について平等である。彼らは理性と良心を授けられており、兄弟愛の精神で互いに行動すべきである。\n\n### Korean (한국어)\n\n빠른 갈색 여우가 게으른 개를 뛰어넘습니다. 모든 인간은 태어날 때부터 자유롭고 존엄성과 권리에 있어서 평등하다. 그들은 이성과 양심을 부여받았으며 서로에게 형제애의 정신으로 행동해야 한다.\n\n## Right-to-Left Languages\n\n### Arabic (العربية)\n\nالثعلب البني السريع يقفز فوق الكلب الكسول. يولد جميع الناس أحرارًا ومتساوين في الكرامة والحقوق. وهم قد وهبوا العقل والوجدان وعليهم أن يعاملوا بعضهم بعضًا بروح الإخاء.\n\n### Hebrew (עברית)\n\nהשועל החום המהיר קופץ מעל הכלב העצלן. כל בני האדם נולדו בני חורין ושווים בערכם ובזכויותיהם. הם ניחנו בתבונה ובמצפון, לפיכך חובה עליהם לנהוג איש ברעהו ברוח של אחווה.\n\n### Persian (فارسی)\n\nروباه قهوه‌ای سریع از روی سگ تنبل می‌پرد. همه انسان‌ها آزاد به دنیا می‌آیند و از لحاظ حیثیت و حقوق با هم برابرند. آنها دارای عقل و وجدان هستند و باید با یکدیگر با روحیه برادری رفتار کنند.\n\n## South Asian Scripts\n\n### Hindi (हिन्दी)\n\nतेज भूरी लोमड़ी आलसी कुत्ते के ऊपर से कूदती है। सभी मनुष्य जन्म से स्वतंत्र और गरिमा और अधिकारों के मामले में समान होते हैं। उन्हें तर्क और विवेक से संपन्न किया गया है और उन्हें भाईचारे की भावना से एक दूसरे के प्रति कार्य करना चाहिए।\n\n### Bengali (বাংলা)\n\nদ্রুত বাদামী শিয়াল অলস কুকুরের উপর দিয়ে লাফিয়ে যায়। সমস্ত মানুষ স্বাধীনভাবে জন্মগ্রহণ করে এবং মর্যাদা ও অধিকারে সমান। তাদের বিবেক এবং বিবেক দেওয়া হয়েছে এবং তাদের একে অপরের প্রতি ভ্রাতৃত্বের মনোভাব নিয়ে কাজ করা উচিত।\n\n### Tamil (தமிழ்)\n\nவிரைவான பழுப்பு நரி சோம்பேறி நாய் மீது தாவுகிறது. அனைத்து மனிதர்களும் சுதந்திரமாகவும், கண்ணியத்திலும் உரிமைகளிலும் சமமாகவும் பிறக்கிறார்கள். அவர்கள் பகுத்தறிவும் மனசாட்சியும் கொண்டவர்கள், மேலும் ஒருவருக்கொருவர் சகோதரத்துவ உணர்வுடன் நடந்துகொள்ள வேண்டும்.\n\n### Thai (ไทย)\n\nจิ้งจอกสีน้ำตาลตัวที่ว่องไวกระโดดข้ามสุนัขขี้เกียจ มนุษย์ทุกคนเกิดมาอย่างอิสระและเท่าเทียมกันในศักดิ์ศรีและสิทธิ พวกเขาได้รับการประสิทธิ์ประสาทด้วยเหตุผลและมโนธรรม และควรปฏิบัติต่อกันด้วยจิตวิญญาณแห่งภราดรภาพ\n\n## Mixed Content and Special Cases\n\n### Mixed Direction Text\n\nThis is English text followed by Arabic: الثعلب البني السريع and then back to English.\n\nHebrew text: עברית followed by English followed by more Hebrew: שלום\n\n### Mixed Script Paragraph\n\nThis paragraph contains multiple scripts: Latin (English), Cyrillic (Русский), Greek (Ελληνικά), Arabic (العربية), and Devanagari (हिन्दी) all in one paragraph. It tests how the UI handles mixed script rendering and line breaking across different writing systems.\n\n### Special Characters and Symbols\n\n#### Mathematical Symbols\n\n∀x∈ℝ: x² ≥ 0\n∮ E⋅da = Q/ε₀\n∇ × B = μ₀J + μ₀ε₀∂E/∂t\n\n#### Phonetic Symbols (IPA)\n\n[ðə kwɪk braʊn fɒks ʤʌmps ˈəʊvə ðə leɪzi dɒg]\n\n#### Musical Notation\n\n♩ ♪ ♫ ♬ 𝄞 𝄢 𝄪 𝄫\n\n#### Emoji with Text\n\nI 😍 multilingual content! It's 🔥 to test with different languages 🌎.\n\n## Bidirectional Text Challenges\n\n### Nested RTL in LTR\n\nEnglish text with (Arabic phrase الثعلب البني in parentheses) followed by more English.\n\n### Nested LTR in RTL\n\nالنص العربي مع (English phrase inside parentheses) ثم المزيد من النص العربي.\n\n### Bidirectional with Numbers and Punctuation\n\nThe price is 1,234.56€ in English, but in Arabic it's ١٬٢٣٤٫٥٦€ العملة.\n\n## Complex Formatting with Multilingual Content\n\n### Tables with Multiple Languages\n\n| Language | Hello | Thank you | Goodbye |\n|----------|-------|-----------|---------|\n| English | Hello | Thank you | Goodbye |\n| Spanish | Hola | Gracias | Adiós |\n| French | Bonjour | Merci | Au revoir |\n| Japanese | こんにちは | ありがとう | さようなら |\n| Arabic | مرحبا | شكرا | وداعا |\n| Russian | Здравствуйте | Спасибо | До свидания |\n\n### Code with Comments in Different Languages\n\n```python\n# English comment\nprint(\"Hello, World!\")\n\n# Comentario en español\nprint(\"¡Hola, Mundo!\")\n\n# Commentaire en français\nprint(\"Bonjour, le Monde!\")\n\n# 日本語のコメント\nprint(\"こんにちは、世界！\")\n\n# تعليق بالعربية\nprint(\"مرحبا بالعالم!\")\n```\n\n### Lists with Multiple Languages\n\n1. English: The quick brown fox jumps over the lazy dog.\n2. Français: Le vif renard brun saute par-dessus le chien paresseux.\n3. Español: El rápido zorro marrón salta sobre el perro perezoso.\n4. 日本語: 素早い茶色のキツネは怠け者の犬を飛び越えます。\n5. العربية: الثعلب البني السريع يقفز فوق الكلب الكسول.\n\n## Language Resources\n\n- [[#Languages with Latin Script|European Languages]]\n- [[#East Asian Languages|Asian Languages]]\n- [[#Right-to-Left Languages|RTL Languages]]\n- [[#South Asian Scripts|South Asian Languages]]\n- [[#Mixed Content and Special Cases|Mixed Content Examples]]\n\n---\n\n*This document is for testing purposes and contains text in multiple languages to test UI rendering capabilities.*\n",
@@ -32,22 +50,7 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
-    "annotations": [
-      {
-        "id": "anno-multilingual-1",
-        "documentId": "doc-ui-test-multilingual",
-        "startOffset": 500,
-        "endOffset": 600,
-        "content": "This tests how the UI handles annotations on text in different languages and scripts.",
-        "color": "green",
-        "createdAt": "2025-03-15T19:15:10.000Z",
-        "updatedAt": "2025-03-15T19:15:10.000Z",
-        "tags": [
-          "multilingual",
-          "test"
-        ]
-      }
-    ],
+    "annotations": [],
     "contextDocuments": []
   },
   {
@@ -65,22 +68,7 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
-    "annotations": [
-      {
-        "id": "anno-dynamic-1",
-        "documentId": "doc-ui-test-dynamic-content",
-        "startOffset": 500,
-        "endOffset": 600,
-        "content": "This tests how annotations work with dynamic content that might change or be generated at runtime.",
-        "color": "orange",
-        "createdAt": "2025-03-15T19:25:10.000Z",
-        "updatedAt": "2025-03-15T19:25:10.000Z",
-        "tags": [
-          "dynamic",
-          "interactive"
-        ]
-      }
-    ],
+    "annotations": [],
     "contextDocuments": []
   },
   {
@@ -194,9 +182,9 @@
   {
     "id": "doc-1742376077709",
     "name": "art-of-war",
-    "content": "Sun Tzu's *The Art of War* is a foundational text on military strategy and tactics, offering timeless wisdom applicable to conflict and competition far beyond the battlefield. It's less about brute force and more about strategic thinking, planning, and understanding your opponent and yourself. Here's a breakdown of its key concepts:\n\n**Core Principles:**\n\n*   **Deception and Information:** Sun Tzu emphasizes the importance of deception to mislead the enemy. \"All warfare is based on deception.\" This includes feigning weakness when strong, and vice versa, to confuse the enemy about your intentions and capabilities. Gathering accurate intelligence about the enemy's strengths, weaknesses, and terrain is also crucial. Knowing yourself and knowing your enemy is paramount to victory.\n*   **Planning and Preparation:** Victory is won before the battle is fought. Meticulous planning, considering all possible scenarios, and understanding the terrain are essential. Sun Tzu advocates for careful assessment of resources, logistics, and the political climate before engaging in conflict.\n*   **Avoiding Prolonged Warfare:** War is costly in terms of resources, manpower, and morale. Sun Tzu advises seeking swift victories and avoiding prolonged campaigns. The goal is to achieve your objectives with minimal losses and disruption.\n*   **Strategic Positioning and Terrain:** Choosing the right battlefield and exploiting the terrain to your advantage is critical. This involves understanding the geographical features, climate, and other factors that can influence the outcome of a battle.\n*   **Discipline and Leadership:** A well-disciplined army, led by a capable and respected commander, is essential for success. Sun Tzu stresses the importance of clear communication, consistent training, and fair treatment of soldiers.\n*   **Adaptability and Flexibility:** Rigidity leads to defeat. Sun Tzu emphasizes the need to adapt to changing circumstances and be flexible in your approach. This includes adjusting your tactics based on the enemy's movements and exploiting unforeseen opportunities.\n*   **Moral Influence:** While not always explicitly stated, Sun Tzu implies the importance of having a just cause or at least maintaining the morale of your troops. A demoralized army is more likely to be defeated.\n\n**Key Concepts in More Detail:**\n\n*   **The Importance of Knowing Yourself and Your Enemy:** \"If you know the enemy and know yourself, you need not fear the result of a hundred battles. If you know yourself but not the enemy, for every victory gained you will also suffer a defeat. If you know neither the enemy nor yourself, you will succumb in every battle.\" This quote encapsulates the core of Sun Tzu's philosophy: understanding your own strengths and weaknesses, as well as those of your opponent, is crucial for making informed decisions and achieving victory.\n*   **The Use of Spies and Intelligence:** Sun Tzu dedicates an entire chapter to the use of spies and intelligence gathering. He argues that knowing the enemy's plans, dispositions, and weaknesses is essential for effective strategy. Spies can provide valuable information about the enemy's morale, supplies, and terrain.\n*   **The Importance of Speed and Surprise:** Sun Tzu emphasizes the importance of moving quickly and striking when the enemy is least expecting it. Surprise attacks can disrupt the enemy's plans and create opportunities for decisive victories.\n*   **The Avoidance of Unnecessary Conflict:** Sun Tzu advocates for resolving conflicts through diplomacy and negotiation whenever possible. War should be a last resort, only undertaken when all other options have been exhausted.\n*   **The Role of the Commander:** The commander plays a critical role in determining the outcome of a battle. A good commander is decisive, strategic, and able to inspire his troops. He must also be adaptable and able to make difficult decisions under pressure.\n\n**Relevance Beyond Warfare:**\n\nWhile *The Art of War* focuses on military strategy, its principles can be applied to a wide range of situations, including:\n\n*   **Business Negotiations:** Understanding your competitors, planning your strategy, and being adaptable are all essential for success in business negotiations.\n*   **Project Management:** Planning, resource allocation, and risk assessment are all key elements of project management that align with Sun Tzu's principles.\n*   **Personal Relationships:** Understanding your own strengths and weaknesses, as well as those of your partner, can help you build stronger and more fulfilling relationships.\n*   **Political Campaigns:** Strategy, messaging, and understanding your opponent are all crucial for success in political campaigns.\n\nIn conclusion, *The Art of War* is a timeless classic that offers valuable insights into strategy, planning, and leadership. Its principles can be applied to a wide range of situations, making it a relevant and insightful read for anyone seeking to achieve their goals. It's about winning without fighting, about achieving your objectives with the least amount of conflict and disruption.\n\n\n",
+    "content": "Sun Tzu's *The Art of War* is a foundational text on military strategy and tactics, offering timeless wisdom applicable to conflict and competition far beyond the battlefield. It's less about brute force and more about strategic thinking, planning, and understanding your opponent and yourself. Here's a breakdown of its key concepts:\n\n**Core Principles:**\n\n*   **Deception and Information:** Sun Tzu emphasizes the importance of deception to mislead the enemy. \"All warfare is based on deception.\" This includes feigning weakness when strong, and vice versa, to confuse the enemy about your intentions and capabilities. Gathering accurate intelligence about the enemy's strengths, weaknesses, and terrain is also crucial. Knowing yourself and knowing your enemy is paramount to victory.\n*   **Planning and Preparation:** Victory is won before the battle is fought. Meticulous planning, considering all possible scenarios, and understanding the terrain are essential. Sun Tzu advocates for careful assessment of resources, logistics, and the political climate before engaging in conflict.\n*   **Avoiding Prolonged Warfare:** War is costly in terms of resources, manpower, and morale. Sun Tzu advises seeking swift victories and avoiding prolonged campaigns. The goal is to achieve your objectives with minimal losses and disruption.\n*   **Strategic Positioning and Terrain:** Choosing the right battlefield and exploiting the terrain to your advantage is critical. This involves understanding the geographical features, climate, and other factors that can influence the outcome of a battle.\n*   **Discipline and Leadership:** A well-disciplined army, led by a capable and respected commander, is essential for success. Sun Tzu stresses the importance of clear communication, consistent training, and fair treatment of soldiers.\n*   **Adaptability and Flexibility:** Rigidity leads to defeat. Sun Tzu emphasizes the need to adapt to changing circumstances and be flexible in your approach. This includes adjusting your tactics based on the enemy's movements and exploiting unforeseen opportunities.\n*   **Moral Influence:** While not always explicitly stated, Sun Tzu implies the importance of having a just cause or at least maintaining the morale of your troops. A demoralized army is more likely to be defeated.\n\n**Key Concepts in More Detail:**\n\n*   **The Importance of Knowing Yourself and Your Enemy:** \"If you know the enemy and know yourself, you need not fear the result of a hundred battles. If you know yourself but not the enemy, for every victory gained you will also suffer a defeat. If you know neither the enemy nor yourself, you will succumb in every battle.\" This quote encapsulates the core of Sun Tzu's philosophy: understanding your own strengths and weaknesses, as well as those of your opponent, is crucial for making informed decisions and achieving victory.\n*   **The Use of Spies and Intelligence:** Sun Tzu dedicates an entire chapter to the use of spies and intelligence gathering. He argues that knowing the enemy's plans, dispositions, and weaknesses is essential for effective strategy. Spies can provide valuable information about the enemy's morale, supplies, and terrain.\n*   **The Importance of Speed and Surprise:** Sun Tzu emphasizes the importance of moving quickly and striking when the enemy is least expecting it. Surprise attacks can disrupt the enemy's plans and create opportunities for decisive victories.\n*   **The Avoidance of Unnecessary Conflict:** Sun Tzu advocates for resolving conflicts through diplomacy and negotiation whenever possible. War should be a last resort, only undertaken when all other options have been exhausted.\n*   **The Role of the Commander:** The commander plays a critical role in determining the outcome of a battle. A good commander is decisive, strategic, and able to inspire his troops. He must also be adaptable and able to make difficult decisions under pressure.\n\n**Relevance Beyond Warfare:**\n\nWhile *The Art of War* focuses on military strategy, its principles can be applied to a wide range of situations, including:\n\n*   **Business Negotiations:** Understanding your competitors, planning your strategy, and being adaptable are all essential for success in business negotiations.\n*   **Project Management:** Planning, resource allocation, and risk assessment are all key elements of project management that align with Sun Tzu's principles.\n*   **Personal Relationships:** Understanding your own strengths and weaknesses, as well as those of your partner, can help you build stronger and more fulfilling relationships.\n*   **Political Campaigns:** Strategy, messaging, and understanding your opponent are all crucial for success in political campaigns.\n\nIn conclusion, *The Art of War* is a timeless classic that offers valuable insights into strategy, planning, and leadership. Its principles can be applied to a wide range of situations, making it a relevant and insightful read for anyone seeking to achieve their goals. It's about winning without fighting, about achieving your objectives with the least amount of conflict and disruption.\n\n\n\nThe Art of War is divided into 13 chapters. They are:\n\n1.  Laying Plans\n2.  Waging War\n3.  Attack by Stratagem\n4.  Tactical Dispositions\n5.  Energy\n6.  Weak Points and Strong\n7.  Maneuvering\n8.  Variation in Tactics\n9.  The Army on the March\n10. Terrain\n11. The Nine Situations\n12. Attack by Fire\n13. Use of Spies\n\n",
     "createdAt": "2025-03-19T09:21:17.709Z",
-    "updatedAt": "2025-03-22T20:24:38.951Z",
+    "updatedAt": "2025-03-27T13:49:55.746Z",
     "versions": [
       {
         "id": "ver-1742376077709-initial",
@@ -276,16 +264,34 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742325794980",
-    "name": "comp",
-    "content": "\n# comp\n\nComposition created with context documents.\n\n",
-    "createdAt": "2025-03-18T19:23:14.980Z",
-    "updatedAt": "2025-03-18T19:23:14.980Z",
+    "id": "doc-1743020766358",
+    "name": "Test 1",
+    "content": "\n# Test 1\n\n## Chat Thread\n\n### User\n\nWhat is the art of war?\n\n### AI\n\nThe Art of War is an ancient Chinese military treatise attributed to Sun Tzu, a high-ranking military official, strategist, and tactician. It is believed to have been written during the late Spring and Autumn period (roughly 5th century BC).\n\nThe Art of War is a philosophical work that focuses on military strategy and tactics. It emphasizes the importance of planning, deception, and discipline in warfare. The text is divided into 13 chapters, each of which addresses a different aspect of warfare, such as:\n\n*   **Planning:** Emphasizes the importance of careful planning and preparation before engaging in battle.\n*   **Waging War:** Discusses the importance of economy of force and the efficient use of resources.\n*   **Attack by Stratagem:** Focuses on the use of deception and surprise to gain an advantage over the enemy.\n*   **Military Disposition:** Addresses the importance of adapting to the terrain and the enemy's strengths and weaknesses.\n*   **Energy:** Discusses the importance of timing and momentum in warfare.\n*   **Weak Points and Strong:** Focuses on identifying the enemy's weaknesses and exploiting them.\n*   **Maneuvering:** Addresses the importance of flexibility and adaptability in warfare.\n*   **Variation in Tactics:** Discusses the importance of adapting to changing circumstances.\n*   **The March:** Focuses on the importance of discipline and organization in the march.\n*   **Terrain:** Addresses the importance of understanding the terrain and using it to one's advantage.\n*   **The Nine Situations:** Discusses the importance of understanding the different types of terrain and how to use them to one's advantage.\n*   **Attack by Fire:** Focuses on the use of fire as a weapon.\n*   **The Use of Spies:** Addresses the importance of gathering intelligence and using it to one's advantage.\n\nThe Art of War has been studied by military leaders and strategists for centuries and is still relevant today. Its principles can be applied to various fields, including business, politics, and personal relationships.\n\n\n### User\n\nWhat are its chapters?\n\n### AI\n\nI am ready to help. Please share the text you would like me to review. I can help with grammar, spelling, style, and clarity, or I can provide general feedback.\n\n",
+    "createdAt": "2025-03-26T20:26:06.358Z",
+    "updatedAt": "2025-03-26T20:26:06.358Z",
     "versions": [
       {
-        "id": "ver-1742325794980-initial",
+        "id": "ver-1743020766358-initial",
         "content": "",
-        "createdAt": "2025-03-18T19:23:14.980Z",
+        "createdAt": "2025-03-26T20:26:06.358Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1742346055866-pkn7w42",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743020829946",
+    "name": "Test 2",
+    "content": "\n# Test 2\n\n## Context Documents\n\n- art-of-peace\n\n## Chat Thread\n\n### User\n\nWhat is the art of war?\n\n### AI\n\nThe Art of War is an ancient Chinese military treatise attributed to Sun Tzu, a high-ranking military official, strategist, and tactician. It is believed to have been written during the late Spring and Autumn period (roughly 5th century BC).\n\nThe Art of War is a philosophical work that focuses on military strategy and tactics. It emphasizes the importance of planning, deception, and discipline in warfare. The text is divided into 13 chapters, each of which addresses a different aspect of warfare, such as:\n\n*   **Planning:** Emphasizes the importance of careful planning and preparation before engaging in battle.\n*   **Waging War:** Discusses the importance of economy of force and the efficient use of resources.\n*   **Attack by Stratagem:** Focuses on the use of deception and surprise to gain an advantage over the enemy.\n*   **Military Disposition:** Addresses the importance of adapting to the terrain and the enemy's strengths and weaknesses.\n*   **Energy:** Discusses the importance of timing and momentum in warfare.\n*   **Weak Points and Strong:** Focuses on identifying the enemy's weaknesses and exploiting them.\n*   **Maneuvering:** Addresses the importance of flexibility and adaptability in warfare.\n*   **Variation in Tactics:** Discusses the importance of adapting to changing circumstances.\n*   **The March:** Focuses on the importance of discipline and organization in the march.\n*   **Terrain:** Addresses the importance of understanding the terrain and using it to one's advantage.\n*   **The Nine Situations:** Discusses the importance of understanding the different types of terrain and how to use them to one's advantage.\n*   **Attack by Fire:** Focuses on the use of fire as a weapon.\n*   **The Use of Spies:** Addresses the importance of gathering intelligence and using it to one's advantage.\n\nThe Art of War has been studied by military leaders and strategists for centuries and is still relevant today. Its principles can be applied to various fields, including business, politics, and personal relationships.\n\n### User\n\nWhat are its chapters?\n\n### AI\n\nI am ready to help. Please share the text you would like me to review. I can help with grammar, spelling, style, and clarity, or I can provide general feedback.\n\n",
+    "createdAt": "2025-03-26T20:27:09.946Z",
+    "updatedAt": "2025-03-26T20:27:09.946Z",
+    "versions": [
+      {
+        "id": "ver-1743020829946-initial",
+        "content": "",
+        "createdAt": "2025-03-26T20:27:09.946Z",
         "message": "Initial version"
       }
     ],
@@ -293,8 +299,8 @@
     "annotations": [],
     "contextDocuments": [
       {
-        "id": "doc-ui-test-composition-templates",
-        "name": "15-Composition-Templates-Test"
+        "id": "doc-1742376539497",
+        "name": "art-of-peace"
       }
     ]
   },
@@ -328,7 +334,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013958298-n8yn4e4",
+    "id": "doc-1743441709533-xttf0y5",
     "name": "add_evidence",
     "content": "# Add Supporting Evidence Template\n\nStrengthen the following text by adding relevant supporting evidence, examples, statistics, or expert opinions:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. The original text with supporting evidence or examples integrated naturally\n2. A mix of different types of evidence (statistics, research findings, case studies, expert quotes)\n3. Citations or sources for the evidence when appropriate\n4. Clear connections between the evidence and the claims being supported\n5. Proper transitions to introduce the supporting material\n6. A brief explanation of how the evidence strengthens the overall argument ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -436,19 +442,12 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1742343001043",
+    "id": "doc-1743441709533-2wrdg6b",
     "name": "expand",
-    "content": "# Text Expansion Template\n\nExpand on the following text to make it more detailed, comprehensive, and informative:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. An expanded version with more details, examples, and explanations\n2. Additional context and background information\n3. Supporting evidence or data where relevant\n4. Elaboration on key points and concepts\n5. Logical transitions between ideas\n6. A conclusion that summarizes the expanded content ",
-    "createdAt": "2025-03-19T01:03:01.030Z",
-    "updatedAt": "2025-03-19T01:03:01.030Z",
-    "versions": [
-      {
-        "id": "ver-1742343001043-initial",
-        "content": "",
-        "createdAt": "2025-03-19T01:03:01.030Z",
-        "message": "Initial version"
-      }
-    ],
+    "content": "---\nid: doc-1742343001043\nname: expand\ncreatedAt: '2025-03-19T01:03:01.030Z'\nupdatedAt: 2025-03-27T00:53:18.591Z\nversions:\n  - id: ver-1742343001043-initial\n    createdAt: '2025-03-19T01:03:01.030Z'\n    message: Initial version\nannotations: []---\n\nExpand on the following text to make it more detailed, comprehensive, and informative:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. An expanded version with more details, examples, and explanations\n2. Additional context and background information\n3. Supporting evidence or data where relevant\n4. Elaboration on key points and concepts\n5. Logical transitions between ideas\n6. A conclusion that summarizes the expanded content ",
+    "createdAt": "2025-03-31T17:21:49.533Z",
+    "updatedAt": "2025-03-31T17:21:49.533Z",
+    "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
     "contextDocuments": []
@@ -472,7 +471,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013958309-o2qebe6",
+    "id": "doc-1743441709535-09cmuj8",
     "name": "improve_flow",
     "content": "# Improve Paragraph Transitions and Flow Template\n\nEnhance the following text by improving transitions between paragraphs and creating a smoother flow of ideas:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A revised version with improved transitions between paragraphs and sentences\n2. Natural connections between ideas that guide the reader through the text\n3. Consistent progression of thought that builds logically from beginning to end\n4. Elimination of any abrupt shifts or disconnected sections\n5. Appropriate transition words and phrases where needed (e.g., \"furthermore,\" \"in contrast,\" \"consequently\")\n6. A brief explanation of how the improved flow enhances readability and coherence ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -490,11 +489,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013958311-14y095v",
+    "id": "doc-1743441709537-lyccz37",
     "name": "llm-demo",
     "content": "\n# LLM Extension Demo\n\nThis template demonstrates the capabilities of the LLM extension in Nunjucks templates.\n\n## Basic Example\n\n### Prompt: Generate a short paragraph about climate change\n\n{% llm \"Generate a short paragraph about climate change\" %}\n\n## Using Parameters\n\n### Prompt: Generate a creative story with high temperature\n\n{% llm \"Generate a short creative story about a robot discovering emotions\", \n   temperature: 0.9, \n   maxTokens: 500\n%}\n\n## Using Context Variables\n\n### Prompt: Answer a question about {{ topic | default('artificial intelligence') }}\n\n{% llm \"Write a short explanation about \" + topic | default('artificial intelligence') %}\n\n## Using AI Roles\n\n### Prompt: Write as a poet\n\n{% llm \"Write a poem about the ocean\", \n   aiRole: \"creative\"\n%}\n\n## Content Transformation\n\n### Original Content:\n```\n{{ content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.') }}\n```\n\n### LLM-Enhanced Content:\n{% llm \"Improve the following content to make it more engaging and descriptive: \" + content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.'),\n   temperature: 0.7,\n   maxTokens: 300\n%}\n\n## Custom Context Documents (when provided)\n\n{% if contextDocuments and contextDocuments.length > 0 %}\n### Summary of Context Documents:\n\n{% llm \"Summarize the following documents in a few paragraphs:\", \n   contextDocuments: contextDocuments,\n   temperature: 0.5\n%}\n{% else %}\n*No context documents provided. To see this feature in action, provide context documents when processing this template.*\n{% endif %}\n\n## Chat Mode Example\n\n{% llm \"Provide a conclusion based on this conversation\", \n   chat: true,\n   messages: [\n     { role: \"user\", content: \"What are the benefits of exercise?\" },\n     { role: \"assistant\", content: \"Exercise has many benefits including improved cardiovascular health, better mood through endorphin release, increased strength and flexibility, better sleep quality, and reduced risk of chronic diseases.\" },\n     { role: \"user\", content: \"What about the mental health benefits specifically?\" }\n   ]\n%}\n\n---\n\n*This template was rendered at {{ date | dateFormat('PP') }} {{ date | timeFormat }}* ",
-    "createdAt": "2025-03-26T18:32:38.311Z",
-    "updatedAt": "2025-03-26T18:32:38.311Z",
+    "createdAt": "2025-03-31T17:21:49.537Z",
+    "updatedAt": "2025-03-31T17:21:49.537Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -537,11 +536,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013958312-0dwwgq7",
+    "id": "doc-1743441709542-hc43gql",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-26T18:32:38.312Z",
-    "updatedAt": "2025-03-26T18:32:38.312Z",
+    "createdAt": "2025-03-31T17:21:49.542Z",
+    "updatedAt": "2025-03-31T17:21:49.542Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -649,7 +648,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013958327-cvk8v61",
+    "id": "doc-1743441709550-n9x62d2",
     "name": "Test Template",
     "content": "\nThis is a test template\n",
     "createdAt": "2023-07-05T12:00:00.000Z",
@@ -660,11 +659,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013958332-80vyr14",
+    "id": "doc-1743441709552-j6j38h4",
     "name": "test_simple",
     "content": "\n# Simple LLM Test\n\nThis is a basic test of the LLM extension:\n\n{% llm \"Generate a short paragraph about climate change\" %} ",
-    "createdAt": "2025-03-26T18:32:38.332Z",
-    "updatedAt": "2025-03-26T18:32:38.332Z",
+    "createdAt": "2025-03-31T17:21:49.552Z",
+    "updatedAt": "2025-03-31T17:21:49.552Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -689,7 +688,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743013958336-o9dbzom",
+    "id": "doc-1743441709554-bbdzzn2",
     "name": "translate",
     "content": "# Prompt template\n\ntranslate this to English: '''\n{{selectedText}}\n'''\n\n\n",
     "createdAt": "2025-03-19T00:10:01.030Z",

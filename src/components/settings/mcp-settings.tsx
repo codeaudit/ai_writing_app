@@ -308,7 +308,7 @@ export function MCPSettings() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(`https://smithery.ai/servers/${server.id}`, '_blank')}
+                      onClick={() => window.open(`https://smithery.ai/server/${server.provider}`, '_blank')}
                     >
                       Documentation <ExternalLink className="ml-1 h-4 w-4" />
                     </Button>
@@ -380,7 +380,7 @@ export function MCPSettings() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(`https://smithery.ai/servers/${server.id}`, '_blank')}
+                      onClick={() => window.open(`https://smithery.ai/server/${server.provider}`, '_blank')}
                     >
                       View Details <ExternalLink className="ml-1 h-4 w-4" />
                     </Button>
