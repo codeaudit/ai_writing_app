@@ -20,7 +20,7 @@ servers:
       createdAt: '2024-12-13T15:46:50.750Z'
     enabled: true
     name: Exa Search
-    deploymentUrl: ''
+    deploymentUrl: https://server.smithery.ai/exa
     connections:
       - type: stdio
         configSchema:

@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/dialog";
 import AIDebugPanel from "@/components/ai-debug-panel";
 import { generateChatResponse, type ChatMessage } from "@/lib/llm-service";
+import { generateMCPChatResponse } from "@/lib/mcp-service";
 import { LLM_PROVIDERS, LLM_MODELS } from "@/lib/config";
 import { AIRoleSwitcher } from './ai-role-switcher';
 import { useTheme } from "next-themes";
@@ -83,6 +84,8 @@ import { ChatMessageNode } from "@/lib/store";
 import { PromptEnhancementButtons } from '@/components/prompt-enhancement';
 import { BookmarkMessage } from '@/components/bookmark-message';
 import { MCPServersIndicator } from '@/components/mcp-servers-indicator';
+import { Switch } from "@/components/ui/switch";
+import { formatDebugPrompt } from '@/lib/ai-debug';
 
 // ============================================================================
 // Constants and Configuration
@@ -295,6 +298,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
   const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(-1);
   const [compositionName, setCompositionName] = useState('');
   const [lastApiMessages, setLastApiMessages] = useState<ChatMessage[]>([]);
+  const [useMCPService, setUseMCPService] = useState(false);
+  const [editedPrompt, setEditedPrompt] = useState<string>("");
+  const [lastPrompt, setLastPrompt] = useState<string>("");
   
   // Debug messages for development
   useEffect(() => {
@@ -358,8 +364,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       // Store the API messages for debugging
       setLastApiMessages(apiMessages);
       
-      // Call the server action with all messages for context
-      const response = await generateChatResponse({
+      // Prepare the request
+      const chatRequest = {
         messages: apiMessages,
         contextDocuments: contextDocuments.map(doc => ({
           id: doc.id,
@@ -367,7 +373,12 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
           content: doc.content
         })),
         stream: false
-      });
+      };
+      
+      // Call the appropriate service based on toggle state
+      const response = useMCPService 
+        ? await generateMCPChatResponse(chatRequest)
+        : await generateChatResponse(chatRequest);
       
       // Check if response and debugPrompt exist before using them
       if (response && response.debugPrompt) {
@@ -433,8 +444,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       // Store the API messages for debugging
       setLastApiMessages(apiMessages);
       
-      // Call the server action with all messages for context
-      const response = await generateChatResponse({
+      // Prepare the request
+      const chatRequest = {
         messages: apiMessages,
         contextDocuments: contextDocuments.map(doc => ({
           id: doc.id,
@@ -442,7 +453,17 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
           content: doc.content
         })),
         stream: false
-      });
+      };
+      
+      // Call the appropriate service based on toggle state
+      const response = useMCPService 
+        ? await generateMCPChatResponse(chatRequest)
+        : await generateChatResponse(chatRequest);
+      
+      // Check if response and debugPrompt exist before using them
+      if (response && response.debugPrompt) {
+        setLastPrompt(response.debugPrompt);
+      }
       
       // Make sure response and response.message exist before creating the new node
       if (response && response.message) {
@@ -519,8 +540,6 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
 
   // State for editing messages
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editedPrompt, setEditedPrompt] = useState<string>("");
-  const [lastPrompt, setLastPrompt] = useState<string>("");
 
   // Add handler functions
   function handleClearChat() {
@@ -940,6 +959,19 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            {/* MCP Toggle */}
+            <div className="flex items-center mr-1 bg-primary/5 rounded-lg px-2 py-0.5">
+              <Switch 
+                id="mcp-toggle" 
+                checked={useMCPService}
+                onCheckedChange={setUseMCPService}
+                className="scale-75 data-[state=checked]:bg-primary"
+              />
+              <Label htmlFor="mcp-toggle" className="ml-1 text-xs cursor-pointer">
+                MCP
+              </Label>
+            </div>
             
             <Button 
               variant="ghost" 
