@@ -17,6 +17,7 @@ export interface MCPServerState {
   url: string;
   enabled: boolean;
   isDeployed: boolean;
+  description?: string;
   config: {
     apiKey?: string;
     [key: string]: unknown;
@@ -144,6 +145,7 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
               url: serverDetails.deploymentUrl,
               enabled: true,
               isDeployed: true,
+              description: serverDetails.description,
               config: server.config
             });
             
@@ -158,6 +160,7 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
               url: '',
               enabled: true,
               isDeployed: false,
+              description: serverDetails.description,
               config: server.config
             });
           }
@@ -169,6 +172,7 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
             url: serverDetails.deploymentUrl || '',
             enabled: false,
             isDeployed: false,
+            description: serverDetails.description,
             config: server.config
           });
           

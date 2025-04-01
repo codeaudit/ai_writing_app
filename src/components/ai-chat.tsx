@@ -941,9 +941,6 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* MCP Servers indicator - only for OpenAI and Anthropic */}
-            <MCPServersIndicator provider={config.provider} />
-            
             <Button 
               variant="ghost" 
               size="sm"
@@ -1411,22 +1408,29 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 )}
                 size="icon"
               />
-            <Button 
-              type="submit" 
-              size="icon" 
-              variant="ghost"
-              className={cn(
-                "rounded-sm bg-primary/10 hover:bg-primary/20 transition-all duration-200",
-                isInputFocused ? "h-[24px] w-[24px]" : "h-[20px] w-[20px]"
-              )}
-              disabled={isLoading || !input.trim()}
+              <MCPServersIndicator 
+                provider={config.provider}
+                className={cn(
+                  "rounded-sm transition-all duration-200",
+                  isInputFocused ? "h-[24px]" : "h-[20px]"
+                )}
+              />
+              <Button 
+                type="submit" 
+                size="icon" 
+                variant="ghost"
+                className={cn(
+                  "rounded-sm bg-primary/10 hover:bg-primary/20 transition-all duration-200",
+                  isInputFocused ? "h-[24px] w-[24px]" : "h-[20px] w-[20px]"
+                )}
+                disabled={isLoading || !input.trim()}
                 onClick={(e) => handleFormSubmit(e as unknown as React.FormEvent<HTMLFormElement>)}
-            >
-              <Send className={cn(
-                "text-primary transition-all duration-200",
+              >
+                <Send className={cn(
+                  "text-primary transition-all duration-200",
                   isInputFocused ? "w-3.5 h-3.5" : "w-3 h-3"
-              )} />
-            </Button>
+                )} />
+              </Button>
             </div>
           </div>
           

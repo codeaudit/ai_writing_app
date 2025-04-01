@@ -1,64 +1,41 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Sparkles, Loader2 } from 'lucide-react';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { MCPServerState } from '@/lib/mcp-server-manager';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Hammer, Sparkles } from 'lucide-react';
+import { getEnabledMCPServers } from '@/lib/mcp-server-manager';
+import type { MCPServerState } from '@/lib/mcp-server-manager';
+import { cn } from '@/lib/utils';
 
 interface MCPServersIndicatorProps {
   provider: string;
+  className?: string;
 }
 
-export function MCPServersIndicator({ provider }: MCPServersIndicatorProps) {
+export function MCPServersIndicator({ provider, className }: MCPServersIndicatorProps) {
   const [servers, setServers] = useState<MCPServerState[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // Only show for OpenAI and Anthropic providers
-  const shouldShow = provider === 'openai' || provider === 'anthropic';
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchEnabledServers() {
-      if (!shouldShow) return;
-      
-      console.log(`Fetching MCP servers for ${provider}...`);
-      setLoading(true);
+    const fetchServers = async () => {
       try {
-        const response = await fetch('/api/mcp-servers');
-        if (response.ok) {
-          const data = await response.json();
-          console.log('MCP servers response:', data);
-          setServers(data.servers || []);
-        } else {
-          console.error('Error response from MCP servers API:', await response.text());
-        }
+        const enabledServers = await getEnabledMCPServers();
+        setServers(enabledServers);
       } catch (error) {
         console.error('Error fetching MCP servers:', error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchEnabledServers();
-    
-    // Set up a refresh interval (every 30 seconds)
-    const intervalId = setInterval(fetchEnabledServers, 30000);
-    
-    // Clean up interval on unmount
-    return () => clearInterval(intervalId);
-  }, [shouldShow, provider]);
-  
-  // Debug output
-  useEffect(() => {
-    console.log(`MCP Servers Indicator: provider=${provider}, shouldShow=${shouldShow}, serverCount=${servers.length}`);
-  }, [provider, shouldShow, servers]);
+    fetchServers();
+  }, []);
 
-  if (!shouldShow) {
+  // Only show for OpenAI and Anthropic
+  if (provider !== 'openai' && provider !== 'anthropic') {
     return null;
   }
 
@@ -67,56 +44,51 @@ export function MCPServersIndicator({ provider }: MCPServersIndicatorProps) {
       <PopoverTrigger asChild>
         <Button 
           variant="ghost" 
-          size="sm" 
-          className="h-7 p-1 font-normal"
-          title="MCP Servers Connected"
+          size="sm"
+          className={cn("h-6 px-2 text-xs", className)}
+          title="MCP Servers"
         >
-          {loading ? (
-            <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-          ) : (
-            <Sparkles className="h-3.5 w-3.5 mr-1 text-amber-500" />
-          )}
-          <span className="text-xs">
-            {loading ? "Loading..." : servers.length > 0 ? `${servers.length} MCP` : "No MCP"}
-          </span>
+          <div className="flex items-center gap-1">
+            <Hammer className="h-3 w-3 text-primary" />
+            <span className="font-medium">{servers.length}</span>
+          </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-3" align="end">
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium mb-2">Connected MCP Servers</h4>
-          {loading ? (
-            <div className="flex justify-center items-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-xs text-muted-foreground">Loading servers...</span>
-            </div>
-          ) : servers.length > 0 ? (
-            <div className="grid gap-1.5">
-              {servers.map(server => (
-                <div key={server.qualifiedName} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center">
-                    <Badge 
-                      variant="outline" 
-                      className="mr-2 bg-green-500/10 text-green-500 border-green-500/20"
-                    >
+      <PopoverContent className="w-80 p-0" align="end">
+        <div className="p-3 border-b">
+          <div className="flex items-center gap-2">
+            <Hammer className="h-4 w-4 text-primary" />
+            <h4 className="font-medium text-sm">MCP Servers</h4>
+          </div>
+        </div>
+        <ScrollArea className="h-[300px]">
+          <div className="p-3 space-y-3">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-20">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              </div>
+            ) : servers.length > 0 ? (
+              servers.map((server) => (
+                <div key={server.qualifiedName} className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-3 w-3 text-amber-500" />
+                    <span className="font-medium text-sm">{server.name}</span>
+                    <Badge variant="outline" className="h-5 text-[10px] bg-green-500/10 text-green-500 border-green-500/20">
                       Active
                     </Badge>
-                    <span className="font-medium">{server.name}</span>
                   </div>
-                  <span className="text-muted-foreground text-xs truncate max-w-[120px]">
-                    {server.qualifiedName}
-                  </span>
+                  {server.description && (
+                    <p className="text-xs text-muted-foreground">{server.description}</p>
+                  )}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground">No MCP servers are connected.</p>
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">
-            MCP Servers enable AI tools and capabilities for {provider === 'openai' ? 'OpenAI' : 'Anthropic'} models.
-          </p>
-        </div>
+              ))
+            ) : (
+              <div className="text-center text-sm text-muted-foreground py-4">
+                No MCP servers enabled
+              </div>
+            )}
+          </div>
+        </ScrollArea>
       </PopoverContent>
     </Popover>
   );
