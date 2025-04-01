@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -14,25 +15,45 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { 
-  List, 
-  Grid, 
-  Columns, 
-  Image as ImageIcon,
   Folder,
   File,
   SortAsc,
   SortDesc,
   MoreVertical,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  FileText,
+  FileImage,
+  FileVideo,
+  FileAudio,
+  FileArchive,
+  FileCode,
+  FileSpreadsheet,
+  Presentation,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  SlidersHorizontal,
+  Eye,
+  EyeOff,
+  LayoutGrid,
+  List as ListIcon,
+  Columns as ColumnsIcon,
+  Image as GalleryIcon,
+  Volume2,
+  VolumeX,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 type ViewMode = 'list' | 'grid' | 'columns' | 'gallery';
 type SortOption = 'name' | 'type' | 'date' | 'size';
 type SortDirection = 'asc' | 'desc';
+type LabelAlignment = 'left' | 'center' | 'right';
 
 interface FileItem {
   name: string;
@@ -41,6 +62,14 @@ interface FileItem {
   size?: number;
   modified?: Date;
   icon?: string;
+  extension?: string;
+  preview?: string;
+  metadata?: {
+    dimensions?: string;
+    duration?: string;
+    pages?: number;
+    [key: string]: string | number | undefined;
+  };
 }
 
 interface DirectoryViewProps {
@@ -56,20 +85,107 @@ export function DirectoryView({ path, onFileSelect, className }: DirectoryViewPr
   const [searchQuery, setSearchQuery] = useState('');
   const [items, setItems] = useState<FileItem[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
+  const [iconSize, setIconSize] = useState(48);
+  const [labelAlignment, setLabelAlignment] = useState<LabelAlignment>('center');
+  const [showAlternatingRows, setShowAlternatingRows] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<FileItem | null>(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [currentColumn, setCurrentColumn] = useState(0);
+  const [showMetadata, setShowMetadata] = useState(true);
+  const [showQuickActions, setShowQuickActions] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Load directory contents when path changes
   useEffect(() => {
     loadDirectoryContents();
   }, [path]);
 
-  // Mock data - replace with actual API call
+  // Quick Look preview with spacebar
+  useHotkeys('space', (e: KeyboardEvent) => {
+    if (selectedItem) {
+      e.preventDefault();
+      setPreviewVisible(!previewVisible);
+    }
+  });
+
   const loadDirectoryContents = async () => {
-    // TODO: Implement actual directory loading
     const mockItems: FileItem[] = [
-      { name: 'Documents', type: 'directory', path: '/Documents' },
-      { name: 'Images', type: 'directory', path: '/Images' },
-      { name: 'report.pdf', type: 'file', path: '/report.pdf' },
-      { name: 'presentation.pptx', type: 'file', path: '/presentation.pptx' },
+      { 
+        name: 'Documents', 
+        type: 'directory', 
+        path: '/Documents',
+        metadata: { itemCount: 12 }
+      },
+      { 
+        name: 'Images', 
+        type: 'directory', 
+        path: '/Images',
+        metadata: { itemCount: 8 }
+      },
+      { 
+        name: 'report.pdf', 
+        type: 'file', 
+        path: '/report.pdf', 
+        extension: 'pdf',
+        metadata: { pages: 24, size: '2.4 MB' }
+      },
+      { 
+        name: 'presentation.pptx', 
+        type: 'file', 
+        path: '/presentation.pptx', 
+        extension: 'pptx',
+        metadata: { slides: 15, size: '1.8 MB' }
+      },
+      { 
+        name: 'document.docx', 
+        type: 'file', 
+        path: '/document.docx', 
+        extension: 'docx',
+        metadata: { pages: 8, size: '1.2 MB' }
+      },
+      { 
+        name: 'spreadsheet.xlsx', 
+        type: 'file', 
+        path: '/spreadsheet.xlsx', 
+        extension: 'xlsx',
+        metadata: { sheets: 3, size: '3.1 MB' }
+      },
+      { 
+        name: 'image.jpg', 
+        type: 'file', 
+        path: '/image.jpg', 
+        extension: 'jpg',
+        metadata: { dimensions: '1920x1080', size: '2.1 MB' }
+      },
+      { 
+        name: 'video.mp4', 
+        type: 'file', 
+        path: '/video.mp4', 
+        extension: 'mp4',
+        metadata: { duration: '2:30', size: '45 MB' }
+      },
+      { 
+        name: 'audio.mp3', 
+        type: 'file', 
+        path: '/audio.mp3', 
+        extension: 'mp3',
+        metadata: { duration: '3:45', size: '8.2 MB' }
+      },
+      { 
+        name: 'archive.zip', 
+        type: 'file', 
+        path: '/archive.zip', 
+        extension: 'zip',
+        metadata: { size: '156 MB' }
+      },
+      { 
+        name: 'code.ts', 
+        type: 'file', 
+        path: '/code.ts', 
+        extension: 'ts',
+        metadata: { lines: 245, size: '12 KB' }
+      },
     ];
     setItems(mockItems);
   };
@@ -83,6 +199,52 @@ export function DirectoryView({ path, onFileSelect, className }: DirectoryViewPr
     }
     setExpandedDirs(newExpanded);
     loadDirectoryContents();
+  };
+
+  const getFileIcon = (item: FileItem) => {
+    if (item.type === 'directory') {
+      return <Folder className="h-5 w-5 text-yellow-500" />;
+    }
+
+    const extension = item.extension?.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return <FileText className="h-5 w-5 text-red-500" />;
+      case 'docx':
+      case 'doc':
+        return <FileText className="h-5 w-5 text-blue-500" />;
+      case 'xlsx':
+      case 'xls':
+        return <FileSpreadsheet className="h-5 w-5 text-green-500" />;
+      case 'pptx':
+      case 'ppt':
+        return <Presentation className="h-5 w-5 text-orange-500" />;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return <FileImage className="h-5 w-5 text-purple-500" />;
+      case 'mp4':
+      case 'mov':
+      case 'avi':
+        return <FileVideo className="h-5 w-5 text-pink-500" />;
+      case 'mp3':
+      case 'wav':
+      case 'ogg':
+        return <FileAudio className="h-5 w-5 text-indigo-500" />;
+      case 'zip':
+      case 'rar':
+      case '7z':
+        return <FileArchive className="h-5 w-5 text-yellow-500" />;
+      case 'ts':
+      case 'js':
+      case 'py':
+      case 'java':
+      case 'cpp':
+        return <FileCode className="h-5 w-5 text-blue-500" />;
+      default:
+        return <File className="h-5 w-5 text-gray-500" />;
+    }
   };
 
   const sortItems = (items: FileItem[]) => {
@@ -113,43 +275,204 @@ export function DirectoryView({ path, onFileSelect, className }: DirectoryViewPr
 
   const sortedItems = sortItems(filteredItems);
 
-  const renderItem = (item: FileItem) => {
-    const isDirectory = item.type === 'directory';
-    const isExpanded = expandedDirs.has(item.path);
+  const handleItemClick = (item: FileItem, columnIndex?: number) => {
+    setSelectedItem(item);
+    if (item.type === 'directory') {
+      if (columnIndex !== undefined) {
+        setCurrentColumn(columnIndex + 1);
+      }
+      toggleDirectory(item.path);
+    } else {
+      onFileSelect(item.path, false);
+    }
+  };
+
+  const renderIconViewItem = (item: FileItem) => (
+    <div
+      key={item.path}
+      className={cn(
+        "group relative rounded-lg transition-all duration-200",
+        "flex flex-col items-center p-4 hover:bg-accent/50",
+        selectedItem?.path === item.path && "bg-accent"
+      )}
+      onClick={() => handleItemClick(item)}
+      style={{ width: iconSize * 2, height: iconSize * 2 }}
+    >
+      <div className="flex items-center justify-center mb-2" style={{ width: iconSize, height: iconSize }}>
+        {getFileIcon(item)}
+      </div>
+      <div className={cn(
+        "text-sm text-center",
+        labelAlignment === 'left' && "text-left",
+        labelAlignment === 'right' && "text-right"
+      )}>
+        <div className="truncate text-sm font-medium">{item.name}</div>
+        {!item.type && item.extension && (
+          <div className="text-xs text-muted-foreground">{item.extension.toUpperCase()}</div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderListViewItem = (item: FileItem) => (
+    <div
+      key={item.path}
+      className={cn(
+        "group relative flex items-center gap-2 p-2 rounded-lg transition-all duration-200",
+        "hover:bg-accent/50",
+        selectedItem?.path === item.path && "bg-accent",
+        showAlternatingRows && "even:bg-accent/20"
+      )}
+      onClick={() => handleItemClick(item)}
+    >
+      {item.type === 'directory' ? (
+        <>
+          {expandedDirs.has(item.path) ? 
+            <ChevronDown className="h-4 w-4" /> : 
+            <ChevronRight className="h-4 w-4" />
+          }
+          <Folder className="h-5 w-5 text-yellow-500" />
+        </>
+      ) : (
+        <div className="w-4 h-4">{getFileIcon(item)}</div>
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="truncate text-sm font-medium">{item.name}</div>
+        {item.metadata && (
+          <div className="text-xs text-muted-foreground">
+            {Object.entries(item.metadata).map(([key, value]) => (
+              <span key={key} className="mr-2">{key}: {value}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderColumnViewItem = (item: FileItem, columnIndex: number) => (
+    <div
+      key={item.path}
+      className={cn(
+        "group relative flex items-center gap-2 p-2 rounded-lg transition-all duration-200",
+        "hover:bg-accent/50",
+        selectedItem?.path === item.path && "bg-accent",
+        columnIndex === currentColumn && "bg-accent/30"
+      )}
+      onClick={() => handleItemClick(item, columnIndex)}
+    >
+      {item.type === 'directory' ? (
+        <>
+          {expandedDirs.has(item.path) ? 
+            <ChevronDown className="h-4 w-4" /> : 
+            <ChevronRight className="h-4 w-4" />
+          }
+          <Folder className="h-5 w-5 text-yellow-500" />
+        </>
+      ) : (
+        <div className="w-4 h-4">{getFileIcon(item)}</div>
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="truncate text-sm font-medium">{item.name}</div>
+        {item.metadata && (
+          <div className="text-xs text-muted-foreground">
+            {Object.entries(item.metadata).map(([key, value]) => (
+              <span key={key} className="mr-2">{key}: {value}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderGalleryViewItem = (item: FileItem) => (
+    <div
+      key={item.path}
+      className={cn(
+        "group relative rounded-lg transition-all duration-200",
+        "flex flex-col items-center p-4 hover:bg-accent/50",
+        selectedItem?.path === item.path && "bg-accent"
+      )}
+      onClick={() => handleItemClick(item)}
+    >
+      <div className="relative w-48 h-48 mb-2 bg-accent/20 rounded-lg overflow-hidden">
+        {item.type === 'file' && item.extension && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            {getFileIcon(item)}
+          </div>
+        )}
+      </div>
+      <div className="text-center">
+        <div className="truncate text-sm font-medium">{item.name}</div>
+        {item.metadata && (
+          <div className="text-xs text-muted-foreground">
+            {Object.entries(item.metadata).map(([key, value]) => (
+              <span key={key} className="mr-2">{key}: {value}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderPreview = () => {
+    if (!selectedItem || !previewVisible) return null;
 
     return (
-      <div
-        key={item.path}
-        className={cn(
-          "flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer",
-          viewMode === 'grid' && "flex-col text-center",
-          viewMode === 'gallery' && "flex-col text-center",
-          className
-        )}
-        onClick={() => {
-          if (isDirectory) {
-            toggleDirectory(item.path);
-          } else {
-            onFileSelect(item.path, false); // Pass false to indicate it's a file
-          }
-        }}
-      >
-        {isDirectory ? (
-          <>
-            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            <Folder className="h-5 w-5 text-yellow-500" />
-          </>
-        ) : (
-          <File className="h-5 w-5 text-blue-500" />
-        )}
-        <span className="truncate">{item.name}</span>
+      <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50">
+        <div className="flex h-full">
+          <div className="flex-1 p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-base font-semibold">{selectedItem.name}</h2>
+              <Button variant="ghost" size="icon" onClick={() => setPreviewVisible(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto">
+              {selectedItem.type === 'file' && (
+                <div className="space-y-4">
+                  {selectedItem.extension === 'mp4' && (
+                    <div className="relative">
+                      <video
+                        ref={videoRef}
+                        className="w-full rounded-lg"
+                        controls
+                        muted={muted}
+                        onPlay={() => setMuted(false)}
+                        onPause={() => setMuted(true)}
+                      />
+                      <div className="absolute bottom-4 right-4 flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          onClick={() => setMuted(!muted)}
+                        >
+                          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {selectedItem.metadata && (
+                    <div className="grid grid-cols-2 gap-4">
+                      {Object.entries(selectedItem.metadata).map(([key, value]) => (
+                        <div key={key} className="space-y-1">
+                          <div className="text-sm font-medium">{key}</div>
+                          <div className="text-xs text-muted-foreground">{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      <div className="flex items-center gap-2 p-2 border-b">
+      <div className="flex items-center gap-2 p-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex-1">
           <Input
             placeholder="Search files..."
@@ -173,45 +496,103 @@ export function DirectoryView({ path, onFileSelect, className }: DirectoryViewPr
           variant="ghost"
           size="icon"
           onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+          className="h-8 w-8"
         >
           {sortDirection === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="h-8 w-8">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem onClick={() => setViewMode('list')}>
-              <List className="h-4 w-4 mr-2" />
+              <ListIcon className="h-4 w-4 mr-2" />
               List View
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setViewMode('grid')}>
-              <Grid className="h-4 w-4 mr-2" />
+              <LayoutGrid className="h-4 w-4 mr-2" />
               Grid View
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setViewMode('columns')}>
-              <Columns className="h-4 w-4 mr-2" />
+              <ColumnsIcon className="h-4 w-4 mr-2" />
               Columns View
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setViewMode('gallery')}>
-              <ImageIcon className="h-4 w-4 mr-2" />
+              <GalleryIcon className="h-4 w-4 mr-2" />
               Gallery View
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowAlternatingRows(!showAlternatingRows)}>
+              <div className="flex items-center">
+                <div className="h-4 w-4 mr-2 border rounded" />
+                Alternating Rows
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowMetadata(!showMetadata)}>
+              {showMetadata ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
+              Show Metadata
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowQuickActions(!showQuickActions)}>
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              Quick Actions
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5">
+              <div className="text-sm font-medium mb-2">Icon Size</div>
+              <Slider
+                value={[iconSize]}
+                onValueChange={([value]) => setIconSize(value)}
+                min={24}
+                max={96}
+                step={8}
+                className="w-full"
+              />
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setLabelAlignment('left')}>
+              <AlignLeft className="h-4 w-4 mr-2" />
+              Left Align Labels
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLabelAlignment('center')}>
+              <AlignCenter className="h-4 w-4 mr-2" />
+              Center Labels
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLabelAlignment('right')}>
+              <AlignRight className="h-4 w-4 mr-2" />
+              Right Align Labels
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
       <ScrollArea className="flex-1">
         <div className={cn(
-          "p-2",
-          viewMode === 'grid' && "grid grid-cols-4 gap-2",
-          viewMode === 'gallery' && "grid grid-cols-3 gap-4",
-          viewMode === 'columns' && "grid grid-cols-3 gap-2"
+          "p-4",
+          viewMode === 'list' && "space-y-1",
+          viewMode === 'grid' && "grid gap-4",
+          viewMode === 'gallery' && "grid grid-cols-3 gap-6",
+          viewMode === 'columns' && "grid grid-cols-3 gap-4"
         )}>
-          {sortedItems.map(renderItem)}
+          {viewMode === 'list' && sortedItems.map(renderListViewItem)}
+          {viewMode === 'grid' && (
+            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(auto-fill, ${iconSize * 2}px)` }}>
+              {sortedItems.map(renderIconViewItem)}
+            </div>
+          )}
+          {viewMode === 'columns' && (
+            <div className="flex gap-4">
+              {Array.from({ length: currentColumn + 1 }).map((_, index) => (
+                <div key={index} className="flex-1">
+                  {sortedItems.map(item => renderColumnViewItem(item, index))}
+                </div>
+              ))}
+            </div>
+          )}
+          {viewMode === 'gallery' && sortedItems.map(renderGalleryViewItem)}
         </div>
       </ScrollArea>
+      {renderPreview()}
     </div>
   );
 } 
