@@ -2,9 +2,8 @@
 
 import { useState, useRef, useCallback, useContext, useEffect, createContext } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Settings, File, Folder, Trash2, GitCompare, History, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Clock, Upload, Download, FileText, FilePlus, MoreHorizontal, Shield, RefreshCw, Filter } from "lucide-react";
+import { File, Folder, GitCompare, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Upload, Download, FileText, Shield, RefreshCw, Filter } from "lucide-react";
 import { useDocumentStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,7 +13,7 @@ import { toast } from "@/components/ui/use-toast";
 import { TemplateDialog } from "./template-dialog";
 import { VaultIntegrityDialog } from "./vault-integrity-dialog";
 import { FilterDialog, FilterConfig } from "./filter-dialog";
-import { filterDocuments, shouldShowFolder, getDocumentPath, matchesPatterns } from "@/lib/filter-utils";
+import { filterDocuments, shouldShowFolder, matchesPatterns } from "@/lib/filter-utils";
 import { loadFilterFromServer } from "@/lib/api-service";
 import { fuzzySearch } from "@/lib/search-utils";
 import {
@@ -35,21 +34,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ComparisonModeContext } from "@/contexts/ComparisonModeContext";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { Document } from "@/lib/store";
 import { CompositionComposer } from "./composition-composer";
+import { DirectoryView } from './directory-view';
 
 // Create a context for the DocumentNavigation props
 interface DocumentNavigationContextProps {
   onCompareDocuments?: (doc1Id: string, doc2Id: string) => void;
 }
 
+interface FileItem {
+  name: string;
+  type: 'file' | 'directory';
+  path: string;
+  children?: FileItem[];
+}
+
 const DocumentNavigationContext = createContext<DocumentNavigationContextProps>({});
 
 interface DocumentNavigationProps {
   onCompareDocuments?: (doc1Id: string, doc2Id: string) => void;
+  onFileSelect: (path: string, isDirectory: boolean) => void;
+  className?: string;
 }
 
 interface FolderItemProps {
@@ -59,9 +67,10 @@ interface FolderItemProps {
   filteredDocuments: Document[];
   searchQuery: string;
   filterConfig: FilterConfig;
+  onFileSelect: (path: string, isDirectory: boolean) => void;
 }
 
-function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQuery, filterConfig }: FolderItemProps) {
+function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQuery, filterConfig, onFileSelect }: FolderItemProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(folder.name);
@@ -264,7 +273,10 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
               "flex-1 text-left text-xs truncate",
               isPartiallySelected && "font-medium text-primary"
             )}
-            onClick={() => selectFolder(folder.id)}
+            onClick={() => {
+              selectFolder(folder.id);
+              onFileSelect(folder.id, true);
+            }}
           >
             {folder.name}
           </button>
@@ -380,6 +392,7 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
               filteredDocuments={filteredDocuments}
               searchQuery={searchQuery}
               filterConfig={filterConfig}
+              onFileSelect={onFileSelect}
             />
           ))}
           
@@ -389,6 +402,7 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
               document={doc}
               level={level + 1}
               filteredDocuments={filteredDocuments}
+              onFileSelect={onFileSelect}
             />
           ))}
         </>
@@ -418,9 +432,10 @@ interface DocumentItemProps {
   document: { id: string; name: string; folderId: string | null };
   level: number;
   filteredDocuments?: Document[];
+  onFileSelect: (path: string, isDirectory: boolean) => void;
 }
 
-function DocumentItem({ document, level, filteredDocuments }: DocumentItemProps) {
+function DocumentItem({ document, level, filteredDocuments, onFileSelect }: DocumentItemProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(document.name);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
@@ -524,6 +539,7 @@ function DocumentItem({ document, level, filteredDocuments }: DocumentItemProps)
             onClick={() => {
               if (canSelect) {
                 handleSelectDocument();
+                onFileSelect(document.id, false);
               }
             }}
           >
@@ -692,7 +708,7 @@ function DocumentItem({ document, level, filteredDocuments }: DocumentItemProps)
   );
 }
 
-export default function DocumentNavigation({ onCompareDocuments }: DocumentNavigationProps) {
+export function DocumentNavigation({ onCompareDocuments, onFileSelect, className }: DocumentNavigationProps) {
   const router = useRouter();
   const { 
     documents, 
@@ -727,6 +743,9 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filterConfig, setFilterConfig] = useState<FilterConfig>({ enabled: false, patterns: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [items, setItems] = useState<FileItem[]>([]);
 
   // Apply search filter with fuzzy search
   const searchFilteredDocuments = searchQuery.trim() 
@@ -1133,9 +1152,90 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
     comparisonDocumentIds.includes(doc.id)
   );
 
+  const loadDirectoryContents = async (dirPath: string) => {
+    // TODO: Implement actual directory loading
+    const mockItems: FileItem[] = [
+      { 
+        name: 'Documents', 
+        type: 'directory', 
+        path: '/Documents',
+        children: [
+          { name: 'Work', type: 'directory', path: '/Documents/Work' },
+          { name: 'Personal', type: 'directory', path: '/Documents/Personal' }
+        ]
+      },
+      { 
+        name: 'Images', 
+        type: 'directory', 
+        path: '/Images',
+        children: [
+          { name: 'Photos', type: 'directory', path: '/Images/Photos' },
+          { name: 'Screenshots', type: 'directory', path: '/Images/Screenshots' }
+        ]
+      }
+    ];
+    setItems(mockItems);
+  };
+
+  const toggleDirectory = (dirPath: string) => {
+    const newExpanded = new Set(expandedDirs);
+    if (newExpanded.has(dirPath)) {
+      newExpanded.delete(dirPath);
+    } else {
+      newExpanded.add(dirPath);
+    }
+    setExpandedDirs(newExpanded);
+    setSelectedPath(dirPath);
+    loadDirectoryContents(dirPath);
+  };
+
+  const renderItem = (item: FileItem, level: number = 0) => {
+    const isDirectory = item.type === 'directory';
+    const isExpanded = expandedDirs.has(item.path);
+    const isSelected = selectedPath === item.path;
+
+    return (
+      <div key={item.path}>
+        <div
+          className={cn(
+            "flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer",
+            selectedPath === item.path && "bg-accent",
+            className
+          )}
+          style={{ paddingLeft: `${level * 12 + 8}px` }}
+          onClick={() => {
+            if (isDirectory) {
+              toggleDirectory(item.path);
+            }
+            onFileSelect(item.path, isDirectory);
+          }}
+        >
+          {isDirectory ? (
+            <>
+              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <Folder className="h-5 w-5 text-yellow-500" />
+            </>
+          ) : (
+            <File className="h-5 w-5 text-blue-500" />
+          )}
+          <span className="truncate">{item.name}</span>
+        </div>
+        {isDirectory && isExpanded && item.children && (
+          <div>
+            {item.children.map(child => renderItem(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const filteredItems = items.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <DocumentNavigationContext.Provider value={{ onCompareDocuments }}>
-      <div className="h-full flex flex-col">
+      <div className={cn("flex flex-col h-full", className)}>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1">
             <h2 className="text-sm font-medium">Documents</h2>
@@ -1306,6 +1406,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
               filteredDocuments={filteredDocuments}
               searchQuery={searchQuery}
               filterConfig={filterConfig}
+              onFileSelect={onFileSelect}
             />
           ))}
           
@@ -1315,6 +1416,7 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
               document={doc}
               level={0}
               filteredDocuments={filteredDocuments}
+              onFileSelect={onFileSelect}
             />
           ))}
         </div>
@@ -1337,6 +1439,8 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
               accept=".md,.markdown,.txt,.zip"
               multiple
               className="hidden"
+              aria-label="Import documents"
+              title="Import documents"
             />
             <Button
               variant="ghost"
@@ -1411,6 +1515,16 @@ export default function DocumentNavigation({ onCompareDocuments }: DocumentNavig
           onOpenChange={setShowFilterDialog}
           onFilterChange={handleFilterChange}
         />
+
+        {selectedPath && (
+          <div className="border-t">
+            <DirectoryView
+              path={selectedPath}
+              onFileSelect={(path, isDirectory) => onFileSelect(path, isDirectory)}
+              className="h-[300px]"
+            />
+          </div>
+        )}
       </div>
     </DocumentNavigationContext.Provider>
   );

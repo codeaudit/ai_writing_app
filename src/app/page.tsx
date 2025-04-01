@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import DocumentNavigation from "@/components/document-navigation";
+import { DocumentNavigation } from "@/components/document-navigation";
 import AnnotationsNavigator from "@/components/annotations-navigator";
 import MarkdownEditor from "@/components/markdown-editor";
 import AIComposer from "@/components/ai-composer";
@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AboutSplash } from "@/components/about-splash";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { CardTitle } from "@/components/ui/card";
+import { DirectoryView } from "@/components/directory-view";
 
 // Define layout constants
 const LAYOUT_STORAGE_KEY = "editor-layout-config";
@@ -54,6 +55,8 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("documents");
   const [showAboutSplash, setShowAboutSplash] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [isDirectoryView, setIsDirectoryView] = useState(false);
   const editorRef = useRef<{ 
     compareDocuments: (doc1Id: string, doc2Id: string) => void;
     scrollToAnnotation?: (annotation: Annotation) => void;
@@ -488,7 +491,13 @@ export default function Home() {
                       </div>
                       <TabsContent value="documents" className="p-0 h-[calc(100%-40px)]">
                         <div className="p-4 h-full flex flex-col overflow-auto">
-                          <DocumentNavigation onCompareDocuments={handleCompareDocuments} />
+                          <DocumentNavigation
+                            onCompareDocuments={handleCompareDocuments}
+                            onFileSelect={(path, isDirectory) => {
+                              setSelectedPath(path);
+                              setIsDirectoryView(isDirectory);
+                            }}
+                          />
                         </div>
                       </TabsContent>
                       <TabsContent value="annotations" className="p-0 h-[calc(100%-40px)]">
@@ -510,13 +519,23 @@ export default function Home() {
             </>
           )}
           
-          {/* Middle Panel - Markdown Editor */}
+          {/* Middle Panel - Markdown Editor or Directory View */}
           <ResizablePanel defaultSize={100 - (layoutConfig.leftPanelVisible ? effectiveLeftPanelSize : 0) - (layoutConfig.rightPanelVisible ? effectiveRightPanelSize : 0)}>
             <div className={cn(
               "p-4 h-full overflow-auto",
               isFullscreen && "px-8"
             )}>
-              <MarkdownEditor ref={editorRef} />
+              {isDirectoryView ? (
+                <DirectoryView 
+                  path={selectedPath || ''} 
+                  onFileSelect={(path, isDirectory) => {
+                    setSelectedPath(path);
+                    setIsDirectoryView(isDirectory);
+                  }}
+                />
+              ) : (
+                <MarkdownEditor ref={editorRef} />
+              )}
             </div>
           </ResizablePanel>
           
