@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { 
-  Folder,
+  Folder as FolderIcon,
   File,
   SortAsc,
   SortDesc,
@@ -49,6 +49,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { useDocumentStore } from '@/lib/store';
+import { getDocumentPath } from '@/lib/filter-utils';
+import type { Document, Folder } from '@/lib/store';
 
 type ViewMode = 'list' | 'grid' | 'columns' | 'gallery';
 type SortOption = 'name' | 'type' | 'date' | 'size';
@@ -78,7 +81,24 @@ interface DirectoryViewProps {
   className?: string;
 }
 
+// Get the full path for a folder
+const getFolderPath = (folder: Folder, folders: Folder[]): string => {
+  const path: string[] = [folder.name];
+  let currentFolderId = folder.parentId;
+  
+  while (currentFolderId) {
+    const parentFolder = folders.find(f => f.id === currentFolderId);
+    if (!parentFolder) break;
+    
+    path.unshift(parentFolder.name);
+    currentFolderId = parentFolder.parentId;
+  }
+  
+  return path.join('/');
+};
+
 export function DirectoryView({ path, onFileSelect, className }: DirectoryViewProps) {
+  const { documents, folders, loadData } = useDocumentStore();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [sortOption, setSortOption] = useState<SortOption>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -96,10 +116,15 @@ export function DirectoryView({ path, onFileSelect, className }: DirectoryViewPr
   const [muted, setMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Load data when component mounts
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   // Load directory contents when path changes
   useEffect(() => {
     loadDirectoryContents();
-  }, [path]);
+  }, [path, documents, folders]);
 
   // Quick Look preview with spacebar
   useHotkeys('space', (e: KeyboardEvent) => {
@@ -110,84 +135,47 @@ export function DirectoryView({ path, onFileSelect, className }: DirectoryViewPr
   });
 
   const loadDirectoryContents = async () => {
-    const mockItems: FileItem[] = [
-      { 
-        name: 'Documents', 
-        type: 'directory', 
-        path: '/Documents',
-        metadata: { itemCount: 12 }
-      },
-      { 
-        name: 'Images', 
-        type: 'directory', 
-        path: '/Images',
-        metadata: { itemCount: 8 }
-      },
-      { 
-        name: 'report.pdf', 
-        type: 'file', 
-        path: '/report.pdf', 
-        extension: 'pdf',
-        metadata: { pages: 24, size: '2.4 MB' }
-      },
-      { 
-        name: 'presentation.pptx', 
-        type: 'file', 
-        path: '/presentation.pptx', 
-        extension: 'pptx',
-        metadata: { slides: 15, size: '1.8 MB' }
-      },
-      { 
-        name: 'document.docx', 
-        type: 'file', 
-        path: '/document.docx', 
-        extension: 'docx',
-        metadata: { pages: 8, size: '1.2 MB' }
-      },
-      { 
-        name: 'spreadsheet.xlsx', 
-        type: 'file', 
-        path: '/spreadsheet.xlsx', 
-        extension: 'xlsx',
-        metadata: { sheets: 3, size: '3.1 MB' }
-      },
-      { 
-        name: 'image.jpg', 
-        type: 'file', 
-        path: '/image.jpg', 
-        extension: 'jpg',
-        metadata: { dimensions: '1920x1080', size: '2.1 MB' }
-      },
-      { 
-        name: 'video.mp4', 
-        type: 'file', 
-        path: '/video.mp4', 
-        extension: 'mp4',
-        metadata: { duration: '2:30', size: '45 MB' }
-      },
-      { 
-        name: 'audio.mp3', 
-        type: 'file', 
-        path: '/audio.mp3', 
-        extension: 'mp3',
-        metadata: { duration: '3:45', size: '8.2 MB' }
-      },
-      { 
-        name: 'archive.zip', 
-        type: 'file', 
-        path: '/archive.zip', 
-        extension: 'zip',
-        metadata: { size: '156 MB' }
-      },
-      { 
-        name: 'code.ts', 
-        type: 'file', 
-        path: '/code.ts', 
-        extension: 'ts',
-        metadata: { lines: 245, size: '12 KB' }
-      },
-    ];
-    setItems(mockItems);
+    // Get the current directory path from the path prop
+    const currentPath = path || '/';
+
+    // If the path is a folder ID, find the folder
+    const currentFolder = folders.find((folder: Folder) => folder.id === currentPath);
+
+    // Filter documents and folders based on the current folder ID
+    const currentDocuments = documents.filter((doc: Document) => {
+      return doc.folderId === currentFolder?.id;
+    });
+
+    const currentFolders = folders.filter((folder: Folder) => {
+      return folder.parentId === currentFolder?.id;
+    });
+
+    // Convert documents and folders to FileItems
+    const documentItems: FileItem[] = currentDocuments.map((doc: Document) => ({
+      name: doc.name,
+      type: 'file' as const,
+      path: doc.id,
+      modified: new Date(doc.updatedAt),
+      extension: doc.name.split('.').pop() || '',
+      metadata: {
+        lastModified: new Date(doc.updatedAt).toLocaleString(),
+        versions: doc.versions.length
+      }
+    }));
+
+    const folderItems: FileItem[] = currentFolders.map((folder: Folder) => ({
+      name: folder.name,
+      type: 'directory' as const,
+      path: folder.id,
+      modified: new Date(folder.createdAt),
+      metadata: {
+        itemCount: documents.filter((doc: Document) => doc.folderId === folder.id).length
+      }
+    }));
+
+    // Combine and sort items
+    const allItems = [...documentItems, ...folderItems];
+    setItems(allItems);
   };
 
   const toggleDirectory = (dirPath: string) => {
@@ -203,7 +191,7 @@ export function DirectoryView({ path, onFileSelect, className }: DirectoryViewPr
 
   const getFileIcon = (item: FileItem) => {
     if (item.type === 'directory') {
-      return <Folder className="h-5 w-5 text-yellow-500" />;
+      return <FolderIcon className="h-5 w-5 text-yellow-500" />;
     }
 
     const extension = item.extension?.toLowerCase();
@@ -331,7 +319,7 @@ export function DirectoryView({ path, onFileSelect, className }: DirectoryViewPr
             <ChevronDown className="h-4 w-4" /> : 
             <ChevronRight className="h-4 w-4" />
           }
-          <Folder className="h-5 w-5 text-yellow-500" />
+          <FolderIcon className="h-5 w-5 text-yellow-500" />
         </>
       ) : (
         <div className="w-4 h-4">{getFileIcon(item)}</div>
@@ -366,7 +354,7 @@ export function DirectoryView({ path, onFileSelect, className }: DirectoryViewPr
             <ChevronDown className="h-4 w-4" /> : 
             <ChevronRight className="h-4 w-4" />
           }
-          <Folder className="h-5 w-5 text-yellow-500" />
+          <FolderIcon className="h-5 w-5 text-yellow-500" />
         </>
       ) : (
         <div className="w-4 h-4">{getFileIcon(item)}</div>

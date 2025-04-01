@@ -1186,7 +1186,6 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     }
     setExpandedDirs(newExpanded);
     setSelectedPath(dirPath);
-    loadDirectoryContents(dirPath);
   };
 
   const renderItem = (item: FileItem, level: number = 0) => {
