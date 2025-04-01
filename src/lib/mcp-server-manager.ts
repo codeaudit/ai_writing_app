@@ -12,10 +12,11 @@ if (typeof global !== 'undefined' && typeof WebSocket === 'undefined') {
   try {
     logger.info('Setting up WebSocket polyfill for server environment');
     
-    // Use a safer approach to avoid require() and issues with dynamic imports
-    import('ws').then(ws => {
-      // @ts-expect-error - TypeScript doesn't understand this global assignment
-      global.WebSocket = ws.default || ws;
+    // Use dynamic import for the WebSocket module
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    import('ws').then((ws: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (global as any).WebSocket = ws.default || ws;
       logger.info('WebSocket polyfill set up successfully');
     }).catch(error => {
       logger.error('Failed to import WebSocket module:', error);
@@ -73,36 +74,123 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
     // Create a map of transports
     const transports: Record<string, ReturnType<typeof createTransport>> = {};
     
-    // Add the Exa server transport
-    const EXA_API_KEY = process.env.EXA_API_KEY || '';
-    const EXA_SERVER_URL = process.env.EXA_SERVER_URL || 'https://server.smithery.ai/exa';
+    // Clear the existing enabledServers array
+    enabledServers.length = 0;
     
-    if (EXA_API_KEY) {
-      // Ensure the URL uses the WebSocket protocol
-      const wsUrl = EXA_SERVER_URL.replace(/^https?:\/\//, 'wss://');
+    try {
+      // Load servers from the settings file
+      const { loadMCPServersFromFile } = await import('./mcp-server-files');
+      const installedServers = await loadMCPServersFromFile();
       
-      logger.always(`Converting URL from ${EXA_SERVER_URL} to WebSocket URL: ${wsUrl}`);
+      logger.info(`Found ${installedServers.length} installed MCP servers`);
       
-      const exaTransport = createTransport(wsUrl, {
-        exaApiKey: EXA_API_KEY,
-        apiKey: SMITHERY_API_KEY
-      });
+      // Filter for enabled servers only
+      const enabledMCPServers = installedServers.filter(server => server.enabled);
       
-      transports.exa = exaTransport;
-      logger.info(`Added Exa transport for ${wsUrl}`);
+      logger.info(`${enabledMCPServers.length} servers are enabled`);
       
-      // Add to enabled servers list for UI
-      enabledServers.push({
-        qualifiedName: 'exa',
-        name: 'Exa Search',
-        url: EXA_SERVER_URL,
-        enabled: true,
-        isDeployed: true,
-        description: 'Fast, intelligent web search and crawling',
-        config: { apiKey: EXA_API_KEY }
-      });
-    } else {
-      logger.warn('No EXA_API_KEY found, Exa search will not be available');
+      if (enabledMCPServers.length === 0) {
+        logger.warn('No enabled MCP servers found');
+      }
+      
+      // Process each enabled server
+      for (const server of enabledMCPServers) {
+        try {
+          const { qualifiedName, config, url: serverUrl, name } = server;
+          
+          // Skip if missing essential configuration
+          if (!qualifiedName || !config) {
+            logger.warn(`Skipping server with invalid configuration: ${qualifiedName || 'unknown'}`);
+            continue;
+          }
+          
+          // Get the API key for this server
+          const apiKey = config.apiKey || '';
+          if (!apiKey) {
+            logger.warn(`No API key for server ${qualifiedName}, skipping`);
+            continue;
+          }
+          
+          // Get the server URL
+          const serverUrlStr = typeof serverUrl === 'string' ? serverUrl : '';
+          const configUrlStr = typeof config.url === 'string' ? config.url : '';
+          const baseUrl = serverUrlStr || configUrlStr || `https://server.smithery.ai/${qualifiedName}`;
+          
+          // Ensure the URL uses the WebSocket protocol
+          const wsUrl = baseUrl.replace(/^https?:\/\//, 'wss://');
+          
+          logger.info(`Setting up transport for ${qualifiedName} at ${wsUrl}`);
+          
+          // Create transport with appropriate configuration
+          const transport = createTransport(wsUrl, {
+            apiKey: SMITHERY_API_KEY,
+            // Add the server-specific API key with the appropriate name
+            // The key name varies depending on the server type
+            ...(qualifiedName === 'exa' 
+              ? { exaApiKey: apiKey }  // Special case for Exa
+              : { [qualifiedName + 'ApiKey']: apiKey })  // General case for other servers
+          });
+          
+          // Add to transports map
+          transports[qualifiedName] = transport;
+          
+          // Add to enabled servers list for UI
+          enabledServers.push({
+            qualifiedName,
+            name: name || qualifiedName,
+            url: baseUrl,
+            enabled: true,
+            isDeployed: true,
+            description: server.description || `MCP Server: ${qualifiedName}`,
+            config
+          });
+          
+          logger.info(`Added ${qualifiedName} transport`);
+        } catch (serverError) {
+          logger.error(`Error setting up server ${server.qualifiedName}:`, serverError);
+          // Continue with other servers
+        }
+      }
+    } catch (loadError) {
+      logger.error('Error loading MCP servers from settings:', loadError);
+      // Continue with any hardcoded fallbacks if needed
+    }
+    
+    // Fallback to environment variable configuration if no servers were loaded
+    if (Object.keys(transports).length === 0) {
+      logger.warn('No servers loaded from settings, checking environment variables as fallback');
+      
+      // Add the Exa server transport using environment variables
+      const EXA_API_KEY = process.env.EXA_API_KEY || '';
+      const EXA_SERVER_URL = process.env.EXA_SERVER_URL || 'https://server.smithery.ai/exa';
+      
+      if (EXA_API_KEY) {
+        // Ensure the URL uses the WebSocket protocol
+        const wsUrl = EXA_SERVER_URL.replace(/^https?:\/\//, 'wss://');
+        
+        logger.always(`Fallback: Using Exa from environment - ${EXA_SERVER_URL} to WebSocket URL: ${wsUrl}`);
+        
+        const exaTransport = createTransport(wsUrl, {
+          exaApiKey: EXA_API_KEY,
+          apiKey: SMITHERY_API_KEY
+        });
+        
+        transports.exa = exaTransport;
+        logger.info(`Added Exa transport for ${wsUrl}`);
+        
+        // Add to enabled servers list for UI
+        enabledServers.push({
+          qualifiedName: 'exa',
+          name: 'Exa Search',
+          url: EXA_SERVER_URL,
+          enabled: true,
+          isDeployed: true,
+          description: 'Fast, intelligent web search and crawling',
+          config: { apiKey: EXA_API_KEY }
+        });
+      } else {
+        logger.warn('No EXA_API_KEY found in environment, Exa search will not be available');
+      }
     }
     
     // Connect to all transports
