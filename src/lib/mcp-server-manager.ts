@@ -182,4 +182,53 @@ export async function getAnthropicAdapter(): Promise<AnthropicChatAdapter | null
   
   logger.debug(`getAnthropicAdapter called, adapter ${anthropicAdapter ? 'exists' : 'is null'}`);
   return anthropicAdapter;
+}
+
+/**
+ * Update a server's enabled status
+ */
+export async function updateMCPServerStatus(
+  qualifiedName: string,
+  enabled: boolean
+): Promise<boolean> {
+  try {
+    logger.debug(`Updating MCP server status: ${qualifiedName} to ${enabled ? 'enabled' : 'disabled'}`);
+    
+    // Call the API route to update the server status
+    const response = await fetch('/api/mcp-servers', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        qualifiedName,
+        enabled
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      logger.error(`Failed to update server status: ${errorData.error}`);
+      return false;
+    }
+    
+    // Update the local enabledServers array
+    const serverIndex = enabledServers.findIndex(s => s.qualifiedName === qualifiedName);
+    
+    if (serverIndex >= 0) {
+      enabledServers[serverIndex].enabled = enabled;
+      logger.debug(`Updated local state for ${qualifiedName}`);
+    }
+    
+    // Force re-initialize if server state changes
+    if (mcpClient && enabled !== (serverIndex >= 0 ? enabledServers[serverIndex].enabled : false)) {
+      logger.debug('Server state changed, will re-initialize on next request');
+      mcpClient = null;
+    }
+    
+    return true;
+  } catch (error) {
+    logger.error('Error updating MCP server status:', error);
+    return false;
+  }
 } 

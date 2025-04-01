@@ -221,14 +221,86 @@ async function getMCPServerTools(adapter: OpenAIChatAdapter | AnthropicChatAdapt
 }
 
 // Helper function to safely call adapter tools with proper error handling
-async function safeCallAdapterTool(adapter: any, response: any): Promise<any[]> {
+async function safeCallAdapterTool<T>(adapter: OpenAIChatAdapter | AnthropicChatAdapter, response: T): Promise<Record<string, unknown>[]> {
   try {
-    // @ts-expect-error: SDK version mismatch requires ignoring type checking
-    const toolMessages = await adapter.callTool(response);
+    // Cast to any to deal with SDK version mismatches
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toolMessages = await (adapter as any).callTool(response);
     return toolMessages || [];
   } catch (error) {
     logger.error('Error calling adapter tool:', error);
     return [];
+  }
+}
+
+/**
+ * Clean and format tool response data for better readability
+ */
+function cleanToolResponse(toolResponseText: string): string {
+  try {
+    // Check if it might be JSON
+    if (toolResponseText.trim().startsWith('[') || toolResponseText.trim().startsWith('{')) {
+      // Try to parse the JSON
+      const parsed = JSON.parse(toolResponseText);
+      
+      // Handle search results specifically
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type === 'text') {
+        // This looks like a search result from Exa or similar tool
+        try {
+          // Try to parse the inner text content which is often JSON
+          const innerContent = JSON.parse(parsed[0].text);
+          
+          // Format search results in a more readable way
+          if (innerContent.results && Array.isArray(innerContent.results)) {
+            let formattedResults = `Found ${innerContent.results.length} results:\n\n`;
+            
+            // Use proper interface for search results
+            interface SearchResult {
+              title: string;
+              url: string;
+              text?: string;
+              score?: number;
+              publishedDate?: string;
+              [key: string]: unknown;
+            }
+            
+            innerContent.results.forEach((result: SearchResult, index: number) => {
+              formattedResults += `${index + 1}. ${result.title}\n`;
+              formattedResults += `   URL: ${result.url}\n`;
+              
+              // Add a short snippet of text if available
+              if (result.text) {
+                const snippet = result.text.substring(0, 200).replace(/\n\s+\n/g, '\n').trim();
+                formattedResults += `   Snippet: ${snippet}${result.text.length > 200 ? '...' : ''}\n`;
+              }
+              
+              formattedResults += '\n';
+            });
+            
+            // Add query information if available
+            if (innerContent.autopromptString) {
+              formattedResults = `Search query: "${innerContent.autopromptString}"\n\n${formattedResults}`;
+            }
+            
+            return formattedResults;
+          }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (_error) {
+          // If inner parsing fails, just use the text directly
+          return parsed[0].text;
+        }
+      }
+      
+      // For other JSON, just pretty print it
+      return JSON.stringify(parsed, null, 2);
+    }
+    
+    // Not JSON, return as is
+    return toolResponseText;
+  } catch (error) {
+    // If JSON parsing fails, return original text
+    logger.debug('Error cleaning tool response:', error);
+    return toolResponseText;
   }
 }
 
@@ -357,7 +429,7 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
       
       // Get response content
       responseText = response.choices[0].message.content || '';
-      
+
       // Handle any tool calls
       if (response.choices[0].message.tool_calls) {
         toolCalls = response.choices[0].message.tool_calls.map(tc => ({
@@ -371,28 +443,132 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
         
         // Process tool calls if available
         if (toolCalls && toolCalls.length > 0) {
-          let toolMessages: Record<string, unknown>[] = [];
-          try {
-            // Use unknown type to avoid type checking between mismatched SDK versions
-            toolMessages = await safeCallAdapterTool(adapter, response as unknown as any);
-            logger.debug(`Got ${toolMessages.length} tool messages from OpenAI`);
-          } catch (error) {
-            logger.error('Error calling tools with OpenAI adapter:', error);
-            // Continue with empty tool messages
-          }
+          // Implement multiple rounds of tool calls
+          let currentResponse = response;
+          const currentMessages = [...openaiMessages];
+          const allToolResponsesText: string[] = [];
+          let hasMoreToolCalls = true;
+          let iterations = 0;
+          const MAX_ITERATIONS = 5; // Safety limit to prevent infinite loops
           
-          if (toolMessages && toolMessages.length > 0) {
-            // Extract response text from tool results
+          logger.debug("Starting multiple rounds of tool calls");
+          
+          while (hasMoreToolCalls && iterations < MAX_ITERATIONS) {
+            iterations++;
+            logger.debug(`Tool call iteration ${iterations}`);
+            
+            // Get current tool calls from the response
+            const currentToolCalls = currentResponse.choices[0].message.tool_calls;
+            if (!currentToolCalls || currentToolCalls.length === 0) {
+              logger.debug("No more tool calls, ending loop");
+              hasMoreToolCalls = false;
+              break;
+            }
+            
+            // Execute tool calls and get responses
+            let toolMessages: Record<string, unknown>[] = [];
+            try {
+              // Call tool with specific typing instead of unknown any
+              toolMessages = await safeCallAdapterTool(
+                adapter, 
+                currentResponse
+              );
+              logger.debug(`Got ${toolMessages.length} tool messages from iteration ${iterations}`);
+            } catch (error) {
+              logger.error(`Error calling tools in iteration ${iterations}:`, error);
+              hasMoreToolCalls = false;
+              break;
+            }
+            
+            if (!toolMessages || toolMessages.length === 0) {
+              logger.debug("No tool messages returned, ending loop");
+              hasMoreToolCalls = false;
+              break;
+            }
+            
+            // Extract tool response text
             const toolResponseText = toolMessages
               .filter(msg => typeof msg.role === 'string' && ['tool', 'function'].includes(msg.role as string))
               .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
               .join('\n');
-              
-            // Append tool results to response if available
+            
             if (toolResponseText) {
-              responseText += '\n\n' + toolResponseText;
+              // Clean and format the tool response for better readability
+              const cleanedResponse = cleanToolResponse(toolResponseText);
+              allToolResponsesText.push(cleanedResponse);
+            }
+            
+            // Add tool messages to conversation for next round
+            for (const toolMsg of toolMessages) {
+              if (
+                typeof toolMsg.role === 'string' && 
+                typeof toolMsg.content !== 'undefined'
+              ) {
+                // For OpenAI, we must use 'tool' role and include tool_call_id that matches
+                // a specific tool call from the preceding assistant message
+                
+                // Extract tool_call_id if available
+                const toolCallId = typeof toolMsg.tool_call_id === 'string' 
+                  ? toolMsg.tool_call_id 
+                  : typeof toolMsg.id === 'string' 
+                    ? toolMsg.id
+                    : undefined;
+                
+                if (!toolCallId) {
+                  logger.warn('Tool message missing tool_call_id, may cause API errors:', toolMsg);
+                }
+                
+                // Always use 'tool' role for OpenAI to avoid API errors
+                currentMessages.push({
+                  role: 'tool', // Must be 'tool' for OpenAI
+                  content: typeof toolMsg.content === 'string' ? 
+                    toolMsg.content : 
+                    JSON.stringify(toolMsg.content),
+                  tool_call_id: toolCallId // Required for proper message flow in OpenAI
+                } as ChatCompletionMessageParam);
+                
+                logger.debug(`Added tool message with tool_call_id: ${toolCallId}`);
+              }
+            }
+            
+            // Get next response to see if more tool calls are needed
+            try {
+              const nextResponse = await openaiClient.chat.completions.create({
+                ...openaiOptions,
+                messages: currentMessages
+              });
+              
+              // Add assistant response to conversation
+              currentMessages.push({
+                role: 'assistant',
+                content: nextResponse.choices[0].message.content || '',
+                tool_calls: nextResponse.choices[0].message.tool_calls
+              } as ChatCompletionMessageParam);
+              
+              // Update current response for next iteration
+              currentResponse = nextResponse;
+              
+              // Check if new response has tool calls
+              hasMoreToolCalls = !!nextResponse.choices[0].message.tool_calls && 
+                nextResponse.choices[0].message.tool_calls.length > 0;
+              
+            } catch (error) {
+              logger.error(`Error getting next response in iteration ${iterations}:`, error);
+              hasMoreToolCalls = false;
+              break;
             }
           }
+          
+          // Get final response content from the last assistant message
+          responseText = currentResponse.choices[0].message.content || '';
+          
+          // Add all tool responses to the final response
+          if (allToolResponsesText.length > 0) {
+            responseText += '\n\n' + allToolResponsesText.join('\n\n');
+          }
+          
+          // Log completion
+          logger.debug(`Completed ${iterations} tool call iterations`);
         }
       }
     } else {
@@ -441,27 +617,152 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
       }
       
       // Process tool calls if available
-      let toolMessages: any[] = [];
+      let hasPendingAnthropicToolCalls = false;
       try {
-        // Use unknown type to avoid type checking between mismatched SDK versions
-        toolMessages = await safeCallAdapterTool(adapter, response as unknown as any);
-        logger.debug(`Got ${toolMessages.length} tool messages from Anthropic`);
+        // Check if response has tool calls (Anthropic's format is different)
+        // Use type assertion to access tool_calls which may not be in the interface
+        const anthropicResponse = response as unknown as { tool_calls?: Array<unknown> };
+        hasPendingAnthropicToolCalls = !!anthropicResponse.tool_calls && anthropicResponse.tool_calls.length > 0;
       } catch (error) {
-        logger.error('Error calling tools with Anthropic adapter:', error);
-        // Continue with empty tool messages
+        // Ignore errors checking for tool calls
+        logger.debug('Error checking for Anthropic tool calls:', error);
       }
       
-      if (toolMessages && toolMessages.length > 0) {
-        // Extract response text from tool results
-        const toolResponseText = toolMessages
-          .filter(msg => typeof msg.role === 'string' && ['tool', 'assistant', 'function'].includes(msg.role))
-          .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
-          .join('\n');
+      if (hasPendingAnthropicToolCalls) {
+        // Implement multiple rounds of tool calls for Anthropic
+        let currentResponse = response;
+        const currentMessages = [...anthropicMessages];
+        const allToolResponsesText: string[] = [];
+        let hasMoreToolCalls = true;
+        let iterations = 0;
+        const MAX_ITERATIONS = 5; // Safety limit to prevent infinite loops
+        
+        logger.debug("Starting multiple rounds of Anthropic tool calls");
+        
+        while (hasMoreToolCalls && iterations < MAX_ITERATIONS) {
+          iterations++;
+          logger.debug(`Anthropic tool call iteration ${iterations}`);
           
-        // Append tool results to response if available
-        if (toolResponseText) {
-          responseText += '\n\n' + toolResponseText;
+          // Check if current response has tool calls
+          const anthropicResponse = currentResponse as unknown as { tool_calls?: Array<unknown> };
+          const hasPendingTools = !!anthropicResponse.tool_calls && anthropicResponse.tool_calls.length > 0;
+          if (!hasPendingTools) {
+            logger.debug("No more Anthropic tool calls, ending loop");
+            hasMoreToolCalls = false;
+            break;
+          }
+          
+          // Execute tool calls and get responses
+          const toolMessages: Record<string, unknown>[] = await safeCallAdapterTool(adapter, currentResponse);
+          logger.debug(`Got ${toolMessages.length} tool messages from Anthropic iteration ${iterations}`);
+          
+          if (!toolMessages || toolMessages.length === 0) {
+            logger.debug("No Anthropic tool messages returned, ending loop");
+            hasMoreToolCalls = false;
+            break;
+          }
+          
+          // Extract tool response text
+          const toolResponseText = toolMessages
+            .filter(msg => typeof msg.role === 'string' && ['tool', 'assistant', 'function'].includes(msg.role as string))
+            .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
+            .join('\n');
+            
+          if (toolResponseText) {
+            // Clean and format the tool response for better readability
+            const cleanedResponse = cleanToolResponse(toolResponseText);
+            allToolResponsesText.push(cleanedResponse);
+          }
+          
+          // Add tool messages to conversation for next round
+          for (const toolMsg of toolMessages) {
+            if (
+              typeof toolMsg.role === 'string' && 
+              typeof toolMsg.content !== 'undefined'
+            ) {
+              // For Anthropic, we need to use the appropriate role format
+              // Anthropic only supports 'assistant' and 'user' roles
+              
+              // Extract tool_call_id if available (for debugging)
+              const toolCallId = typeof toolMsg.tool_call_id === 'string' 
+                ? toolMsg.tool_call_id 
+                : typeof toolMsg.id === 'string' 
+                  ? toolMsg.id
+                  : undefined;
+              
+              if (toolCallId) {
+                logger.debug(`Processing Anthropic tool message with ID: ${toolCallId}`);
+              }
+              
+              // Anthropic only supports 'assistant' and 'user' roles in messages
+              currentMessages.push({
+                role: toolMsg.role === 'system' || toolMsg.role === 'tool' || toolMsg.role === 'function' 
+                  ? 'user' 
+                  : (toolMsg.role as 'user' | 'assistant'),
+                content: typeof toolMsg.content === 'string' 
+                  ? toolMsg.content 
+                  : JSON.stringify(toolMsg.content)
+              });
+            }
+          }
+          
+          // Get next response to see if more tool calls are needed
+          try {
+            const nextResponse = await anthropicClient.messages.create({
+              ...anthropicOptions,
+              messages: currentMessages
+            });
+            
+            // Update current response for next iteration
+            currentResponse = nextResponse;
+            
+            // Parse text content from next response
+            let nextResponseText = '';
+            if (Array.isArray(nextResponse.content)) {
+              nextResponseText = nextResponse.content
+                .filter(c => c.type === 'text')
+                .map(c => (c.type === 'text' ? c.text : ''))
+                .join('\n');
+            } else {
+              nextResponseText = nextResponse.content || '';
+            }
+            
+            // Add assistant response to conversation
+            currentMessages.push({
+              role: 'assistant',
+              content: nextResponseText
+            });
+            
+            // Check if new response has tool calls
+            const nextAnthropicResponse = nextResponse as unknown as { tool_calls?: Array<unknown> };
+            hasMoreToolCalls = !!nextAnthropicResponse.tool_calls && nextAnthropicResponse.tool_calls.length > 0;
+          } catch (error) {
+            logger.error(`Error getting next Anthropic response in iteration ${iterations}:`, error);
+            hasMoreToolCalls = false;
+            break;
+          }
         }
+        
+        // Get final response content from the last assistant message
+        if (Array.isArray(currentResponse.content)) {
+          responseText = currentResponse.content
+            .filter(c => c.type === 'text')
+            .map(c => (c.type === 'text' ? c.text : ''))
+            .join('\n');
+        } else {
+          responseText = currentResponse.content || '';
+        }
+        
+        // Add all tool responses to the final response
+        if (allToolResponsesText.length > 0) {
+          responseText += '\n\n' + allToolResponsesText.join('\n\n');
+        }
+        
+        // Log completion
+        logger.debug(`Completed ${iterations} Anthropic tool call iterations`);
+      } else {
+        // No tool calls to process
+        logger.debug("No Anthropic tool calls detected");
       }
     }
     
