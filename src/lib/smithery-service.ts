@@ -50,11 +50,42 @@ export interface SmitheryServersResponse {
 // Define the ServerConfig type
 export interface ServerConfig {
   apiKey?: string;
+  enabled?: boolean;
+  // Server metadata fields
+  description?: string;
+  homepage?: string;
+  useCount?: string;
+  createdAt?: string;
+  owner?: string;
+  repo?: string;
+  // Allow any other properties
+  [key: string]: unknown;
+}
+
+// Define interface for server data returned from API
+interface APIServerResponse {
+  qualifiedName: string;
+  config: ServerConfig;
+  enabled: boolean;
+  name?: string;
+  url?: string;
   [key: string]: unknown;
 }
 
 // Constant for registry API base URL
 const REGISTRY_API_BASE_URL = 'https://registry.smithery.ai';
+
+// Helper to get the full API URL
+function getApiUrl(path: string): string {
+  // For server-side calls, we need a full URL
+  if (typeof window === 'undefined') {
+    // Use local environment URL, or a default if not available
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    return `${baseUrl}${path}`;
+  }
+  // For client-side calls, relative URL is fine
+  return path;
+}
 
 /**
  * Get the Smithery API key from environment or cookies
@@ -150,43 +181,52 @@ export async function fetchMCPServerDetails(qualifiedName: string): Promise<Smit
  * Get the WebSocket URL for a server with the proper configuration
  */
 export async function createSmitheryWebSocketUrl(serverUrl: string, config: ServerConfig): Promise<string> {
+  if (!serverUrl) {
+    throw new Error('Server URL is required to create WebSocket URL');
+  }
+  
+  console.log(`Creating WebSocket URL from: ${serverUrl}`);
+  
   // Make sure the URL has the correct protocol (ws:// or wss://)
-  if (!serverUrl.startsWith('ws://') && !serverUrl.startsWith('wss://')) {
+  let wsUrl = serverUrl;
+  
+  // The URL must start with ws:// or wss:// for WebSocket connections
+  if (!wsUrl.startsWith('ws://') && !wsUrl.startsWith('wss://')) {
     // Convert http/https to ws/wss
-    if (serverUrl.startsWith('http://')) {
-      serverUrl = serverUrl.replace('http://', 'ws://');
-    } else if (serverUrl.startsWith('https://')) {
-      serverUrl = serverUrl.replace('https://', 'wss://');
+    if (wsUrl.startsWith('http://')) {
+      wsUrl = wsUrl.replace('http://', 'ws://');
+    } else if (wsUrl.startsWith('https://')) {
+      wsUrl = wsUrl.replace('https://', 'wss://');
     } else {
       // If no protocol specified, default to wss://
-      serverUrl = `wss://${serverUrl}`;
+      wsUrl = `wss://${wsUrl}`;
     }
   }
   
+  // Encode the config as a base64 string
   const configBase64 = Buffer.from(JSON.stringify(config)).toString('base64');
-  return `${serverUrl}?config=${configBase64}`;
+  
+  const finalUrl = `${wsUrl}?config=${configBase64}`;
+  console.log(`Created WebSocket URL: ${finalUrl}`);
+  
+  return finalUrl;
 }
 
 /**
  * Check if a server is installed/configured locally
  */
 export async function isServerInstalled(qualifiedName: string): Promise<boolean> {
-  // In a real implementation, this would check a database or config file
-  // to see if this server has been installed/configured
-  
-  // For now, we'll use cookies as a simple storage mechanism
-  const cookieStore = await cookies();
-  const installedServers = cookieStore.get('installed-mcp-servers')?.value;
-  
-  if (!installedServers) {
-    return false;
-  }
-  
   try {
-    const serversArray = JSON.parse(installedServers) as string[];
-    return serversArray.includes(qualifiedName);
+    // Fetch server list from API
+    const response = await fetch(getApiUrl('/api/mcp-servers'));
+    if (!response.ok) {
+      throw new Error('Failed to check server installation status');
+    }
+    
+    const data = await response.json() as { servers: APIServerResponse[] };
+    return data.servers.some((server) => server.qualifiedName === qualifiedName);
   } catch (error) {
-    console.error('Error parsing installed servers:', error);
+    console.error('Error checking if server is installed:', error);
     return false;
   }
 }
@@ -198,59 +238,114 @@ export async function installServer(
   qualifiedName: string, 
   serverConfig: ServerConfig
 ): Promise<boolean> {
-  // In a real implementation, this would store the server config in a database
-  // or configuration file
-  
+  console.log("=== START: Installing server ===", qualifiedName, serverConfig);
   try {
-    // For now, we'll use cookies as a simple storage mechanism
-    const cookieStore = await cookies();
-    const installedServers = cookieStore.get('installed-mcp-servers')?.value;
-    
-    let serversArray: string[] = [];
-    
-    if (installedServers) {
-      try {
-        serversArray = JSON.parse(installedServers) as string[];
-      } catch (error) {
-        console.error('Error parsing installed servers:', error);
-      }
-    }
-    
-    if (!serversArray.includes(qualifiedName)) {
-      serversArray.push(qualifiedName);
-    }
-    
-    // Store the updated list of installed servers
-    cookieStore.set('installed-mcp-servers', JSON.stringify(serversArray));
-    
-    // Store the server config
-    cookieStore.set(`mcp-server-config-${qualifiedName}`, JSON.stringify(serverConfig));
-    
-    // Store in KV for better persistence
-    // Default to enabled when installed
+    // Set default to enabled when installed
     const config = {
       ...serverConfig,
       enabled: true
     };
     
-    // Store server config in KV
-    await kv.set(`mcp-server-config-${qualifiedName}`, config);
+    // Get server details from the registry for name and URL
+    let name = qualifiedName;
+    let url = '';
+    let serverDetails: SmitheryServerDetail | undefined;
     
-    // Get server details from the registry
     try {
-      const serverDetails = await fetchMCPServerDetails(qualifiedName);
+      // Fetch full details from the registry API
+      console.log("Fetching server details from registry API");
+      serverDetails = await fetchMCPServerDetails(qualifiedName);
+      name = serverDetails.displayName || qualifiedName;
+      url = serverDetails.deploymentUrl || '';
       
-      // Store server details in KV
+      // Store server details in KV for quick access during runtime
       await kv.set(`mcp-server-${qualifiedName}`, serverDetails);
       
-      console.log(`Stored details for server ${qualifiedName}`);
+      console.log(`Stored details for server ${qualifiedName}`, {
+        name,
+        url,
+        config
+      });
     } catch (detailsError) {
       console.error(`Error fetching server details for ${qualifiedName}:`, detailsError);
     }
     
-    return true;
+    // Get additional server info for persistent storage
+    try {
+      console.log("Fetching additional server info");
+      const servers = await fetchMCPServers(`id:${qualifiedName}`, 1, 1);
+      if (servers.servers.length > 0) {
+        const serverInfo = servers.servers[0];
+        
+        // Add more complete server info to the config
+        if (!config.description && serverInfo.description) {
+          config.description = serverInfo.description;
+        }
+        if (!config.homepage && serverInfo.homepage) {
+          config.homepage = serverInfo.homepage;
+        }
+        if (!config.useCount && serverInfo.useCount) {
+          config.useCount = serverInfo.useCount;
+        }
+        if (!config.createdAt && serverInfo.createdAt) {
+          config.createdAt = serverInfo.createdAt;
+        }
+        if (!config.owner && serverInfo.owner) {
+          config.owner = serverInfo.owner;
+        }
+        if (!config.repo && serverInfo.repo) {
+          config.repo = serverInfo.repo;
+        }
+        
+        console.log(`Added additional details for server ${qualifiedName} from registry listing`);
+      }
+    } catch (infoError) {
+      console.error(`Error fetching additional server info for ${qualifiedName}:`, infoError);
+    }
+    
+    // Call the API to save the server configuration
+    console.log("Saving server via API:", qualifiedName, config, name, url);
+    try {
+      const apiUrl = getApiUrl('/api/mcp-servers');
+      console.log("Using API URL:", apiUrl);
+      
+      const payload = {
+        qualifiedName,
+        config,
+        enabled: true,
+        name,
+        url,
+        serverDetails
+      };
+      console.log("API request payload:", JSON.stringify(payload));
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API error (${response.status} ${response.statusText}):`, errorText);
+        return false;
+      }
+      
+      const responseData = await response.json();
+      console.log("API response:", responseData);
+      
+      console.log(`Successfully installed server ${qualifiedName}`);
+      console.log("=== END: Installing server ===", qualifiedName, "result: true");
+      
+      return true;
+    } catch (apiError) {
+      console.error("API request error:", apiError);
+      console.log("=== END: Installing server with API ERROR ===", qualifiedName);
+      return false;
+    }
   } catch (error) {
     console.error('Error installing server:', error);
+    console.log("=== END: Installing server with ERROR ===", qualifiedName);
     return false;
   }
 }
@@ -259,39 +354,18 @@ export async function installServer(
  * Uninstall/remove a server configuration
  */
 export async function uninstallServer(qualifiedName: string): Promise<boolean> {
-  // In a real implementation, this would remove the server config from a database
-  // or configuration file
-  
   try {
-    // For now, we'll use cookies as a simple storage mechanism
-    const cookieStore = await cookies();
-    const installedServers = cookieStore.get('installed-mcp-servers')?.value;
+    // Remove from KV storage
+    await kv.set(`mcp-server-${qualifiedName}`, null);
     
-    if (!installedServers) {
-      return true; // Already not installed
-    }
+    // Remove the server via API
+    const response = await fetch(getApiUrl(`/api/mcp-servers?qualifiedName=${encodeURIComponent(qualifiedName)}`), {
+      method: 'DELETE'
+    });
     
-    try {
-      let serversArray = JSON.parse(installedServers) as string[];
-      serversArray = serversArray.filter(server => server !== qualifiedName);
-      
-      // Update the list of installed servers
-      cookieStore.set('installed-mcp-servers', JSON.stringify(serversArray));
-      
-      // Remove the server config
-      cookieStore.delete(`mcp-server-config-${qualifiedName}`);
-      
-      // Also remove from KV storage - fix type issue with delete operation
-      await kv.set(`mcp-server-config-${qualifiedName}`, null);
-      await kv.set(`mcp-server-${qualifiedName}`, null);
-      
-      return true;
-    } catch (error) {
-      console.error('Error uninstalling server:', error);
-      return false;
-    }
+    return response.ok;
   } catch (error) {
-    console.error('Error accessing cookies:', error);
+    console.error('Error uninstalling server:', error);
     return false;
   }
 }
@@ -299,37 +373,29 @@ export async function uninstallServer(qualifiedName: string): Promise<boolean> {
 /**
  * Get all installed servers with their configurations
  */
-export async function getInstalledServers(): Promise<{qualifiedName: string, config: ServerConfig}[]> {
-  // In a real implementation, this would get server configs from a database
-  // or configuration file
-  
-  // For now, we'll use cookies as a simple storage mechanism
-  const cookieStore = await cookies();
-  const installedServers = cookieStore.get('installed-mcp-servers')?.value;
-  
-  if (!installedServers) {
-    return [];
-  }
-  
+export async function getInstalledServers(): Promise<{
+  qualifiedName: string, 
+  config: ServerConfig & { url?: string, name?: string }
+}[]> {
   try {
-    const serversArray = JSON.parse(installedServers) as string[];
+    // Fetch server list from API
+    const response = await fetch(getApiUrl('/api/mcp-servers'));
+    if (!response.ok) {
+      throw new Error('Failed to fetch installed servers');
+    }
     
-    const serverConfigs = await Promise.all(serversArray.map(async (qualifiedName) => {
-      const config = cookieStore.get(`mcp-server-config-${qualifiedName}`)?.value || '{}';
-      try {
-        return {
-          qualifiedName,
-          config: JSON.parse(config) as ServerConfig
-        };
-      } catch {
-        return {
-          qualifiedName,
-          config: {} as ServerConfig
-        };
+    const data = await response.json() as { servers: APIServerResponse[] };
+    
+    // Map to the expected format
+    return data.servers.map((server) => ({
+      qualifiedName: server.qualifiedName,
+      config: {
+        ...server.config,
+        enabled: server.enabled,
+        url: server.url || undefined,
+        name: server.name || server.qualifiedName
       }
     }));
-    
-    return serverConfigs;
   } catch (error) {
     console.error('Error getting installed servers:', error);
     return [];

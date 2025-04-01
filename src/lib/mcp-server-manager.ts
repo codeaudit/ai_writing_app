@@ -3,7 +3,11 @@
 import { MultiClient, createTransport } from '@smithery/sdk';
 import { OpenAIChatAdapter } from '@smithery/sdk';
 import { AnthropicChatAdapter } from '@smithery/sdk';
-import { getInstalledServers, createSmitheryWebSocketUrl } from './smithery-service';
+import { 
+  getInstalledServers, 
+  createSmitheryWebSocketUrl, 
+  fetchMCPServerDetails 
+} from './smithery-service';
 import { kv } from '@/lib/kv-provider';
 
 // Interface for server with deployment status
@@ -19,18 +23,24 @@ export interface MCPServerState {
   };
 }
 
-// Simplified type for transport connections
-type TransportMap = {
-  [key: string]: ReturnType<typeof createTransport>;
-};
-
-// Global client instance
-let globalClient: MultiClient | null = null;
+// Track enabled servers for UI/feedback
 let enabledServers: MCPServerState[] = [];
 
 // Provider-specific adapters
 let openaiAdapter: OpenAIChatAdapter | null = null;
 let anthropicAdapter: AnthropicChatAdapter | null = null;
+
+// Helper to get the full API URL
+function getApiUrl(path: string): string {
+  // For server-side calls, we need a full URL
+  if (typeof window === 'undefined') {
+    // Use local environment URL, or a default if not available
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    return `${baseUrl}${path}`;
+  }
+  // For client-side calls, relative URL is fine
+  return path;
+}
 
 /**
  * Initialize and connect to enabled MCP servers
@@ -39,8 +49,14 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
   try {
     console.log('Initializing MCP servers...');
     
-    // Get all installed servers
-    const installedServers = await getInstalledServers();
+    // Create a multiclient instance
+    const multi = new MultiClient();
+    
+    // Create a map of transports
+    const transports: Record<string, ReturnType<typeof createTransport>> = {};
+    
+    // Reset enabled servers list
+    enabledServers = [];
     
     // Get API key
     const SMITHERY_API_KEY = process.env.SMITHERY_API_KEY || '';
@@ -50,29 +66,53 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
       return null;
     }
     
-    // Create new client
-    globalClient = new MultiClient();
+    // Get all installed servers
+    const installedServers = await getInstalledServers();
     
-    // Create a map of transports for enabled servers
-    const transports: TransportMap = {};
-    enabledServers = [];
+    if (!installedServers || installedServers.length === 0) {
+      console.log('No installed MCP servers found');
+      return multi;
+    }
+    
+    console.log(`Found ${installedServers.length} installed MCP servers`);
     
     // Process each installed server
     for (const server of installedServers) {
       try {
         // Get server config
         const config = server.config || {};
-        
-        // Check if we have server details in KV store
-        const serverDetails = await kv.get(`mcp-server-${server.qualifiedName}`);
         const isEnabled = config.enabled !== false; // Default to enabled if not specified
         
+        // First try to get server details from KV store
+        let serverDetails = await kv.get(`mcp-server-${server.qualifiedName}`);
+        
+        // If no details in KV, try to get them from the file storage
         if (!serverDetails) {
-          console.warn(`No details found for server: ${server.qualifiedName}`);
-          continue;
+          console.log(`Fetching details for server from registry: ${server.qualifiedName}`);
+          
+          try {
+            // Fetch fresh details from the registry API
+            const freshDetails = await fetchMCPServerDetails(server.qualifiedName);
+            
+            // Store in KV for future use
+            await kv.set(`mcp-server-${server.qualifiedName}`, freshDetails);
+            
+            serverDetails = freshDetails;
+            console.log(`Updated details for server ${server.qualifiedName}`);
+          } catch (fetchError) {
+            console.error(`Couldn't fetch server details for ${server.qualifiedName}:`, fetchError);
+            
+            // Create a minimal server details object from the file data
+            serverDetails = {
+              qualifiedName: server.qualifiedName,
+              displayName: server.qualifiedName,
+              deploymentUrl: server.config.url || '',
+              connections: []
+            };
+          }
         }
         
-        // Only add deployed and enabled servers
+        // Only add deployed and enabled servers to transports
         if (isEnabled) {
           // Create transport for each enabled server
           if (serverDetails.deploymentUrl) {
@@ -107,7 +147,19 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
               config: server.config
             });
             
-            console.log(`Added MCP server: ${server.qualifiedName}`);
+            console.log(`Added MCP server to transports: ${server.qualifiedName}`);
+          } else {
+            console.warn(`Server ${server.qualifiedName} is enabled but has no deployment URL`);
+            
+            // Still add to enabled servers list but mark as not deployed
+            enabledServers.push({
+              qualifiedName: server.qualifiedName,
+              name: serverDetails.displayName || server.qualifiedName,
+              url: '',
+              enabled: true,
+              isDeployed: false,
+              config: server.config
+            });
           }
         } else {
           // Add disabled server to the list but mark it as not deployed
@@ -119,9 +171,11 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
             isDeployed: false,
             config: server.config
           });
+          
+          console.log(`Added disabled MCP server to list: ${server.qualifiedName}`);
         }
       } catch (error) {
-        console.error(`Error processing server ${server.qualifiedName}:`, error);
+        console.error(`Error processing MCP server ${server.qualifiedName}:`, error);
       }
     }
     
@@ -137,14 +191,14 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
     // Connect to all transports
     if (Object.keys(transports).length > 0) {
       try {
-        await globalClient.connectAll(transports);
+        await multi.connectAll(transports);
         console.log('Connected to MCP servers successfully');
         
         // Initialize adapters
-        openaiAdapter = new OpenAIChatAdapter(globalClient);
-        anthropicAdapter = new AnthropicChatAdapter(globalClient);
+        openaiAdapter = new OpenAIChatAdapter(multi);
+        anthropicAdapter = new AnthropicChatAdapter(multi);
         
-        return globalClient;
+        return multi;
       } catch (connectionError) {
         console.error('Error connecting to MCP servers:', connectionError);
         return null;
@@ -160,13 +214,11 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
 }
 
 /**
- * Get the global MCP client, initializing if needed
+ * Get an MCP client, creating a new instance each time
  */
 export async function getMCPClient(): Promise<MultiClient | null> {
-  if (!globalClient) {
-    return initializeMCPServers();
-  }
-  return globalClient;
+  // Since globalClient is now a const null, always initialize
+  return initializeMCPServers();
 }
 
 /**
@@ -202,22 +254,26 @@ export async function updateMCPServerStatus(
     const serverIndex = enabledServers.findIndex(s => s.qualifiedName === qualifiedName);
     
     if (serverIndex >= 0) {
-      // Update the server status
+      // Update the server status in memory
       enabledServers[serverIndex] = {
         ...enabledServers[serverIndex],
         enabled,
         isDeployed: enabled
       };
       
-      // Get server config from KV store
-      const serverConfig = await kv.get(`mcp-server-config-${qualifiedName}`);
+      // Update the server status via API
+      const response = await fetch(getApiUrl('/api/mcp-servers'), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ qualifiedName, enabled })
+      });
       
-      if (serverConfig) {
-        // Update config in KV store
-        await kv.set(`mcp-server-config-${qualifiedName}`, {
-          ...serverConfig,
-          enabled
-        });
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error(`API error updating server status: ${errorData.error || 'Unknown error'}`);
+        return false;
       }
       
       // Reinitialize MCP servers to update connections

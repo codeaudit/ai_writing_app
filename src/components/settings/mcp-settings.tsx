@@ -28,25 +28,27 @@ const Spinner = () => (
   </div>
 );
 
+interface MCPCategory {
+  id: string;
+  name: string;
+  count: number;
+}
+
 interface MCPServerVM {
   qualifiedName: string;
   name: string;
   description: string;
   homepage: string;
   downloads: number;
-  enabled: boolean;
   owner: string;
   repo: string;
+  enabled: boolean;
   installed: boolean;
   isDeployed: boolean;
   configSchema?: ConfigSchema;
   apiKey?: string;
-}
-
-interface MCPCategory {
-  id: string;
-  name: string;
-  count: number;
+  // Allow additional properties from the stored server data
+  [key: string]: unknown;
 }
 
 export function MCPSettings() {
@@ -143,6 +145,7 @@ export function MCPSettings() {
       const installedServerDetails = await Promise.all(
         installedServersList.map(async ({ qualifiedName, config }) => {
           try {
+            // Try to get server details from Registry API
             const details = await fetchMCPServerDetails(qualifiedName);
             
             // Parse owner and repo from qualifiedName if possible
@@ -157,32 +160,37 @@ export function MCPSettings() {
             
             return {
               qualifiedName,
-              name: details.displayName,
-              description: '', // Server details doesn't include description
-              homepage: details.deploymentUrl,
-              downloads: 0, // Server details doesn't include download count
-              owner,
-              repo,
-              enabled: true,
+              name: details.displayName || config.name || qualifiedName,
+              description: typeof config.description === 'string' ? config.description : '',
+              homepage: details.deploymentUrl || config.url || '',
+              downloads: typeof config.useCount === 'string' ? parseInt(config.useCount, 10) : 0,
+              owner: typeof config.owner === 'string' ? config.owner : owner,
+              repo: typeof config.repo === 'string' ? config.repo : repo,
+              enabled: config.enabled === true,
               installed: true,
               isDeployed: true,
-              configSchema: details.connections[0]?.configSchema,
-              apiKey: config.apiKey
+              configSchema: details.connections?.[0]?.configSchema,
+              apiKey: config.apiKey,
+              // Store all additional details from config
+              ...config
             };
           } catch (error) {
             console.error(`Error fetching details for ${qualifiedName}:`, error);
+            // If Registry API fails, use the data stored in the local file
             return {
               qualifiedName,
-              name: qualifiedName,
-              description: 'Failed to load server details',
-              homepage: '',
-              downloads: 0,
-              owner: '',
-              repo: '',
-              enabled: true,
+              name: config.name || qualifiedName,
+              description: typeof config.description === 'string' ? config.description : 'No description available',
+              homepage: config.url || '',
+              downloads: typeof config.useCount === 'string' ? parseInt(config.useCount, 10) : 0,
+              owner: typeof config.owner === 'string' ? config.owner : '',
+              repo: typeof config.repo === 'string' ? config.repo : '',
+              enabled: config.enabled === true,
               installed: true,
-              isDeployed: false,
-              apiKey: config.apiKey
+              isDeployed: !!config.url,
+              apiKey: config.apiKey,
+              // Store all additional details from config
+              ...config
             };
           }
         })
@@ -191,73 +199,118 @@ export function MCPSettings() {
       setInstalledServers(installedServerDetails);
     } catch (error) {
       console.error('Error loading installed servers:', error);
-      toast.error('Failed to load installed servers');
+      toast.error('Failed to load installed servers. Please try again later.');
     }
   };
 
   const handleInstallClick = async (server: MCPServerVM) => {
     setSelectedServer(server);
+    setApiKeyField('');
+    setServerConfig({});
     
     try {
-      // Fetch full server details including config schema
+      // Fetch detailed server information to get the configuration schema
       const details = await fetchMCPServerDetails(server.qualifiedName);
+      const schema = details.connections[0]?.configSchema;
       
-      // Find the first connection with a schema (prefer WebSocket)
-      const connection = details.connections.find(c => c.type === 'ws') || details.connections[0];
-      
-      if (connection) {
-        setSelectedServer({
-          ...server,
-          configSchema: connection.configSchema
+      // If there's a schema, initialize form state based on schema properties
+      if (schema && schema.properties) {
+        const initialConfig: Record<string, string> = {};
+        
+        // Initialize from schema defaults
+        Object.entries(schema.properties).forEach(([key, prop]) => {
+          // Skip apiKey as we handle it separately
+          if (key !== 'apiKey' && typeof prop === 'object' && prop !== null && 'default' in prop) {
+            initialConfig[key] = String(prop.default || '');
+          }
         });
         
-        // Initialize config state
-        const initialConfig: Record<string, string> = {};
         setServerConfig(initialConfig);
-        
-        // Open the install dialog
-        setInstallDialogOpen(true);
-      } else {
-        throw new Error('No valid connection configuration found for this server');
       }
+      
+      // Set server with details
+      setSelectedServer({
+        ...server,
+        details,
+        configSchema: schema
+      });
+      
+      setInstallDialogOpen(true);
     } catch (error) {
-      console.error('Error preparing server installation:', error);
-      toast.error('Failed to prepare server installation');
+      console.error('Error fetching server details:', error);
+      toast.error('Failed to fetch server details. Please try again.');
     }
   };
 
   const handleInstallServer = async () => {
-    if (!selectedServer) return;
+    console.log("Install button clicked, selectedServer:", selectedServer);
+    if (!selectedServer) {
+      console.error("No selected server found!");
+      toast.error("Server information is missing. Please try again.");
+      return;
+    }
     
     setInstallLoading(true);
+    console.log("Set loading state to true");
     
     try {
-      // Prepare config object with any values from the form
-      const config: ServerConfig = { ...serverConfig };
+      // Prepare configuration object
+      const config: ServerConfig = {
+        ...serverConfig
+      };
       
-      // If API key field is provided, add it to config
+      // Add API key if provided
       if (apiKeyField) {
         config.apiKey = apiKeyField;
       }
       
-      // Install the server
-      await installMCPServer(selectedServer.qualifiedName, config);
+      console.log("Config prepared:", JSON.stringify(config));
       
-      // Refresh the list of installed servers
-      await loadInstalledServers();
+      // Validate required fields if schema exists
+      if (selectedServer.configSchema && selectedServer.configSchema.required) {
+        const missingRequired = selectedServer.configSchema.required.filter(field => 
+          !config[field] && field !== 'apiKey'
+        );
+        
+        if (missingRequired.length > 0) {
+          console.warn("Missing required fields:", missingRequired);
+          toast.error(`Missing required fields: ${missingRequired.join(', ')}`);
+          setInstallLoading(false);
+          return;
+        }
+      }
       
-      // Close the dialog
-      setInstallDialogOpen(false);
+      // Add complete server information to config for storage
+      const enhancedConfig: ServerConfig = { ...config };
+      if (typeof selectedServer.description === 'string') enhancedConfig.description = selectedServer.description;
+      if (typeof selectedServer.homepage === 'string') enhancedConfig.homepage = selectedServer.homepage;
+      if (selectedServer.useCount) enhancedConfig.useCount = String(selectedServer.useCount);
+      if (typeof selectedServer.owner === 'string') enhancedConfig.owner = selectedServer.owner;
+      if (typeof selectedServer.repo === 'string') enhancedConfig.repo = selectedServer.repo;
+      if (typeof selectedServer.createdAt === 'string') enhancedConfig.createdAt = selectedServer.createdAt;
       
-      // Refresh the main server list with updated install status
-      fetchServersWithInstallStatus(searchQuery, activeCategory, currentPage);
+      console.log("Starting installation for:", selectedServer.qualifiedName, "with config:", JSON.stringify(enhancedConfig));
       
-      toast.success(`${selectedServer.name} has been installed successfully.`);
+      // Perform server installation
+      const success = await installMCPServer(selectedServer.qualifiedName, enhancedConfig);
+      
+      console.log("Installation result:", success);
+      
+      if (success) {
+        toast.success(`${selectedServer.name} server installed successfully`);
+        setInstallDialogOpen(false);
+        // Refresh lists
+        await loadInstalledServers();
+        await fetchServersWithInstallStatus(searchQuery, activeCategory, currentPage);
+      } else {
+        toast.error(`Failed to install ${selectedServer.name} server. Please check console for details.`);
+      }
     } catch (error) {
-      console.error('Error installing MCP server:', error);
-      toast.error(`Failed to install ${selectedServer.name}. Please try again later.`);
+      console.error('Error installing server:', error);
+      toast.error(`Failed to install ${selectedServer.name} server. Please check console for details.`);
     } finally {
       setInstallLoading(false);
+      console.log("Install operation completed, loading state reset");
     }
   };
 
@@ -515,57 +568,102 @@ export function MCPSettings() {
       </Tabs>
       
       {/* Install Dialog */}
-      <Dialog open={installDialogOpen} onOpenChange={setInstallDialogOpen}>
+      <Dialog open={installDialogOpen} onOpenChange={(open) => {
+        if (!installLoading) {
+          setInstallDialogOpen(open);
+        }
+      }}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Install MCP Server</DialogTitle>
-            <DialogDescription>
-              Configure and install {selectedServer?.name} server to enhance your AI capabilities.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <div className="space-y-4">
-              {/* API Key field always present for simplicity */}
-              <div className="space-y-2">
-                <Label htmlFor="apiKey">API Key (Optional)</Label>
-                <Input
-                  id="apiKey"
-                  type="password"
-                  value={apiKeyField}
-                  onChange={(e) => setApiKeyField(e.target.value)}
-                  placeholder="Enter API key if required"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Some servers require an API key for authentication.
-                </p>
-              </div>
-              
-              {/* Show additional config fields if schema exists */}
-              {selectedServer?.configSchema && Object.keys(selectedServer.configSchema).length > 0 && (
-                <div className="border rounded-md p-4 bg-muted/20">
-                  <p className="text-sm mb-2">This server requires additional configuration.</p>
-                  {/* Add form fields based on config schema if needed */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              console.log("Form submitted via", e.type);
+              handleInstallServer();
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Install MCP Server</DialogTitle>
+              <DialogDescription>
+                Configure and install {selectedServer?.name} server to enhance your AI capabilities.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              <div className="space-y-4">
+                {/* API Key field always present for simplicity */}
+                <div className="space-y-2">
+                  <Label htmlFor="apiKey">API Key (Optional)</Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    value={apiKeyField}
+                    onChange={(e) => setApiKeyField(e.target.value)}
+                    placeholder="Enter API key if required"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Some servers require an API key for authentication.
+                  </p>
                 </div>
-              )}
+                
+                {/* Show additional config fields if schema exists */}
+                {selectedServer?.configSchema && selectedServer.configSchema.properties && (
+                  <div className="border rounded-md p-4 bg-muted/20">
+                    <p className="text-sm mb-4 font-medium">Additional Configuration</p>
+                    
+                    {Object.entries(selectedServer.configSchema.properties).map(([key, prop]) => {
+                      // Skip API key as we handle it separately
+                      if (key === 'apiKey') return null;
+                      
+                      // Only render if prop is an object
+                      if (typeof prop !== 'object' || prop === null) return null;
+                      
+                      const isRequired = selectedServer.configSchema?.required?.includes(key);
+                      const description = 'description' in prop ? String(prop.description || '') : '';
+                      
+                      return (
+                        <div key={key} className="space-y-2 mb-4">
+                          <Label htmlFor={key} className="flex items-center gap-1">
+                            {key}
+                            {isRequired && <span className="text-red-500">*</span>}
+                          </Label>
+                          <Input
+                            id={key}
+                            value={serverConfig[key] || ''}
+                            onChange={(e) => setServerConfig({
+                              ...serverConfig,
+                              [key]: e.target.value
+                            })}
+                            placeholder={`Enter ${key}`}
+                            required={isRequired}
+                          />
+                          {description && (
+                            <p className="text-xs text-muted-foreground">{description}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setInstallDialogOpen(false)}
-              disabled={installLoading}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleInstallServer}
-              disabled={installLoading}
-            >
-              {installLoading ? <Spinner /> : 'Install Server'}
-            </Button>
-          </DialogFooter>
+            
+            <DialogFooter>
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={() => setInstallDialogOpen(false)}
+                disabled={installLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={installLoading}
+              >
+                {installLoading ? <Spinner /> : 'Install Server'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

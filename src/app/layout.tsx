@@ -8,6 +8,8 @@ import ElectronProvider from '@/components/electron-provider';
 import { TrpcProvider } from '@/components/trpc-provider';
 import { siteConfig } from '@/config/site';
 import { initializeMCPServers } from '@/lib/mcp-server-manager';
+import fs from 'fs';
+import path from 'path';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,6 +28,21 @@ export const metadata: Metadata = {
     ]
   }
 };
+
+// Ensure vault directories exist
+const VAULT_DIR = path.join(process.cwd(), 'vault');
+const SYSTEM_DIR = path.join(VAULT_DIR, 'system');
+
+// Create directories if they don't exist
+if (!fs.existsSync(VAULT_DIR)) {
+  console.log("Creating vault directory:", VAULT_DIR);
+  fs.mkdirSync(VAULT_DIR, { recursive: true });
+}
+
+if (!fs.existsSync(SYSTEM_DIR)) {
+  console.log("Creating system directory:", SYSTEM_DIR);
+  fs.mkdirSync(SYSTEM_DIR, { recursive: true });
+}
 
 // Initialize MCP servers as soon as the app loads
 initializeMCPServers().catch(error => {
