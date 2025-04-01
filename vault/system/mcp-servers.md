@@ -45,5 +45,28 @@ servers:
             exaApiKey:
               type: string
               description: The API key for accessing the Exa Search API.
+  - qualifiedName: '@wonderwhy-er/desktop-commander'
+    config:
+      description: Execute terminal commands and manage files with diff editing capabilities. Coding, shell and terminal, task automation
+      homepage: https://smithery.ai/server/@wonderwhy-er/desktop-commander
+      owner: '@wonderwhy-er'
+      repo: desktop-commander
+      enabled: true
+      useCount: 2825
+      createdAt: '2025-03-24T03:05:46.076Z'
+    enabled: true
+    name: Desktop Commander
+    deploymentUrl: ''
+    connections:
+      - type: stdio
+        configSchema: {}
+        exampleConfig: {}
+        published: true
+        stdioFunction: 'config => ({ command: ''npx'', args: [''-y'', ''@wonderwhy-er/desktop-commander''] })'
+      - type: ws
+        deploymentUrl: https://server.smithery.ai/@wonderwhy-er/desktop-commander
+        configSchema:
+          type: object
+          properties: {}
 
 ```

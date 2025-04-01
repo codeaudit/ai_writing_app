@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Search, ExternalLink, Download, RefreshCw, ArrowDownToLine, Trash2 } from 'lucide-react';
+import { Search, ExternalLink, Download, RefreshCw, ArrowDownToLine, Trash2, User, Bot, Send } from 'lucide-react';
 import { 
   fetchMCPServers, 
   fetchMCPServerDetails, 
@@ -20,6 +20,23 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Link from 'next/link';
 import { updateMCPServerStatus } from '@/lib/mcp-server-manager';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { generateMCPChatResponse, Tool, ChatMessage, ChatRequestWithTools, ChatMessageWithTools } from '@/lib/mcp-service';
+import { getMCPClient } from '@/lib/mcp-server-manager';
+import { OpenAIChatAdapter } from "@smithery/sdk/integrations/llm/openai.js";
+import { AnthropicChatAdapter } from "@smithery/sdk/integrations/llm/anthropic.js";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { LLM_MODELS } from '@/lib/config';
 
 // Simple spinner component since we don't have a dedicated ui/spinner
 const Spinner = () => (
@@ -73,6 +90,18 @@ export function MCPSettings() {
   const [installLoading, setInstallLoading] = useState(false);
   const [serverConfig, setServerConfig] = useState<Record<string, string>>({});
   const [apiKeyField, setApiKeyField] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState<'openai' | 'anthropic' | 'openrouter' | 'featherless'>('openai');
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [availableTools, setAvailableTools] = useState<Tool[]>([]);
+  const [selectedTool, setSelectedTool] = useState<string>('');
+  const [toolInputParams, setToolInputParams] = useState<string>('{}');
+  const [toolResults, setToolResults] = useState<string>('');
+  const [isToolLoading, setIsToolLoading] = useState(false);
+  const [toolsLoading, setToolsLoading] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'assistant' | 'system', content: string, toolCall?: {name: string, arguments: string}|null}>>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const fetchServersWithInstallStatus = async (query: string = '', category: string = 'all', page: number = 1) => {
     setLoading(true);
@@ -361,6 +390,332 @@ export function MCPSettings() {
     }
   };
 
+  const loadAvailableTools = async () => {
+    setToolsLoading(true);
+    setToolResults('');
+    setSelectedTool('');
+    
+    try {
+      const mcpClient = await getMCPClient();
+      
+      if (!mcpClient) {
+        toast.error('Failed to initialize MCP client. Please check your configuration.');
+        setAvailableTools([]);
+        return;
+      }
+      
+      // Only use enabled servers
+      const enabledServers = installedServers.filter(server => server.enabled);
+      if (enabledServers.length === 0) {
+        toast.warning('No enabled MCP servers found. Please enable at least one server to access tools.');
+        setAvailableTools([]);
+        setToolsLoading(false);
+        return;
+      }
+      
+      // Create the appropriate adapter based on selected provider
+      let adapter;
+      switch (selectedProvider) {
+        case 'openai':
+          adapter = new OpenAIChatAdapter(mcpClient);
+          break;
+        case 'anthropic':
+          adapter = new AnthropicChatAdapter(mcpClient);
+          break;
+        case 'openrouter':
+          // For OpenRouter, we'll use the OpenAI adapter since they share the same API format
+          adapter = new OpenAIChatAdapter(mcpClient);
+          break;
+        case 'featherless':
+          // For Featherless, we'll use the Anthropic adapter as a base
+          adapter = new AnthropicChatAdapter(mcpClient);
+          break;
+        default:
+          adapter = new OpenAIChatAdapter(mcpClient);
+      }
+      
+      // Configure the adapter with the selected model if needed
+      if (selectedModel) {
+        // Use a more specific type assertion 
+        if (selectedProvider === 'openai' || selectedProvider === 'openrouter') {
+          (adapter as OpenAIChatAdapter).model = selectedModel;
+        } else {
+          (adapter as AnthropicChatAdapter).model = selectedModel;
+        }
+      }
+      
+      // Get tools from the adapter
+      const tools = await adapter.listTools();
+      
+      // Convert tools to our format
+      const convertedTools = tools.map(rawTool => {
+        const toolObj = rawTool as unknown as Record<string, unknown>;
+        
+        if (
+          toolObj && 
+          typeof toolObj.type === 'string' && 
+          toolObj.type === 'function' && 
+          typeof toolObj.function === 'object' && 
+          toolObj.function !== null
+        ) {
+          const fn = toolObj.function as Record<string, unknown>;
+          
+          if (
+            typeof fn.name === 'string' && 
+            typeof fn.description === 'string' && 
+            typeof fn.parameters === 'object' && 
+            fn.parameters !== null
+          ) {
+            return {
+              type: 'function',
+              function: {
+                name: fn.name as string,
+                description: fn.description as string,
+                parameters: fn.parameters as Record<string, unknown>
+              }
+            } as Tool;
+          }
+        }
+        
+        return null;
+      }).filter(tool => tool !== null) as Tool[];
+      
+      setAvailableTools(convertedTools);
+      
+      if (convertedTools.length === 0) {
+        toast.warning(`No tools available for ${selectedProvider} with model ${selectedModel}. Try another provider/model or check your MCP server configuration.`);
+      }
+    } catch (error) {
+      console.error('Error loading tools:', error);
+      toast.error('Failed to load tools. Please try again later.');
+      setAvailableTools([]);
+    } finally {
+      setToolsLoading(false);
+    }
+  };
+
+  const handleToolSelection = (toolName: string) => {
+    setSelectedTool(toolName);
+    
+    // Find the selected tool
+    const tool = availableTools.find(t => t.function.name === toolName);
+    
+    if (tool) {
+      // Generate default parameters based on tool schema
+      try {
+        const params: Record<string, unknown> = {};
+        const properties = tool.function.parameters.properties as Record<string, { 
+          type?: string; 
+          default?: unknown;
+        }>;
+        
+        if (properties) {
+          Object.entries(properties).forEach(([key, prop]) => {
+            // Use default if available, otherwise empty string or empty object
+            if (prop.default !== undefined) {
+              params[key] = prop.default;
+            } else if (prop.type === 'string') {
+              params[key] = '';
+            } else if (prop.type === 'object') {
+              params[key] = {};
+            } else if (prop.type === 'array') {
+              params[key] = [];
+            } else if (prop.type === 'number' || prop.type === 'integer') {
+              params[key] = 0;
+            } else if (prop.type === 'boolean') {
+              params[key] = false;
+            }
+          });
+        }
+        
+        setToolInputParams(JSON.stringify(params, null, 2));
+      } catch (e) {
+        console.error('Error generating default parameters:', e);
+        setToolInputParams('{}');
+      }
+    } else {
+      setToolInputParams('{}');
+    }
+  };
+
+  const executeSelectedTool = async () => {
+    if (!selectedTool) {
+      toast.error('Please select a tool to execute');
+      return;
+    }
+    
+    setIsToolLoading(true);
+    setToolResults('');
+    
+    try {
+      // Parse input parameters
+      const isValidJson = (() => {
+        try {
+          JSON.parse(toolInputParams);
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+      
+      if (!isValidJson) {
+        toast.error('Invalid JSON input parameters. Please check your syntax.');
+        setIsToolLoading(false);
+        return;
+      }
+      
+      // Create message with tool call
+      const messages: ChatMessage[] = [
+        {
+          role: 'user',
+          content: `Please execute the ${selectedTool} tool with the provided parameters.`
+        }
+      ];
+      
+      // Configure the tool for execution
+      const toolConfig = {
+        type: 'function' as const,
+        function: { name: selectedTool }
+      };
+      
+      // Execute tool via chat response
+      const response = await generateMCPChatResponse({
+        messages,
+        tools: availableTools,
+        tool_choice: toolConfig,
+        model: selectedModel
+      } as ChatRequestWithTools);
+      
+      // Display results
+      setToolResults(response.message.content);
+    } catch (error) {
+      console.error('Error executing tool:', error);
+      toast.error('Failed to execute tool. Please try again later.');
+    } finally {
+      setIsToolLoading(false);
+    }
+  };
+
+  const handleSendChat = async () => {
+    if (!chatInput.trim() || isChatLoading) return;
+    
+    // Add user message to chat
+    const userMessage = {
+      role: 'user' as const,
+      content: chatInput.trim(),
+      toolCall: null
+    };
+    
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsChatLoading(true);
+    
+    try {
+      // Format messages for the API
+      const apiMessages: ChatMessage[] = [
+        ...chatMessages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        })),
+        {
+          role: 'user',
+          content: chatInput.trim()
+        }
+      ];
+      
+      // Generate chat response
+      const response = await generateMCPChatResponse({
+        messages: apiMessages,
+        tools: availableTools,
+        tool_choice: 'auto',
+        model: selectedModel
+      } as ChatRequestWithTools);
+      
+      const responseMessage = response.message as ChatMessageWithTools;
+      const hasTool = responseMessage.tool_calls && responseMessage.tool_calls.length > 0;
+      
+      // Add assistant response to chat
+      setChatMessages(prev => [
+        ...prev, 
+        {
+          role: 'assistant',
+          content: responseMessage.content || '',
+          toolCall: hasTool
+            ? {
+                name: responseMessage.tool_calls![0].function.name,
+                arguments: JSON.stringify(responseMessage.tool_calls![0].function.arguments, null, 2)
+              }
+            : null
+        }
+      ]);
+      
+      // Automatically execute tool if requested
+      if (hasTool) {
+        // Add a system message showing the tool call was executed
+        setChatMessages(prev => [
+          ...prev,
+          {
+            role: 'system',
+            content: `Executing tool: ${responseMessage.tool_calls![0].function.name}...`,
+            toolCall: null
+          }
+        ]);
+        
+        // Create message with tool call for the API
+        const assistantMessageWithTool: ChatMessageWithTools = {
+          role: 'assistant',
+          content: '',
+          tool_calls: responseMessage.tool_calls
+        };
+        
+        // Execute tool via tool call response
+        const toolResponse = await generateMCPChatResponse({
+          messages: [...apiMessages, assistantMessageWithTool as unknown as ChatMessage],
+          tools: availableTools,
+          tool_choice: 'auto',
+          model: selectedModel
+        } as ChatRequestWithTools);
+        
+        // Add tool response to chat
+        setChatMessages(prev => [
+          ...prev,
+          {
+            role: 'system',
+            content: toolResponse.message.content || 'Tool executed successfully.',
+            toolCall: null
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error generating chat response:', error);
+      toast.error('Failed to generate response. Please try again later.');
+      
+      // Add error message to chat
+      setChatMessages(prev => [
+        ...prev,
+        {
+          role: 'system',
+          content: 'Error: Failed to generate response. Please try again.',
+          toolCall: null
+        }
+      ]);
+    } finally {
+      setIsChatLoading(false);
+      
+      // Scroll to bottom after messages update
+      setTimeout(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  };
+
+  // Add this useEffect to load tools when provider changes
+  useEffect(() => {
+    if (availableTools.length === 0 && installedServers.length > 0) {
+      loadAvailableTools();
+    }
+  }, [selectedProvider, installedServers]);
+
   // Initial data fetch
   useEffect(() => {
     fetchServersWithInstallStatus();
@@ -371,6 +726,21 @@ export function MCPSettings() {
   useEffect(() => {
     fetchServersWithInstallStatus(searchQuery, activeCategory, 1);
   }, [searchQuery, activeCategory]);
+
+  // Add effect to scroll to bottom when messages change
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  // Add useEffect to initialize the model when provider changes
+  useEffect(() => {
+    // Set a default model when provider changes
+    if (selectedProvider && LLM_MODELS[selectedProvider]?.length > 0) {
+      setSelectedModel(LLM_MODELS[selectedProvider][0].value);
+    } else {
+      setSelectedModel('');
+    }
+  }, [selectedProvider]);
 
   // Render MCP server card
   const renderServerCard = (server: MCPServerVM, isInstalledView: boolean = false) => (
@@ -470,6 +840,7 @@ export function MCPSettings() {
         <TabsList>
           <TabsTrigger value="browse">Browse</TabsTrigger>
           <TabsTrigger value="installed">Installed ({installedServers.length})</TabsTrigger>
+          <TabsTrigger value="test">Test Tools</TabsTrigger>
         </TabsList>
         
         <TabsContent value="browse" className="space-y-4">
@@ -564,6 +935,241 @@ export function MCPSettings() {
               <p className="text-muted-foreground mt-2">Browse available servers and install them to enhance your AI capabilities.</p>
             </div>
           )}
+        </TabsContent>
+        
+        <TabsContent value="test" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="provider">Provider</Label>
+                <Select 
+                  value={selectedProvider} 
+                  onValueChange={(value) => setSelectedProvider(value as 'openai' | 'anthropic' | 'openrouter' | 'featherless')}
+                >
+                  <SelectTrigger id="provider">
+                    <SelectValue placeholder="Select provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="anthropic">Anthropic</SelectItem>
+                    <SelectItem value="openrouter">OpenRouter</SelectItem>
+                    <SelectItem value="featherless">Featherless</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="model">Model</Label>
+                <Select 
+                  value={selectedModel} 
+                  onValueChange={setSelectedModel}
+                  disabled={!selectedProvider || !LLM_MODELS[selectedProvider]?.length}
+                >
+                  <SelectTrigger id="model">
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedProvider && LLM_MODELS[selectedProvider]?.map((model) => (
+                      <SelectItem key={model.value} value={model.value}>
+                        {model.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="tool">Tool</Label>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 gap-1 text-xs"
+                    onClick={loadAvailableTools}
+                    disabled={toolsLoading}
+                  >
+                    <RefreshCw className={cn("h-3 w-3", toolsLoading && "animate-spin")} />
+                    Refresh
+                  </Button>
+                </div>
+                
+                <Select 
+                  value={selectedTool} 
+                  onValueChange={handleToolSelection}
+                  disabled={toolsLoading || availableTools.length === 0}
+                >
+                  <SelectTrigger id="tool">
+                    <SelectValue placeholder={toolsLoading ? "Loading tools..." : availableTools.length === 0 ? "No tools available" : "Select a tool"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableTools.map(tool => (
+                      <SelectItem key={tool.function.name} value={tool.function.name}>
+                        {tool.function.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="md:col-span-2 space-y-4">
+              <Tabs defaultValue="direct">
+                <TabsList>
+                  <TabsTrigger value="direct">Direct Execution</TabsTrigger>
+                  <TabsTrigger value="chat">Chat Interface</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="direct" className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="parameters">Parameters (JSON)</Label>
+                    <Textarea 
+                      id="parameters" 
+                      placeholder="Enter parameters as JSON" 
+                      className="font-mono text-xs h-40"
+                      value={toolInputParams}
+                      onChange={(e) => setToolInputParams(e.target.value)}
+                    />
+                  </div>
+                  
+                  <Button 
+                    onClick={executeSelectedTool} 
+                    disabled={isToolLoading || !selectedTool || toolsLoading}
+                    className="w-full"
+                  >
+                    {isToolLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Executing...
+                      </>
+                    ) : (
+                      <>Execute Tool</>
+                    )}
+                  </Button>
+                  
+                  {toolResults && (
+                    <div className="space-y-2 mt-4">
+                      <Label>Results</Label>
+                      <Card className="overflow-x-auto">
+                        <CardContent className="pt-4">
+                          <pre className="text-xs whitespace-pre-wrap">{toolResults}</pre>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="chat" className="space-y-2 pt-4 h-[600px] flex flex-col">
+                  <Card className="flex-1 flex flex-col">
+                    <ScrollArea className="flex-1 p-4">
+                      {chatMessages.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                          <p>Send a message to start chatting with the AI and test tools</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {chatMessages.map((message, index) => (
+                            <div key={index} className={cn(
+                              "flex items-start gap-3",
+                              message.role === 'user' && "justify-end",
+                              message.role === 'system' && "opacity-70"
+                            )}>
+                              {message.role !== 'user' && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback>
+                                    {message.role === 'assistant' ? (
+                                      <Bot className="h-4 w-4" />
+                                    ) : (
+                                      <Bot className="h-4 w-4" />
+                                    )}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              
+                              <div className={cn(
+                                "rounded-lg px-3 py-2 max-w-[80%] text-sm",
+                                message.role === 'user' 
+                                  ? "bg-primary text-primary-foreground"
+                                  : message.role === 'system'
+                                    ? "bg-muted text-muted-foreground"
+                                    : "bg-muted",
+                              )}>
+                                <div className="whitespace-pre-wrap">
+                                  {message.content}
+                                </div>
+                                
+                                {message.toolCall && (
+                                  <div className="mt-2 p-2 bg-background rounded border text-xs font-mono">
+                                    <div className="font-semibold text-primary">Tool: {message.toolCall.name}</div>
+                                    <pre className="whitespace-pre-wrap overflow-x-auto">
+                                      {message.toolCall.arguments}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {message.role === 'user' && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback>
+                                    <User className="h-4 w-4" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                            </div>
+                          ))}
+                          
+                          {isChatLoading && (
+                            <div className="flex items-start gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback>
+                                  <Bot className="h-4 w-4" />
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="rounded-lg px-3 py-2 bg-muted text-sm flex items-center gap-2">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Thinking...
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div ref={chatEndRef} />
+                        </div>
+                      )}
+                    </ScrollArea>
+                    
+                    <div className="p-4 border-t">
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleSendChat();
+                        }}
+                        className="flex gap-2"
+                      >
+                        <Textarea 
+                          placeholder="Send a message to test tools..."
+                          className="min-h-10 resize-none"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSendChat();
+                            }
+                          }}
+                        />
+                        <Button 
+                          type="submit" 
+                          size="icon" 
+                          disabled={isChatLoading || !chatInput.trim()}
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </form>
+                    </div>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
       
