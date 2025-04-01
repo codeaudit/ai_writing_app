@@ -1,14 +1,32 @@
 'use server';
 
-import { MultiClient, createTransport } from '@smithery/sdk';
-import { OpenAIChatAdapter } from '@smithery/sdk';
-import { AnthropicChatAdapter } from '@smithery/sdk';
-import { 
-  getInstalledServers, 
-  createSmitheryWebSocketUrl, 
-  fetchMCPServerDetails 
-} from './smithery-service';
-import { kv } from '@/lib/kv-provider';
+import { MultiClient } from "@smithery/sdk/index.js"
+import { AnthropicChatAdapter } from "@smithery/sdk/integrations/llm/anthropic.js"
+import { OpenAIChatAdapter } from "@smithery/sdk/integrations/llm/openai.js"
+import { createTransport } from "@smithery/sdk/transport.js"
+
+import { logger } from './logger';
+
+// Handle WebSocket polyfill for server-side
+if (typeof global !== 'undefined' && typeof WebSocket === 'undefined') {
+  try {
+    logger.info('Setting up WebSocket polyfill for server environment');
+    
+    // Use a safer approach to avoid require() and issues with dynamic imports
+    import('ws').then(ws => {
+      // @ts-expect-error - TypeScript doesn't understand this global assignment
+      global.WebSocket = ws.default || ws;
+      logger.info('WebSocket polyfill set up successfully');
+    }).catch(error => {
+      logger.error('Failed to import WebSocket module:', error);
+    });
+  } catch (error) {
+    logger.error('Error setting up WebSocket polyfill:', error);
+  }
+}
+
+// Log initialization to verify this file is being loaded
+logger.always("MCP Server Manager loading...");
 
 // Interface for server with deployment status
 export interface MCPServerState {
@@ -25,203 +43,105 @@ export interface MCPServerState {
 }
 
 // Track enabled servers for UI/feedback
-let enabledServers: MCPServerState[] = [];
+const enabledServers: MCPServerState[] = [];
 
 // Provider-specific adapters
 let openaiAdapter: OpenAIChatAdapter | null = null;
 let anthropicAdapter: AnthropicChatAdapter | null = null;
 
-// Helper to get the full API URL
-function getApiUrl(path: string): string {
-  // For server-side calls, we need a full URL
-  if (typeof window === 'undefined') {
-    // Use local environment URL, or a default if not available
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    return `${baseUrl}${path}`;
-  }
-  // For client-side calls, relative URL is fine
-  return path;
-}
+// MultiClient instance
+let mcpClient: MultiClient | null = null;
 
 /**
  * Initialize and connect to enabled MCP servers
  */
 export async function initializeMCPServers(): Promise<MultiClient | null> {
   try {
-    console.log('Initializing MCP servers...');
-    
-    // Create a multiclient instance
-    const multi = new MultiClient();
-    
-    // Create a map of transports
-    const transports: Record<string, ReturnType<typeof createTransport>> = {};
-    
-    // Reset enabled servers list
-    enabledServers = [];
+    logger.always('Initializing MCP servers...');
     
     // Get API key
     const SMITHERY_API_KEY = process.env.SMITHERY_API_KEY || '';
     
     if (!SMITHERY_API_KEY) {
-      console.error('Smithery API key not found');
+      logger.error('Smithery API key not found. Set SMITHERY_API_KEY environment variable.');
       return null;
     }
     
-    // Get all installed servers
-    const installedServers = await getInstalledServers();
+    // Create a multiclient instance
+    mcpClient = new MultiClient();
     
-    if (!installedServers || installedServers.length === 0) {
-      console.log('No installed MCP servers found');
-      return multi;
+    // Create a map of transports
+    const transports: Record<string, ReturnType<typeof createTransport>> = {};
+    
+    // Add the Exa server transport
+    const EXA_API_KEY = process.env.EXA_API_KEY || '';
+    const EXA_SERVER_URL = process.env.EXA_SERVER_URL || 'https://server.smithery.ai/exa';
+    
+    if (EXA_API_KEY) {
+      // Ensure the URL uses the WebSocket protocol
+      const wsUrl = EXA_SERVER_URL.replace(/^https?:\/\//, 'wss://');
+      
+      logger.always(`Converting URL from ${EXA_SERVER_URL} to WebSocket URL: ${wsUrl}`);
+      
+      const exaTransport = createTransport(wsUrl, {
+        exaApiKey: EXA_API_KEY,
+        apiKey: SMITHERY_API_KEY
+      });
+      
+      transports.exa = exaTransport;
+      logger.info(`Added Exa transport for ${wsUrl}`);
+      
+      // Add to enabled servers list for UI
+      enabledServers.push({
+        qualifiedName: 'exa',
+        name: 'Exa Search',
+        url: EXA_SERVER_URL,
+        enabled: true,
+        isDeployed: true,
+        description: 'Fast, intelligent web search and crawling',
+        config: { apiKey: EXA_API_KEY }
+      });
+    } else {
+      logger.warn('No EXA_API_KEY found, Exa search will not be available');
     }
-    
-    console.log(`Found ${installedServers.length} installed MCP servers`);
-    
-    // Process each installed server
-    for (const server of installedServers) {
-      try {
-        // Get server config
-        const config = server.config || {};
-        const isEnabled = config.enabled !== false; // Default to enabled if not specified
-        
-        // First try to get server details from KV store
-        let serverDetails = await kv.get(`mcp-server-${server.qualifiedName}`);
-        
-        // If no details in KV, try to get them from the file storage
-        if (!serverDetails) {
-          console.log(`Fetching details for server from registry: ${server.qualifiedName}`);
-          
-          try {
-            // Fetch fresh details from the registry API
-            const freshDetails = await fetchMCPServerDetails(server.qualifiedName);
-            
-            // Store in KV for future use
-            await kv.set(`mcp-server-${server.qualifiedName}`, freshDetails);
-            
-            serverDetails = freshDetails;
-            console.log(`Updated details for server ${server.qualifiedName}`);
-          } catch (fetchError) {
-            console.error(`Couldn't fetch server details for ${server.qualifiedName}:`, fetchError);
-            
-            // Create a minimal server details object from the file data
-            serverDetails = {
-              qualifiedName: server.qualifiedName,
-              displayName: server.qualifiedName,
-              deploymentUrl: server.config.url || '',
-              connections: []
-            };
-          }
-        }
-        
-        // Only add deployed and enabled servers to transports
-        if (isEnabled) {
-          // Create transport for each enabled server
-          if (serverDetails.deploymentUrl) {
-            // Create the WebSocket URL with config
-            const wsUrl = await createSmitheryWebSocketUrl(
-              serverDetails.deploymentUrl,
-              {
-                apiKey: config.apiKey || SMITHERY_API_KEY,
-                ...config
-              }
-            );
-            
-            // Create transport
-            const transport = createTransport(wsUrl, {
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${SMITHERY_API_KEY}`
-              }
-            });
-            
-            // Add to transports map using server ID as the key
-            const serverKey = server.qualifiedName.replace(/\//g, '_').toLowerCase();
-            transports[serverKey] = transport;
-            
-            // Add to enabled servers list with deployment status
-            enabledServers.push({
-              qualifiedName: server.qualifiedName,
-              name: serverDetails.displayName || server.qualifiedName,
-              url: serverDetails.deploymentUrl,
-              enabled: true,
-              isDeployed: true,
-              description: serverDetails.description,
-              config: server.config
-            });
-            
-            console.log(`Added MCP server to transports: ${server.qualifiedName}`);
-          } else {
-            console.warn(`Server ${server.qualifiedName} is enabled but has no deployment URL`);
-            
-            // Still add to enabled servers list but mark as not deployed
-            enabledServers.push({
-              qualifiedName: server.qualifiedName,
-              name: serverDetails.displayName || server.qualifiedName,
-              url: '',
-              enabled: true,
-              isDeployed: false,
-              description: serverDetails.description,
-              config: server.config
-            });
-          }
-        } else {
-          // Add disabled server to the list but mark it as not deployed
-          enabledServers.push({
-            qualifiedName: server.qualifiedName,
-            name: serverDetails.displayName || server.qualifiedName,
-            url: serverDetails.deploymentUrl || '',
-            enabled: false,
-            isDeployed: false,
-            description: serverDetails.description,
-            config: server.config
-          });
-          
-          console.log(`Added disabled MCP server to list: ${server.qualifiedName}`);
-        }
-      } catch (error) {
-        console.error(`Error processing MCP server ${server.qualifiedName}:`, error);
-      }
-    }
-    
-    // Add the main Smithery MCP server
-    const mainTransport = createTransport(`https://smithery.ai/api/mcp`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SMITHERY_API_KEY}`
-      }
-    });
-    transports['mcp'] = mainTransport;
     
     // Connect to all transports
     if (Object.keys(transports).length > 0) {
       try {
-        await multi.connectAll(transports);
-        console.log('Connected to MCP servers successfully');
+        logger.info(`Connecting to ${Object.keys(transports).length} MCP servers...`);
+        
+        await mcpClient.connectAll(transports);
+        logger.info('Connected to MCP servers successfully');
         
         // Initialize adapters
-        openaiAdapter = new OpenAIChatAdapter(multi);
-        anthropicAdapter = new AnthropicChatAdapter(multi);
+        openaiAdapter = new OpenAIChatAdapter(mcpClient);
+        anthropicAdapter = new AnthropicChatAdapter(mcpClient);
         
-        return multi;
+        return mcpClient;
       } catch (connectionError) {
-        console.error('Error connecting to MCP servers:', connectionError);
+        logger.error('Error connecting to MCP servers:', connectionError);
         return null;
       }
     } else {
-      console.warn('No enabled MCP servers found');
+      logger.warn('No MCP servers configured');
       return null;
     }
   } catch (error) {
-    console.error('Error initializing MCP servers:', error);
+    logger.error('Error initializing MCP servers:', error);
     return null;
   }
 }
 
 /**
- * Get an MCP client, creating a new instance each time
+ * Get an MCP client, initializing if not already done
  */
 export async function getMCPClient(): Promise<MultiClient | null> {
-  // Since globalClient is now a const null, always initialize
+  if (mcpClient) {
+    logger.debug('Returning existing MCP client');
+    return mcpClient;
+  }
+  
+  logger.debug('Initializing new MCP client');
   return initializeMCPServers();
 }
 
@@ -229,6 +149,12 @@ export async function getMCPClient(): Promise<MultiClient | null> {
  * Get the list of enabled MCP servers
  */
 export async function getEnabledMCPServers(): Promise<MCPServerState[]> {
+  // If we have no servers but haven't tried initializing yet, try now
+  if (enabledServers.length === 0 && !mcpClient) {
+    await initializeMCPServers();
+  }
+  
+  logger.debug(`getEnabledMCPServers called, returning ${enabledServers.length} servers`);
   return enabledServers;
 }
 
@@ -236,6 +162,12 @@ export async function getEnabledMCPServers(): Promise<MCPServerState[]> {
  * Get the OpenAI adapter configured with MCP servers
  */
 export async function getOpenAIAdapter(): Promise<OpenAIChatAdapter | null> {
+  // Initialize if needed
+  if (!openaiAdapter) {
+    await initializeMCPServers();
+  }
+  
+  logger.debug(`getOpenAIAdapter called, adapter ${openaiAdapter ? 'exists' : 'is null'}`);
   return openaiAdapter;
 }
 
@@ -243,52 +175,11 @@ export async function getOpenAIAdapter(): Promise<OpenAIChatAdapter | null> {
  * Get the Anthropic adapter configured with MCP servers
  */
 export async function getAnthropicAdapter(): Promise<AnthropicChatAdapter | null> {
-  return anthropicAdapter;
-}
-
-/**
- * Update the deployment status of an MCP server
- */
-export async function updateMCPServerStatus(
-  qualifiedName: string, 
-  enabled: boolean
-): Promise<boolean> {
-  try {
-    // Find the server in the list
-    const serverIndex = enabledServers.findIndex(s => s.qualifiedName === qualifiedName);
-    
-    if (serverIndex >= 0) {
-      // Update the server status in memory
-      enabledServers[serverIndex] = {
-        ...enabledServers[serverIndex],
-        enabled,
-        isDeployed: enabled
-      };
-      
-      // Update the server status via API
-      const response = await fetch(getApiUrl('/api/mcp-servers'), {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ qualifiedName, enabled })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error(`API error updating server status: ${errorData.error || 'Unknown error'}`);
-        return false;
-      }
-      
-      // Reinitialize MCP servers to update connections
-      await initializeMCPServers();
-      
-      return true;
-    }
-    
-    return false;
-  } catch (error) {
-    console.error(`Error updating MCP server status for ${qualifiedName}:`, error);
-    return false;
+  // Initialize if needed
+  if (!anthropicAdapter) {
+    await initializeMCPServers();
   }
+  
+  logger.debug(`getAnthropicAdapter called, adapter ${anthropicAdapter ? 'exists' : 'is null'}`);
+  return anthropicAdapter;
 } 

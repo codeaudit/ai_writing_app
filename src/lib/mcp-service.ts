@@ -1,24 +1,23 @@
 'use server'
 
 import { OpenAI } from 'openai';
-import { Anthropic } from '@anthropic-ai/sdk';
-import { OpenAIChatAdapter } from '@smithery/sdk';
-import { AnthropicChatAdapter } from '@smithery/sdk';
-import { MultiClient, createTransport } from '@smithery/sdk';
+import Anthropic from '@anthropic-ai/sdk';
+
+import { AnthropicChatAdapter } from "@smithery/sdk/integrations/llm/anthropic.js"
+import { OpenAIChatAdapter } from "@smithery/sdk/integrations/llm/openai.js"
+
 import { kv } from '@/lib/kv-provider';
 import { cookies } from 'next/headers';
 import { formatDebugPrompt, logAIDebug } from '@/lib/ai-debug';
 import { getAIRoleSystemPrompt } from './ai-roles';
 import { 
-  getEnabledMCPServers,
-  getMCPClient as getBaseMCPClient
+  getMCPClient
 } from './mcp-server-manager';
 import { logger } from './logger';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import type { ChatCompletionCreateParams } from 'openai/resources';
 import type { MessageCreateParams } from '@anthropic-ai/sdk/resources/messages';
-import type { MCPServerState as BaseMCPServerState } from './mcp-server-manager';
 
 // Import environment variables
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -103,113 +102,9 @@ export interface MCPOperation {
   metadata?: Record<string, unknown>;
 }
 
-// Extended interface to handle all the possible server structure variants
-interface ExtendedMCPServerState extends BaseMCPServerState {
-  // Properties directly from mcp-servers.md format
-  connections?: Array<Connection>;
-  deploymentUrl?: string;
-  // Any additional properties that might exist
-  [key: string]: unknown;
-}
-
-// Connection interface for MCP server connections
-interface Connection {
-  type: string;
-  deploymentUrl?: string;
-  configSchema?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
 // Helper function to generate a unique ID
 function generateId(): string {
   return `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-}
-
-/**
- * Get the WebSocket URL for a specific MCP server from installed servers
- */
-async function getServerWebSocketUrl(serverName: string): Promise<string | null> {
-  try {
-    // Get all enabled MCP servers
-    const enabledServers = await getEnabledMCPServers();
-    logger.debug(`Found ${enabledServers.length} enabled MCP servers`);
-    
-    // Find the server with the matching name
-    const server = enabledServers.find(s => 
-      s.qualifiedName === serverName || 
-      s.name.toLowerCase() === serverName.toLowerCase()
-    ) as ExtendedMCPServerState | undefined;
-
-    if (!server) {
-      logger.error(`Server ${serverName} not found in enabled MCP servers`);
-      return null;
-    }
-
-    logger.debug(`Found server: ${server.name} (${server.qualifiedName})`);
-
-    // First, check for connections array directly on the server object (per mcp-servers.md)
-    if (server.connections && Array.isArray(server.connections)) {
-      logger.debug(`Server has ${server.connections.length} connections`);
-      const wsConnection = server.connections.find(conn => conn.type === 'ws');
-      if (wsConnection && wsConnection.deploymentUrl) {
-        logger.info(`Found WebSocket URL in connections: ${wsConnection.deploymentUrl}`);
-        return wsConnection.deploymentUrl;
-      }
-    }
-
-    // Next, check for connections in the server.config object
-    if (server.config && server.config.connections && Array.isArray(server.config.connections)) {
-      logger.debug(`Server config has ${server.config.connections.length} connections`);
-      const wsConnection = server.config.connections.find((conn: Connection) => conn.type === 'ws');
-      if (wsConnection && wsConnection.deploymentUrl) {
-        logger.info(`Found WebSocket URL in config.connections: ${wsConnection.deploymentUrl}`);
-        return wsConnection.deploymentUrl;
-      }
-    }
-
-    // Finally, check if there's a deploymentUrl directly on the server object
-    if (server.deploymentUrl) {
-      logger.info(`Found deploymentUrl on server: ${server.deploymentUrl}`);
-      return server.deploymentUrl;
-    }
-
-    // If we don't find the connection in any of the above, check the server's url
-    if (server.url) {
-      logger.info(`Using server.url as fallback: ${server.url}`);
-      return server.url;
-    }
-
-    logger.error(`No WebSocket URL found for server ${serverName}. Server structure:`, JSON.stringify(server, null, 2));
-    return null;
-  } catch (error) {
-    logger.error(`Error getting WebSocket URL for server ${serverName}:`, error);
-    return null;
-  }
-}
-
-// Get server config from kv store or defaults
-async function getServerConfig() {
-  // Default config
-  const config = {
-    provider: 'openai',
-    model: 'gpt-4o',
-    temperature: 0.7,
-    maxTokens: 4096,
-    enableCache: false,
-    aiRole: 'assistant'
-  };
-
-  try {
-    // Get from KV store if available
-    const storedConfig = await kv.get('llm-config');
-    if (storedConfig) {
-      return { config: { ...config, ...storedConfig } };
-    }
-  } catch (error) {
-    logger.warn('Error getting config from KV store:', error);
-  }
-
-  return { config };
 }
 
 /**
@@ -273,14 +168,13 @@ function convertToAnthropicMessages(messages: ChatMessage[]): MessageParam[] {
 }
 
 /**
- * Get MCP tools from a specific server
+ * Get MCP tools from a specific adapter
  */
-async function getMCPServerTools(client: unknown, adapter: OpenAIChatAdapter | AnthropicChatAdapter): Promise<Tool[]> {
+async function getMCPServerTools(adapter: OpenAIChatAdapter | AnthropicChatAdapter): Promise<Tool[]> {
   try {
     const rawTools = await adapter.listTools();
     
     // Convert the raw tools to our Tool interface
-    // We use a two-step process to ensure type safety
     const convertedTools = rawTools.map(rawTool => {
       const toolObj: Record<string, unknown> = rawTool as unknown as Record<string, unknown>;
       
@@ -326,90 +220,15 @@ async function getMCPServerTools(client: unknown, adapter: OpenAIChatAdapter | A
   }
 }
 
-/**
- * Get an MCP client with improved WebSocket URL detection
- */
-async function getMCPClient(): Promise<MultiClient | null> {
+// Helper function to safely call adapter tools with proper error handling
+async function safeCallAdapterTool(adapter: any, response: any): Promise<any[]> {
   try {
-    logger.debug("Initializing MCP client...");
-    
-    // Try to get the base client first
-    const baseClient = await getBaseMCPClient();
-    if (baseClient) {
-      logger.info("Using base MCP client from server manager");
-      return baseClient;
-    }
-    
-    logger.warn("Base client unavailable, attempting to create custom client");
-    
-    // Create a custom MultiClient as fallback
-    const multiClient = new MultiClient();
-    const SMITHERY_API_KEY = process.env.SMITHERY_API_KEY || '';
-    
-    if (!SMITHERY_API_KEY) {
-      logger.error('Smithery API key not found');
-      return null;
-    }
-    
-    // Get all enabled MCP servers
-    const enabledServers = await getEnabledMCPServers();
-    if (!enabledServers || enabledServers.length === 0) {
-      logger.error('No enabled MCP servers found');
-      return null;
-    }
-    
-    // Create a map of transports
-    const transports: Record<string, ReturnType<typeof createTransport>> = {};
-    let hasValidConnection = false;
-    
-    // Add all enabled servers
-    logger.debug(`Processing ${enabledServers.length} enabled servers`);
-    for (const server of enabledServers) {
-      try {
-        // Get WebSocket URL using our improved function
-        logger.debug(`Getting WebSocket URL for server: ${server.name}`);
-        const wsUrl = await getServerWebSocketUrl(server.qualifiedName);
-        
-        if (wsUrl) {
-          logger.info(`Creating transport for ${server.name} with URL: ${wsUrl}`);
-          
-          // Hardcoded transport - will replace later!
-          const transport = createTransport("https://server.smithery.ai/exa", {
-            "exaApiKey": "b4f1c7aa-6263-47c3-bb82-897414271ffc",
-            "apiKey": "eb97b64f-c463-493d-b210-443933bc0d4e" 
-          });
-          
-          // Add to transports map
-          const serverKey = server.qualifiedName.replace(/\//g, '_').toLowerCase();
-          transports[serverKey] = transport;
-          hasValidConnection = true;
-          logger.debug(`Added transport for ${server.name} with key: ${serverKey}`);
-        } else {
-          logger.warn(`No WebSocket URL found for ${server.name}, skipping`);
-        }
-      } catch (error) {
-        logger.error(`Error creating transport for ${server.name}:`, error);
-      }
-    }
-    
-    // If we have at least one valid connection, connect to all transports
-    if (hasValidConnection) {
-      try {
-        logger.debug("Connecting to all MCP servers...");
-        await multiClient.connectAll(transports);
-        logger.info('Connected to MCP servers successfully');
-        return multiClient;
-      } catch (connectionError) {
-        logger.error('Error connecting to MCP servers:', connectionError);
-      }
-    } else {
-      logger.error('No valid MCP server connections were found');
-    }
-    
-    return null;
+    // @ts-expect-error: SDK version mismatch requires ignoring type checking
+    const toolMessages = await adapter.callTool(response);
+    return toolMessages || [];
   } catch (error) {
-    logger.error('Error initializing MCP client:', error);
-    return null;
+    logger.error('Error calling adapter tool:', error);
+    return [];
   }
 }
 
@@ -459,6 +278,7 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
   if (context) {
     enhancedSystemMessage += `\n\nUse the following context to inform your responses: <context>${context}</context>`;
   }
+
   
   if (contextDocuments && contextDocuments.length > 0) {
     logger.debug(`Adding ${contextDocuments.length} context documents to prompt`);
@@ -477,22 +297,11 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
   }
   
   try {
-    // Get enabled MCP servers
-    const enabledServers = await getEnabledMCPServers();
-    logger.info(`Found ${enabledServers.length} enabled MCP servers`);
-    
-    // Log the WebSocket URLs for debugging
-    for (const server of enabledServers) {
-      const wsUrl = await getServerWebSocketUrl(server.qualifiedName);
-      logger.debug(`Server ${server.name} (${server.qualifiedName}) WebSocket URL: ${wsUrl || 'Not found'}`);
-    }
-    
     // Initialize the MCP client
-    logger.debug("About to initialize MCP client");
-    const client = await getMCPClient();
-    logger.debug("MCP client initialization complete");
+    logger.debug("Initializing MCP client");
+    const mcpClient = await getMCPClient();
     
-    if (!client) {
+    if (!mcpClient) {
       logger.error("Failed to initialize MCP client");
       throw new Error("Failed to initialize MCP client");
     }
@@ -506,16 +315,17 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
     if (provider === 'openai') {
       logger.debug("Using OpenAI provider with MCP");
       // OpenAI approach with MCP
-      const adapter = new OpenAIChatAdapter(client);
+      const adapter = new OpenAIChatAdapter(mcpClient);
       
       // Get tools if custom tools aren't provided
       let mcpTools: Tool[] = [];
       if (customTools.length === 0) {
-        mcpTools = await getMCPServerTools(client, adapter);
+        mcpTools = await getMCPServerTools(adapter);
       }
       
       // Prepare messages for OpenAI
       const openaiMessages = convertToOpenAIMessages([
+        // Add system message for OpenAI to ensure proper functioning
         { role: 'system', content: enhancedSystemMessage },
         ...messages
       ]);
@@ -533,8 +343,7 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
       
       // Add tools if available
       if (tools.length > 0) {
-        // Since the OpenAI SDK's tool types have changed, we need to use a double type assertion
-        // to bypass the type checking while maintaining runtime compatibility
+        // Type assertion needed for tool compatibility
         openaiOptions.tools = tools as unknown as ChatCompletionCreateParams['tools'];
         if (typeof toolChoice === 'string') {
           openaiOptions.tool_choice = toolChoice as 'auto' | 'none';
@@ -543,7 +352,7 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
         }
       }
       
-      // Make API call to OpenAI
+      // Make API call
       const response = await openaiClient.chat.completions.create(openaiOptions);
       
       // Get response content
@@ -559,16 +368,42 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
             arguments: tc.function.arguments
           }
         }));
+        
+        // Process tool calls if available
+        if (toolCalls && toolCalls.length > 0) {
+          let toolMessages: Record<string, unknown>[] = [];
+          try {
+            // Use unknown type to avoid type checking between mismatched SDK versions
+            toolMessages = await safeCallAdapterTool(adapter, response as unknown as any);
+            logger.debug(`Got ${toolMessages.length} tool messages from OpenAI`);
+          } catch (error) {
+            logger.error('Error calling tools with OpenAI adapter:', error);
+            // Continue with empty tool messages
+          }
+          
+          if (toolMessages && toolMessages.length > 0) {
+            // Extract response text from tool results
+            const toolResponseText = toolMessages
+              .filter(msg => typeof msg.role === 'string' && ['tool', 'function'].includes(msg.role as string))
+              .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
+              .join('\n');
+              
+            // Append tool results to response if available
+            if (toolResponseText) {
+              responseText += '\n\n' + toolResponseText;
+            }
+          }
+        }
       }
     } else {
       logger.debug("Using Anthropic provider with MCP");
       // Anthropic approach with MCP
-      const adapter = new AnthropicChatAdapter(client);
+      const adapter = new AnthropicChatAdapter(mcpClient);
       
       // Get tools if custom tools aren't provided
       let mcpTools: Tool[] = [];
       if (customTools.length === 0) {
-        mcpTools = await getMCPServerTools(client, adapter);
+        mcpTools = await getMCPServerTools(adapter);
       }
       
       // Prepare messages for Anthropic
@@ -592,7 +427,7 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
         anthropicOptions.tools = tools as unknown as MessageCreateParams['tools'];
       }
       
-      // Make API call to Anthropic
+      // Make API call
       const response = await anthropicClient.messages.create(anthropicOptions);
       
       // Parse response text from content blocks
@@ -603,6 +438,30 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
           .join('\n');
       } else {
         responseText = response.content || '';
+      }
+      
+      // Process tool calls if available
+      let toolMessages: any[] = [];
+      try {
+        // Use unknown type to avoid type checking between mismatched SDK versions
+        toolMessages = await safeCallAdapterTool(adapter, response as unknown as any);
+        logger.debug(`Got ${toolMessages.length} tool messages from Anthropic`);
+      } catch (error) {
+        logger.error('Error calling tools with Anthropic adapter:', error);
+        // Continue with empty tool messages
+      }
+      
+      if (toolMessages && toolMessages.length > 0) {
+        // Extract response text from tool results
+        const toolResponseText = toolMessages
+          .filter(msg => typeof msg.role === 'string' && ['tool', 'assistant', 'function'].includes(msg.role))
+          .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
+          .join('\n');
+          
+        // Append tool results to response if available
+        if (toolResponseText) {
+          responseText += '\n\n' + toolResponseText;
+        }
       }
     }
     
@@ -716,4 +575,31 @@ export async function executeMCPOperation(operation: MCPOperation): Promise<Reco
       operation: operation.name
     };
   }
+}
+
+/**
+ * Get server config from KV store or defaults
+ */
+async function getServerConfig() {
+  // Default config
+  const config = {
+    provider: 'openai',
+    model: 'gpt-4o',
+    temperature: 0.7,
+    maxTokens: 4096,
+    enableCache: false,
+    aiRole: 'assistant'
+  };
+
+  try {
+    // Get from KV store if available
+    const storedConfig = await kv.get('llm-config');
+    if (storedConfig) {
+      return { config: { ...config, ...storedConfig } };
+    }
+  } catch (error) {
+    logger.warn('Error getting config from KV store:', error);
+  }
+
+  return { config };
 } 

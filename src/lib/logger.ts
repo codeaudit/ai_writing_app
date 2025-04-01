@@ -25,7 +25,7 @@ const getCurrentLogLevel = (): LogLevel => {
 const CURRENT_LOG_LEVEL = getCurrentLogLevel();
 
 // Define generic type for log arguments
-type LogArgs = Array<string | number | boolean | object | null | undefined>;
+type LogArgs = Array<string | number | boolean | object | null | undefined | unknown>;
 
 // Logger implementation
 export const logger = {
