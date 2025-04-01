@@ -6,14 +6,31 @@ import { Toaster } from "@/components/ui/toaster";
 import ConfigInitializer from "@/components/config-initializer";
 import ElectronProvider from '@/components/electron-provider';
 import { TrpcProvider } from '@/components/trpc-provider';
-import { MainNav } from '@/components/main-nav';
+import { siteConfig } from '@/config/site';
+import { initializeMCPServers } from '@/lib/mcp-server-manager';
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "The AI Whisperer's Toolbox",
-  description: "AI Whisperer Toolbox",
+  title: {
+    default: siteConfig.name,
+    template: `%s - ${siteConfig.name}`,
+  },
+  description: siteConfig.description,
+  icons: {
+    icon: [
+      {
+        url: "/favicon.ico",
+        href: "/favicon.ico",
+      }
+    ]
+  }
 };
+
+// Initialize MCP servers as soon as the app loads
+initializeMCPServers().catch(error => {
+  console.error('Error initializing MCP servers at startup:', error);
+});
 
 export default function RootLayout({
   children,
@@ -40,7 +57,6 @@ export default function RootLayout({
                   {/* Main content */}
                   <div className="relative">
                     <ConfigInitializer />
-                    <MainNav />
                     {children}
                     <Toaster />
                   </div>

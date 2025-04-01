@@ -5,9 +5,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Search, ExternalLink, Download } from 'lucide-react';
+import { Search, ExternalLink, Download, RefreshCw, ArrowDownToLine, Trash2 } from 'lucide-react';
+import { 
+  fetchMCPServers, 
+  fetchMCPServerDetails, 
+  installServer as installMCPServer,
+  uninstallServer as uninstallMCPServer,
+  getInstalledServers,
+  ConfigSchema,
+  ServerConfig
+} from '@/lib/smithery-service';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import Link from 'next/link';
+import { updateMCPServerStatus } from '@/lib/mcp-server-manager';
 
 // Simple spinner component since we don't have a dedicated ui/spinner
 const Spinner = () => (
@@ -16,15 +28,19 @@ const Spinner = () => (
   </div>
 );
 
-interface MCPServer {
-  id: string;
+interface MCPServerVM {
+  qualifiedName: string;
   name: string;
   description: string;
-  provider: string;
+  homepage: string;
   downloads: number;
   enabled: boolean;
-  apiKey?: string;
+  owner: string;
+  repo: string;
   installed: boolean;
+  isDeployed: boolean;
+  configSchema?: ConfigSchema;
+  apiKey?: string;
 }
 
 interface MCPCategory {
@@ -36,378 +52,522 @@ interface MCPCategory {
 export function MCPSettings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [servers, setServers] = useState<MCPServer[]>([]);
-  const [installedServers, setInstalledServers] = useState<MCPServer[]>([]);
-  const [categories, setCategories] = useState<MCPCategory[]>([]);
+  const [servers, setServers] = useState<MCPServerVM[]>([]);
+  const [installedServers, setInstalledServers] = useState<MCPServerVM[]>([]);
+  const [categories] = useState<MCPCategory[]>([
+    { id: 'all', name: 'All Categories', count: 0 },
+    { id: 'is:deployed', name: 'Deployed', count: 0 },
+    { id: 'web-search', name: 'Web Search', count: 0 },
+    { id: 'creative', name: 'Creative', count: 0 },
+    { id: 'tools', name: 'Tools', count: 0 },
+  ]);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [selectedServer, setSelectedServer] = useState<MCPServerVM | null>(null);
+  const [installDialogOpen, setInstallDialogOpen] = useState(false);
+  const [installLoading, setInstallLoading] = useState(false);
+  const [serverConfig, setServerConfig] = useState<Record<string, string>>({});
+  const [apiKeyField, setApiKeyField] = useState('');
 
-  // Mock function to fetch MCP servers from Smithery
-  const fetchMCPServers = async (query: string = '', category: string = 'all') => {
+  const fetchServersWithInstallStatus = async (query: string = '', category: string = 'all', page: number = 1) => {
     setLoading(true);
     
     try {
-      // In production, this would be a real API call to Smithery
-      // const response = await fetch(`https://api.smithery.ai/servers?query=${query}&category=${category}`);
-      // const data = await response.json();
+      // Create the full query by combining search term and category filter
+      let fullQuery = query;
+      if (category !== 'all' && !query.includes(category)) {
+        fullQuery = category + (query ? ' ' + query : '');
+      }
       
-      // For demo purposes, we'll use mock data
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+      // Get servers from the Smithery Registry API
+      const data = await fetchMCPServers(fullQuery, page, pageSize);
       
-      const mockServers: MCPServer[] = [
-        {
-          id: 'brave-search',
-          name: 'Brave Search',
-          description: 'Integrate web search and local search capabilities with Brave.',
-          provider: '@smithery-ai/brave-search',
-          downloads: 121640,
-          enabled: false,
-          installed: Math.random() > 0.5
-        },
-        {
-          id: 'sequential-thinking',
-          name: 'Sequential Thinking',
-          description: 'An MCP server implementation that provides a tool for dynamic and reflective problem-solving through a structured thinking process.',
-          provider: '@smithery-ai/server-sequential-thinking',
-          downloads: 608280,
-          enabled: false,
-          installed: Math.random() > 0.5
-        },
-        {
-          id: 'github',
-          name: 'Github',
-          description: 'Access the GitHub API, enabling file operations, repository management, search functionality, and more.',
-          provider: '@smithery-ai/github',
-          downloads: 191970,
-          enabled: false,
-          installed: Math.random() > 0.5
-        },
-        {
-          id: 'weather',
-          name: 'Weather',
-          description: 'Provide real-time weather information and forecasts to your applications.',
-          provider: '@turkyden/weather',
-          downloads: 3130,
-          enabled: false,
-          installed: Math.random() > 0.5
-        },
-        {
-          id: 'magic-mcp',
-          name: 'Magic MCP',
-          description: 'v0 for MCP. Frontend feels like Magic',
-          provider: '@21st-dev/magic-mcp',
-          downloads: 53650,
-          enabled: false,
-          installed: Math.random() > 0.5
+      // Get the list of installed servers
+      const installedServersList = await getInstalledServers();
+      const installedServerIds = installedServersList.map(s => s.qualifiedName);
+      
+      // Map the servers to our view model
+      const mappedServers = await Promise.all(data.servers.map(async (server) => {
+        const isInstalled = installedServerIds.includes(server.qualifiedName);
+        
+        // Parse owner and repo from qualifiedName if possible
+        let owner = '';
+        let repo = '';
+        
+        if (server.qualifiedName.includes('/')) {
+          const parts = server.qualifiedName.split('/');
+          owner = parts[0];
+          repo = parts[1];
         }
-      ];
-
-      const mockCategories: MCPCategory[] = [
-        { id: 'all', name: 'All Categories', count: mockServers.length },
-        { id: 'web-search', name: 'Web Search', count: 96 },
-        { id: 'browser-automation', name: 'Browser Automation', count: 63 },
-        { id: 'memory-management', name: 'Memory Management', count: 43 },
-        { id: 'gmail-integration', name: 'Gmail Integration', count: 34 },
-        { id: 'weather', name: 'Weather', count: 48 },
-      ];
+        
+        return {
+          qualifiedName: server.qualifiedName,
+          name: server.displayName,
+          description: server.description,
+          homepage: server.homepage,
+          downloads: parseInt(server.useCount, 10) || 0,
+          owner: owner,
+          repo: repo,
+          enabled: isInstalled, // Assume it's enabled if installed
+          installed: isInstalled,
+          isDeployed: server.isDeployed
+        };
+      }));
       
-      // Filter servers by search query if provided
-      let filteredServers = mockServers;
-      if (query) {
-        filteredServers = mockServers.filter(server => 
-          server.name.toLowerCase().includes(query.toLowerCase()) || 
-          server.description.toLowerCase().includes(query.toLowerCase()) ||
-          server.provider.toLowerCase().includes(query.toLowerCase())
-        );
-      }
+      // Update pagination information
+      setTotalPages(data.pagination.totalPages);
+      setTotalCount(data.pagination.totalCount);
+      setCurrentPage(data.pagination.currentPage);
       
-      // Filter by category if not 'all'
-      if (category !== 'all') {
-        filteredServers = filteredServers.filter(server => {
-          if (category === 'web-search') {
-            return server.id === 'brave-search';
-          } else if (category === 'weather') {
-            return server.id === 'weather';
-          }
-          // Add more category filters as needed
-          return true;
-        });
-      }
+      // Set the servers list - keep all servers in state for reference
+      setServers(mappedServers);
       
-      setServers(filteredServers);
-      setCategories(mockCategories);
-      
-      // Set installed servers
-      setInstalledServers(mockServers.filter(server => server.installed));
+      // Update installed servers list
+      loadInstalledServers();
     } catch (error) {
       console.error('Error fetching MCP servers:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch MCP servers. Please try again later.',
-        variant: 'destructive'
-      });
+      toast.error('Failed to fetch MCP servers. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
-  const installServer = async (server: MCPServer) => {
+  const loadInstalledServers = async () => {
     try {
-      // In production, this would be a real API call to install the server
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+      const installedServersList = await getInstalledServers();
       
-      toast({
-        title: 'Success',
-        description: `${server.name} has been installed successfully.`,
-        variant: 'default'
-      });
-      
-      // Update the server's installed status
-      const updatedServers = servers.map(s => 
-        s.id === server.id ? { ...s, installed: true } : s
+      // Fetch details for each installed server
+      const installedServerDetails = await Promise.all(
+        installedServersList.map(async ({ qualifiedName, config }) => {
+          try {
+            const details = await fetchMCPServerDetails(qualifiedName);
+            
+            // Parse owner and repo from qualifiedName if possible
+            let owner = '';
+            let repo = '';
+            
+            if (qualifiedName.includes('/')) {
+              const parts = qualifiedName.split('/');
+              owner = parts[0];
+              repo = parts[1];
+            }
+            
+            return {
+              qualifiedName,
+              name: details.displayName,
+              description: '', // Server details doesn't include description
+              homepage: details.deploymentUrl,
+              downloads: 0, // Server details doesn't include download count
+              owner,
+              repo,
+              enabled: true,
+              installed: true,
+              isDeployed: true,
+              configSchema: details.connections[0]?.configSchema,
+              apiKey: config.apiKey
+            };
+          } catch (error) {
+            console.error(`Error fetching details for ${qualifiedName}:`, error);
+            return {
+              qualifiedName,
+              name: qualifiedName,
+              description: 'Failed to load server details',
+              homepage: '',
+              downloads: 0,
+              owner: '',
+              repo: '',
+              enabled: true,
+              installed: true,
+              isDeployed: false,
+              apiKey: config.apiKey
+            };
+          }
+        })
       );
-      setServers(updatedServers);
       
-      // Add to installed servers
-      if (!installedServers.some(s => s.id === server.id)) {
-        setInstalledServers([...installedServers, { ...server, installed: true }]);
+      setInstalledServers(installedServerDetails);
+    } catch (error) {
+      console.error('Error loading installed servers:', error);
+      toast.error('Failed to load installed servers');
+    }
+  };
+
+  const handleInstallClick = async (server: MCPServerVM) => {
+    setSelectedServer(server);
+    
+    try {
+      // Fetch full server details including config schema
+      const details = await fetchMCPServerDetails(server.qualifiedName);
+      
+      // Find the first connection with a schema (prefer WebSocket)
+      const connection = details.connections.find(c => c.type === 'ws') || details.connections[0];
+      
+      if (connection) {
+        setSelectedServer({
+          ...server,
+          configSchema: connection.configSchema
+        });
+        
+        // Initialize config state
+        const initialConfig: Record<string, string> = {};
+        setServerConfig(initialConfig);
+        
+        // Open the install dialog
+        setInstallDialogOpen(true);
+      } else {
+        throw new Error('No valid connection configuration found for this server');
       }
     } catch (error) {
-      console.error('Error installing MCP server:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to install ${server.name}. Please try again later.`,
-        variant: 'destructive'
-      });
+      console.error('Error preparing server installation:', error);
+      toast.error('Failed to prepare server installation');
     }
   };
 
-  const uninstallServer = async (server: MCPServer) => {
+  const handleInstallServer = async () => {
+    if (!selectedServer) return;
+    
+    setInstallLoading(true);
+    
     try {
-      // In production, this would be a real API call to uninstall the server
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+      // Prepare config object with any values from the form
+      const config: ServerConfig = { ...serverConfig };
       
-      toast({
-        title: 'Success',
-        description: `${server.name} has been uninstalled successfully.`,
-        variant: 'default'
-      });
+      // If API key field is provided, add it to config
+      if (apiKeyField) {
+        config.apiKey = apiKeyField;
+      }
       
-      // Update the server's installed status
+      // Install the server
+      await installMCPServer(selectedServer.qualifiedName, config);
+      
+      // Refresh the list of installed servers
+      await loadInstalledServers();
+      
+      // Close the dialog
+      setInstallDialogOpen(false);
+      
+      // Refresh the main server list with updated install status
+      fetchServersWithInstallStatus(searchQuery, activeCategory, currentPage);
+      
+      toast.success(`${selectedServer.name} has been installed successfully.`);
+    } catch (error) {
+      console.error('Error installing MCP server:', error);
+      toast.error(`Failed to install ${selectedServer.name}. Please try again later.`);
+    } finally {
+      setInstallLoading(false);
+    }
+  };
+
+  const handleUninstallServer = async (server: MCPServerVM) => {
+    try {
+      await uninstallMCPServer(server.qualifiedName);
+      
+      // Refresh the list of installed servers
+      await loadInstalledServers();
+      
+      // Refresh the main server list with updated install status
+      fetchServersWithInstallStatus(searchQuery, activeCategory, currentPage);
+      
+      toast.success(`${server.name} has been uninstalled successfully.`);
+    } catch (error) {
+      console.error('Error uninstalling MCP server:', error);
+      toast.error(`Failed to uninstall ${server.name}. Please try again later.`);
+    }
+  };
+
+  const toggleServerEnabled = async (server: MCPServerVM) => {
+    // Toggle the enabled state
+    const newEnabledState = !server.enabled;
+    
+    try {
+      // Update the server status in the MCP server manager
+      await updateMCPServerStatus(server.qualifiedName, newEnabledState);
+      
+      // Update the UI state
+      if (server.installed) {
+        const updatedInstalledServers = installedServers.map(s => 
+          s.qualifiedName === server.qualifiedName ? 
+            { ...s, enabled: newEnabledState, isDeployed: newEnabledState } : s
+        );
+        setInstalledServers(updatedInstalledServers);
+      }
+      
       const updatedServers = servers.map(s => 
-        s.id === server.id ? { ...s, installed: false, enabled: false } : s
+        s.qualifiedName === server.qualifiedName ? 
+          { ...s, enabled: newEnabledState, isDeployed: newEnabledState } : s
       );
       setServers(updatedServers);
       
-      // Remove from installed servers
-      setInstalledServers(installedServers.filter(s => s.id !== server.id));
+      toast.success(`${server.name} has been ${newEnabledState ? 'enabled' : 'disabled'}.`);
     } catch (error) {
-      console.error('Error uninstalling MCP server:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to uninstall ${server.name}. Please try again later.`,
-        variant: 'destructive'
-      });
+      console.error(`Error updating server status for ${server.qualifiedName}:`, error);
+      toast.error(`Failed to ${newEnabledState ? 'enable' : 'disable'} ${server.name}. Please try again.`);
     }
-  };
-
-  const toggleServerEnabled = (server: MCPServer) => {
-    const updatedServers = servers.map(s => 
-      s.id === server.id ? { ...s, enabled: !s.enabled } : s
-    );
-    setServers(updatedServers);
-    
-    const updatedInstalledServers = installedServers.map(s => 
-      s.id === server.id ? { ...s, enabled: !s.enabled } : s
-    );
-    setInstalledServers(updatedInstalledServers);
-    
-    toast({
-      title: 'Success',
-      description: `${server.name} has been ${server.enabled ? 'disabled' : 'enabled'}.`,
-      variant: 'default'
-    });
-  };
-
-  const updateApiKey = (server: MCPServer, apiKey: string) => {
-    const updatedServers = installedServers.map(s => 
-      s.id === server.id ? { ...s, apiKey } : s
-    );
-    setInstalledServers(updatedServers);
   };
 
   // Initial data fetch
   useEffect(() => {
-    fetchMCPServers();
+    fetchServersWithInstallStatus();
+    loadInstalledServers();
   }, []);
 
   // Handle search and category changes
   useEffect(() => {
-    fetchMCPServers(searchQuery, activeCategory);
+    fetchServersWithInstallStatus(searchQuery, activeCategory, 1);
   }, [searchQuery, activeCategory]);
+
+  // Render MCP server card
+  const renderServerCard = (server: MCPServerVM, isInstalledView: boolean = false) => (
+    <Card key={server.qualifiedName} className="overflow-hidden">
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-lg font-bold">{server.name}</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              {server.owner}/{server.repo}
+            </CardDescription>
+          </div>
+          <div className="flex space-x-1">
+            {server.isDeployed && (
+              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+                Deployed
+              </Badge>
+            )}
+            {server.installed && (
+              <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                Installed
+              </Badge>
+            )}
+            {server.installed && !server.enabled && (
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
+                Disabled
+              </Badge>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pb-3">
+        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{server.description}</p>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center">
+            <Download className="h-3 w-3 mr-1" />
+            <span>{server.downloads.toLocaleString()} uses</span>
+          </div>
+          {isInstalledView && server.installed && (
+            <div className="flex items-center">
+              <div className="mr-2 text-xs">
+                {server.enabled ? 'Enabled' : 'Disabled'}
+              </div>
+              <Switch 
+                checked={server.enabled} 
+                onCheckedChange={() => toggleServerEnabled(server)} 
+                aria-label={`Toggle ${server.name}`}
+              />
+            </div>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between pt-3 border-t">
+        {server.homepage && (
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={server.homepage} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Details
+            </Link>
+          </Button>
+        )}
+        {server.installed ? (
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={() => handleUninstallServer(server)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Uninstall
+          </Button>
+        ) : (
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={() => handleInstallClick(server)}
+            disabled={server.installed}
+            title={`${server.isDeployed ? 'Deployed' : 'Not Deployed'}, ${server.installed ? 'Installed' : 'Not Installed'}`}
+          >
+            <ArrowDownToLine className="h-4 w-4 mr-2" />
+            Install
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">MCP Servers</h2>
+        <h1 className="text-2xl font-bold tracking-tight">MCP Servers</h1>
         <p className="text-muted-foreground">
-          Configure Model Context Protocol (MCP) servers to extend your AI capabilities.
+          Browse and install Smithery Model Context Protocol (MCP) servers for enhanced AI capabilities.
         </p>
       </div>
-
-      <Tabs defaultValue="installed" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="installed">Installed Servers</TabsTrigger>
-          <TabsTrigger value="browse">Browse Servers</TabsTrigger>
+      
+      <Tabs defaultValue="browse" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="browse">Browse</TabsTrigger>
+          <TabsTrigger value="installed">Installed ({installedServers.length})</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="installed" className="space-y-4">
-          {installedServers.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-muted-foreground">No MCP servers installed. Browse available servers to get started.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {installedServers.map(server => (
-                <Card key={server.id} className="overflow-hidden">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          {server.name}
-                          <Badge variant={server.enabled ? "default" : "secondary"}>
-                            {server.enabled ? "Enabled" : "Disabled"}
-                          </Badge>
-                        </CardTitle>
-                        <CardDescription>{server.provider}</CardDescription>
-                      </div>
-                      <Switch
-                        checked={server.enabled}
-                        onCheckedChange={() => toggleServerEnabled(server)}
-                      />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">{server.description}</p>
-                    
-                    {server.enabled && (
-                      <div className="mt-4 space-y-2">
-                        <Label htmlFor={`${server.id}-api-key`}>API Key (optional)</Label>
-                        <Input
-                          id={`${server.id}-api-key`}
-                          type="password"
-                          placeholder="Enter API key if required"
-                          value={server.apiKey || ''}
-                          onChange={(e) => updateApiKey(server, e.target.value)}
-                        />
-                      </div>
-                    )}
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open(`https://smithery.ai/server/${server.provider}`, '_blank')}
-                    >
-                      Documentation <ExternalLink className="ml-1 h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => uninstallServer(server)}
-                    >
-                      Uninstall
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </>
-          )}
-        </TabsContent>
         
         <TabsContent value="browse" className="space-y-4">
           <div className="flex space-x-2">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search servers..."
+                placeholder="Search MCP servers..."
                 className="pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            <Button variant="outline" onClick={() => fetchServersWithInstallStatus(searchQuery, activeCategory, currentPage)}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
           
-          <div className="flex flex-wrap gap-2 mb-4">
-            {categories.map(category => (
-              <Badge
-                key={category.id}
-                variant={activeCategory === category.id ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setActiveCategory(category.id)}
-              >
-                {category.name} ({category.count})
-              </Badge>
-            ))}
-          </div>
-          
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <Spinner />
-            </div>
-          ) : servers.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-muted-foreground">No servers found matching your criteria.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {servers.map(server => (
-                <Card key={server.id} className="overflow-hidden">
-                  <CardHeader>
-                    <CardTitle>{server.name}</CardTitle>
-                    <CardDescription>{server.provider}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">{server.description}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="outline">{server.downloads.toLocaleString()} downloads</Badge>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open(`https://smithery.ai/server/${server.provider}`, '_blank')}
-                    >
-                      View Details <ExternalLink className="ml-1 h-4 w-4" />
-                    </Button>
-                    {server.installed ? (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => uninstallServer(server)}
-                      >
-                        Uninstall
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => installServer(server)}
-                      >
-                        <Download className="mr-1 h-4 w-4" /> Install
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
+          <div className="flex flex-col space-y-4">
+            <div className="flex space-x-2 overflow-x-auto pb-2">
+              {categories.map((category) => (
+                <Button
+                  key={category.id}
+                  variant={activeCategory === category.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setActiveCategory(category.id)}
+                >
+                  {category.name}
+                </Button>
               ))}
-            </>
+            </div>
+            
+            {loading ? (
+              <div className="flex items-center justify-center p-8">
+                <Spinner />
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {servers
+                    .filter(server => !server.installed) // Only show servers that aren't installed
+                    .map((server) => renderServerCard(server))}
+                </div>
+                
+                {servers.filter(server => !server.installed).length === 0 && !loading && (
+                  <div className="text-center p-8 border rounded-lg bg-muted/20">
+                    <p className="text-muted-foreground">No uninstalled servers found matching your criteria.</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Servers you&apos;ve already installed are shown in the &quot;Installed&quot; tab.
+                    </p>
+                  </div>
+                )}
+                
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, totalCount)} of {totalCount} servers
+                    </p>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={() => fetchServersWithInstallStatus(searchQuery, activeCategory, currentPage - 1)}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage === totalPages}
+                        onClick={() => fetchServersWithInstallStatus(searchQuery, activeCategory, currentPage + 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="installed" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {installedServers.map((server) => renderServerCard(server, true))}
+          </div>
+          
+          {installedServers.length === 0 && (
+            <div className="text-center p-8 border rounded-lg bg-muted/20">
+              <p className="text-muted-foreground">No MCP servers installed yet.</p>
+              <p className="text-muted-foreground mt-2">Browse available servers and install them to enhance your AI capabilities.</p>
+            </div>
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Install Dialog */}
+      <Dialog open={installDialogOpen} onOpenChange={setInstallDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Install MCP Server</DialogTitle>
+            <DialogDescription>
+              Configure and install {selectedServer?.name} server to enhance your AI capabilities.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="space-y-4">
+              {/* API Key field always present for simplicity */}
+              <div className="space-y-2">
+                <Label htmlFor="apiKey">API Key (Optional)</Label>
+                <Input
+                  id="apiKey"
+                  type="password"
+                  value={apiKeyField}
+                  onChange={(e) => setApiKeyField(e.target.value)}
+                  placeholder="Enter API key if required"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Some servers require an API key for authentication.
+                </p>
+              </div>
+              
+              {/* Show additional config fields if schema exists */}
+              {selectedServer?.configSchema && Object.keys(selectedServer.configSchema).length > 0 && (
+                <div className="border rounded-md p-4 bg-muted/20">
+                  <p className="text-sm mb-2">This server requires additional configuration.</p>
+                  {/* Add form fields based on config schema if needed */}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setInstallDialogOpen(false)}
+              disabled={installLoading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleInstallServer}
+              disabled={installLoading}
+            >
+              {installLoading ? <Spinner /> : 'Install Server'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

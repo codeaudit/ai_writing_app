@@ -12,6 +12,12 @@ import { MultiClient, createTransport } from '@smithery/sdk';
 import { OpenAIChatAdapter } from '@smithery/sdk';
 import { AnthropicChatAdapter } from '@smithery/sdk';
 import { LLM_MODELS } from '@/lib/config';
+import { 
+  getMCPClient, 
+  getOpenAIAdapter, 
+  getAnthropicAdapter, 
+  initializeMCPServers 
+} from './mcp-server-manager';
 
 // Define the SmitheryClient interface here instead of importing it
 interface SmitheryClient {
@@ -113,58 +119,35 @@ let anthropicAdapter: any = null;
 
 // Initialize Smithery client
 try {
-  // Initialize the Smithery MultiClient directly
-  const mcpTransport = createTransport(`https://smithery.ai/api/mcp`, {
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
-  
-  // Create client
-  const client = new MultiClient();
-  
-  // Connect to Smithery
-  client.connectAll({
-    mcp: mcpTransport,
-  }).then(async () => {
-    console.log('Smithery client initialized successfully');
-    
-    // Store the configured client
-    smitheryClient = client as any;
-    
-    // Initialize adapters - still using dynamic imports just for these adapter modules
-    // to avoid TypeScript path resolution issues with these specific modules
-    try {
-      // 1. OpenAI adapter
-      if (OPENAI_API_KEY) {
-        openaiOpenAIAdapter = new OpenAIChatAdapter(client);
-        console.log('OpenAI adapter initialized successfully');
-      }
+  // Initialize MCP servers and get the global client
+  initializeMCPServers().then(async client => {
+    if (client) {
+      console.log('MCP servers initialized successfully');
       
-      // 2. OpenRouter adapter
+      // Store the configured client
+      smitheryClient = client as unknown as SmitheryClient;
+      
+      // Get the provider-specific adapters
+      openaiOpenAIAdapter = await getOpenAIAdapter();
+      anthropicAdapter = await getAnthropicAdapter();
+      
+      // Initialize additional adapters if needed
       if (OPENROUTER_API_KEY) {
         openrouterOpenAIAdapter = new OpenAIChatAdapter(client);
         console.log('OpenRouter adapter initialized successfully');
       }
       
-      // 3. Featherless adapter
       if (FEATHERLESS_API_KEY) {
         featherlessOpenAIAdapter = new OpenAIChatAdapter(client);
         console.log('Featherless adapter initialized successfully');
       }
       
-      // 4. Anthropic adapter
-      if (ANTHROPIC_API_KEY) {
-        anthropicAdapter = new AnthropicChatAdapter(client);
-        console.log('Anthropic adapter initialized successfully');
-      }
-      
       console.log('All Smithery adapters initialized successfully');
-    } catch (adapterError) {
-      console.error('Error initializing Smithery adapters:', adapterError);
+    } else {
+      console.error('Failed to initialize MCP servers');
     }
   }).catch(error => {
-    console.error('Error initializing Smithery client:', error);
+    console.error('Error initializing MCP servers:', error);
   });
 } catch (error) {
   console.error('Error setting up Smithery client:', error);
@@ -206,9 +189,13 @@ interface AnthropicMessageParam {
   content: string;
 }
 
-// TypeScript types for message formatting - simplified
+/**
+ * TypeScript types for message formatting - simplified
+ */
 interface FormattedMessages {
   [key: string]: unknown;
+  systemPrompt?: string;
+  messages?: Array<any>;
 }
 
 interface AnthropicFormattedMessages {
@@ -388,8 +375,13 @@ async function storeInCache(cacheKey: string, response: ChatResponse, enableCach
  * Execute a multi-step operation using MCP with Smithery SDK
  */
 export async function executeMCPOperation(operation: MCPOperation): Promise<Record<string, unknown>> {
+  // Get the Smithery client, initializing if needed
   if (!smitheryClient) {
-    throw new Error("Smithery client is not configured or still initializing. Please set MCP_API_KEY and MCP_PROJECT_ID.");
+    smitheryClient = await getMCPClient() as unknown as SmitheryClient;
+  }
+  
+  if (!smitheryClient) {
+    throw new Error("Smithery client is not configured or still initializing. Please set SMITHERY_API_KEY.");
   }
   
   try {

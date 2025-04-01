@@ -202,7 +202,7 @@
     "name": "comparison",
     "content": "*The Art of War* and *The Art of Peace* present contrasting philosophies for navigating conflict and achieving desired outcomes. While both offer strategies for success, they differ significantly in their approach and ultimate goals.\n\n*The Art of War*, by Sun Tzu, is a strategic guide focused on winning conflicts, primarily through military means. It emphasizes deception, planning, and the importance of understanding the enemy to achieve victory, ideally with minimal losses. War is seen as a necessary evil, a last resort to be undertaken with careful calculation and a focus on swift resolution. The core principles revolve around strategic positioning, exploiting weaknesses, and adapting to changing circumstances to gain a competitive advantage.\n\n*The Art of Peace*, as taught by Morihei Ueshiba, is a philosophy centered on non-violence, harmony, and self-cultivation. It seeks to resolve conflicts peacefully, both internally and externally, through love, compassion, and understanding. Instead of focusing on defeating an opponent, the goal is to find solutions that benefit all parties involved, fostering reconciliation and cooperation. This approach emphasizes self-mastery, connection with nature, and the continuous pursuit of inner peace as the foundation for a harmonious world.\n\nHere's a table summarizing the key differences:\n\n| Feature            | *The Art of War*                        | *The Art of Peace*                           |\n|---------------------|-----------------------------------------|----------------------------------------------|\n| **Core Goal**       | Victory in conflict                     | Harmony and resolution of conflict         |\n| **Primary Means**   | Strategy, deception, planning          | Non-violence, compassion, self-cultivation |\n| **View of Conflict**| Necessary evil, last resort             | Opportunity for reconciliation and growth   |\n| **Focus**           | External: defeating the enemy          | Internal: self-mastery and inner peace       |\n| **Approach**        | Competitive, strategic                  | Cooperative, empathetic                      |\n| **Emphasis**        | Exploiting weaknesses, gaining advantage | Finding common ground, benefiting all parties |\n| **Ultimate Aim**    | Achieving strategic objectives           | Creating a peaceful and harmonious world    |\n\nIn essence, *The Art of War* is about winning the battle, while *The Art of Peace* is about avoiding the battle altogether by fostering understanding and goodwill. One seeks to dominate, the other to harmonize. While seemingly opposed, both philosophies offer valuable insights into human interaction and can be applied, depending on the context and desired outcome, to various aspects of life, from business negotiations to personal relationships.\n",
     "createdAt": "2025-03-19T09:30:29.473Z",
-    "updatedAt": "2025-03-19T12:05:43.838Z",
+    "updatedAt": "2025-03-31T22:07:56.464Z",
     "versions": [
       {
         "id": "ver-1742376629473-initial",
@@ -334,7 +334,18 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743446290488-i0mqlus",
+    "id": "doc-1743465772426-9cyba3n",
+    "name": "mcp-servers",
+    "content": "[\n  \"exa\"\n]",
+    "createdAt": "2025-04-01T00:02:52.426Z",
+    "updatedAt": "2025-04-01T00:02:52.426Z",
+    "versions": [],
+    "folderId": "folder-1742582748295-cvk7ccu",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743465772426-9u72vot",
     "name": "add_evidence",
     "content": "# Add Supporting Evidence Template\n\nStrengthen the following text by adding relevant supporting evidence, examples, statistics, or expert opinions:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. The original text with supporting evidence or examples integrated naturally\n2. A mix of different types of evidence (statistics, research findings, case studies, expert quotes)\n3. Citations or sources for the evidence when appropriate\n4. Clear connections between the evidence and the claims being supported\n5. Proper transitions to introduce the supporting material\n6. A brief explanation of how the evidence strengthens the overall argument ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -442,11 +453,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743446290488-zcbqvol",
+    "id": "doc-1743465772427-bszdviv",
     "name": "expand",
     "content": "---\nid: doc-1742343001043\nname: expand\ncreatedAt: '2025-03-19T01:03:01.030Z'\nupdatedAt: 2025-03-27T00:53:18.591Z\nversions:\n  - id: ver-1742343001043-initial\n    createdAt: '2025-03-19T01:03:01.030Z'\n    message: Initial version\nannotations: []---\n\nExpand on the following text to make it more detailed, comprehensive, and informative:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. An expanded version with more details, examples, and explanations\n2. Additional context and background information\n3. Supporting evidence or data where relevant\n4. Elaboration on key points and concepts\n5. Logical transitions between ideas\n6. A conclusion that summarizes the expanded content ",
-    "createdAt": "2025-03-31T18:38:10.488Z",
-    "updatedAt": "2025-03-31T18:38:10.488Z",
+    "createdAt": "2025-04-01T00:02:52.427Z",
+    "updatedAt": "2025-04-01T00:02:52.427Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -471,7 +482,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743446290488-smqesgu",
+    "id": "doc-1743465772428-h30ooej",
     "name": "improve_flow",
     "content": "# Improve Paragraph Transitions and Flow Template\n\nEnhance the following text by improving transitions between paragraphs and creating a smoother flow of ideas:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A revised version with improved transitions between paragraphs and sentences\n2. Natural connections between ideas that guide the reader through the text\n3. Consistent progression of thought that builds logically from beginning to end\n4. Elimination of any abrupt shifts or disconnected sections\n5. Appropriate transition words and phrases where needed (e.g., \"furthermore,\" \"in contrast,\" \"consequently\")\n6. A brief explanation of how the improved flow enhances readability and coherence ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -489,11 +500,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743446290488-ssj1pyr",
+    "id": "doc-1743465772428-f4061e1",
     "name": "llm-demo",
     "content": "\n# LLM Extension Demo\n\nThis template demonstrates the capabilities of the LLM extension in Nunjucks templates.\n\n## Basic Example\n\n### Prompt: Generate a short paragraph about climate change\n\n{% llm \"Generate a short paragraph about climate change\" %}\n\n## Using Parameters\n\n### Prompt: Generate a creative story with high temperature\n\n{% llm \"Generate a short creative story about a robot discovering emotions\", \n   temperature: 0.9, \n   maxTokens: 500\n%}\n\n## Using Context Variables\n\n### Prompt: Answer a question about {{ topic | default('artificial intelligence') }}\n\n{% llm \"Write a short explanation about \" + topic | default('artificial intelligence') %}\n\n## Using AI Roles\n\n### Prompt: Write as a poet\n\n{% llm \"Write a poem about the ocean\", \n   aiRole: \"creative\"\n%}\n\n## Content Transformation\n\n### Original Content:\n```\n{{ content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.') }}\n```\n\n### LLM-Enhanced Content:\n{% llm \"Improve the following content to make it more engaging and descriptive: \" + content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.'),\n   temperature: 0.7,\n   maxTokens: 300\n%}\n\n## Custom Context Documents (when provided)\n\n{% if contextDocuments and contextDocuments.length > 0 %}\n### Summary of Context Documents:\n\n{% llm \"Summarize the following documents in a few paragraphs:\", \n   contextDocuments: contextDocuments,\n   temperature: 0.5\n%}\n{% else %}\n*No context documents provided. To see this feature in action, provide context documents when processing this template.*\n{% endif %}\n\n## Chat Mode Example\n\n{% llm \"Provide a conclusion based on this conversation\", \n   chat: true,\n   messages: [\n     { role: \"user\", content: \"What are the benefits of exercise?\" },\n     { role: \"assistant\", content: \"Exercise has many benefits including improved cardiovascular health, better mood through endorphin release, increased strength and flexibility, better sleep quality, and reduced risk of chronic diseases.\" },\n     { role: \"user\", content: \"What about the mental health benefits specifically?\" }\n   ]\n%}\n\n---\n\n*This template was rendered at {{ date | dateFormat('PP') }} {{ date | timeFormat }}* ",
-    "createdAt": "2025-03-31T18:38:10.488Z",
-    "updatedAt": "2025-03-31T18:38:10.488Z",
+    "createdAt": "2025-04-01T00:02:52.428Z",
+    "updatedAt": "2025-04-01T00:02:52.428Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -536,11 +547,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743446290488-eoxj1h4",
+    "id": "doc-1743465772428-rh8iyj5",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-03-31T18:38:10.488Z",
-    "updatedAt": "2025-03-31T18:38:10.488Z",
+    "createdAt": "2025-04-01T00:02:52.428Z",
+    "updatedAt": "2025-04-01T00:02:52.428Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -648,7 +659,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743446290488-1sbvkbj",
+    "id": "doc-1743465772428-jo14ksc",
     "name": "Test Template",
     "content": "\nThis is a test template\n",
     "createdAt": "2023-07-05T12:00:00.000Z",
@@ -659,11 +670,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743446290488-9d89yv5",
+    "id": "doc-1743465772429-wzy2dqd",
     "name": "test_simple",
     "content": "\n# Simple LLM Test\n\nThis is a basic test of the LLM extension:\n\n{% llm \"Generate a short paragraph about climate change\" %} ",
-    "createdAt": "2025-03-31T18:38:10.488Z",
-    "updatedAt": "2025-03-31T18:38:10.488Z",
+    "createdAt": "2025-04-01T00:02:52.429Z",
+    "updatedAt": "2025-04-01T00:02:52.429Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -688,7 +699,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743446290488-obhboy2",
+    "id": "doc-1743465772429-ouwoh4u",
     "name": "translate",
     "content": "# Prompt template\n\ntranslate this to English: '''\n{{selectedText}}\n'''\n\n\n",
     "createdAt": "2025-03-19T00:10:01.030Z",

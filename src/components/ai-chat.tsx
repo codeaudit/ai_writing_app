@@ -82,6 +82,7 @@ import { BranchMenu } from "@/components/branch-menu";
 import { ChatMessageNode } from "@/lib/store";
 import { PromptEnhancementButtons } from '@/components/prompt-enhancement';
 import { BookmarkMessage } from '@/components/bookmark-message';
+import { MCPServersIndicator } from '@/components/mcp-servers-indicator';
 
 // ============================================================================
 // Constants and Configuration
@@ -939,6 +940,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            {/* MCP Servers indicator - only for OpenAI and Anthropic */}
+            <MCPServersIndicator provider={config.provider} />
             
             <Button 
               variant="ghost" 
