@@ -8,7 +8,7 @@ import AIComposer from "@/components/ai-composer";
 import Compositions from "@/components/compositions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { PanelLeft, PanelRight, Maximize2, Minimize2, GripVertical, Settings, FileText, Palette, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon, BookOpen } from "lucide-react";
+import { PanelLeft, PanelRight, Maximize2, Minimize2, Settings, FileText, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon, BookOpen, BookText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useRouter } from "next/navigation";
@@ -16,8 +16,8 @@ import { useDocumentStore, Annotation } from "@/lib/store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AboutSplash } from "@/components/about-splash";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { CardTitle } from "@/components/ui/card";
 import { DirectoryView } from "@/components/directory-view";
+import HistoryDropdown from "@/components/history-dropdown";
 
 // Define layout constants
 const LAYOUT_STORAGE_KEY = "editor-layout-config";
@@ -411,6 +411,15 @@ export default function Home() {
           >
             <Settings className="h-5 w-5" />
           </Button>
+          <HistoryDropdown>
+            <Button
+              variant="ghost"
+              size="icon"
+              title="View message history"
+            >
+              <BookText className="h-5 w-5" />
+            </Button>
+          </HistoryDropdown>
           <ThemeToggle />
         </div>
       </header>

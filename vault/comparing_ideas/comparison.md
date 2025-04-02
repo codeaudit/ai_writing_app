@@ -17,6 +17,15 @@ annotations:
     createdAt: '2025-03-19T09:33:36.706Z'
     updatedAt: '2025-03-19T09:33:36.706Z'
     tags: []
+  - id: anno-1743549016194
+    documentId: doc-1742376629473
+    startOffset: 235
+    endOffset: 755
+    content: Art of War
+    color: purple
+    createdAt: '2025-04-01T23:10:16.194Z'
+    updatedAt: '2025-04-01T23:10:16.194Z'
+    tags: []
 ---
 *The Art of War* and *The Art of Peace* present contrasting philosophies for navigating conflict and achieving desired outcomes. While both offer strategies for success, they differ significantly in their approach and ultimate goals.
 

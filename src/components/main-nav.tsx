@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { FileText, MessageSquare, Settings } from 'lucide-react';
+import { FileText, MessageSquare, Settings, BookText } from 'lucide-react';
 
 export function MainNav() {
   const pathname = usePathname();
@@ -46,6 +46,17 @@ export function MainNav() {
               </Link>
             </Button>
           ))}
+          {/* History link */}
+          <Button
+            variant={pathname === "/history" ? 'default' : 'ghost'}
+            size="sm"
+            asChild
+          >
+            <Link href="/history">
+              <BookText className="h-4 w-4 mr-2" />
+              History
+            </Link>
+          </Button>
         </nav>
       </div>
     </div>

@@ -86,6 +86,8 @@ import { BookmarkMessage } from '@/components/bookmark-message';
 import { MCPServersIndicator } from '@/components/mcp-servers-indicator';
 import { Switch } from "@/components/ui/switch";
 import { formatDebugPrompt } from '@/lib/ai-debug';
+import { appendToHistory } from '@/lib/history-service';
+import HistoryDropdown from '@/components/history-dropdown';
 
 // ============================================================================
 // Constants and Configuration
@@ -344,6 +346,13 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     // Add message node to the chat tree
     addNode(messageNode);
     
+    // Always log user message to history first, before any processing
+    try {
+      await appendToHistory(input);
+    } catch (error) {
+      console.error('Failed to save message to history:', error);
+    }
+    
     // Clear input
     setInput("");
     
@@ -428,6 +437,9 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       const originalNode = chatTree.nodes[nodeId];
       if (!originalNode) return;
       
+      // Get the original message text for history logging
+      const originalMessage = originalNode.userContent || '';
+      
       const pathToParent = chatTree.activeThread.slice(0, chatTree.activeThread.indexOf(nodeId));
       
       // Get history messages from the active thread up to the edited message
@@ -489,7 +501,14 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
         const newActiveThread = [...pathToParent, newNodeId];
         setActiveThread(newActiveThread);
         
-        // Clear editing state
+        // Log edited message to history with both original and edited text
+        try {
+          await appendToHistory(`[EDITED] Original: "${originalMessage}" → New: "${editedPrompt}"`);
+        } catch (error) {
+          console.error('Failed to save edited message to history:', error);
+        }
+        
+        // Exit edit mode
         setEditingMessageId(null);
         setEditedPrompt("");
       } else {
@@ -788,6 +807,22 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
 
   // Add event listener for loading messages from compositions
   useEffect(() => {
+    // Check if there's a pending message from history
+    const pendingMessage = typeof window !== 'undefined' ? window.localStorage.getItem('pendingChatMessage') : null;
+    
+    if (pendingMessage) {
+      // Set the message in the input field
+      setInput(pendingMessage);
+      
+      // Clear the pending message
+      window.localStorage.removeItem('pendingChatMessage');
+      
+      // Focus the textarea
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 300);
+    }
+    
     // Handler for when messages are loaded from a composition
     const handleMessagesLoaded = (event: Event) => {
       // Clear existing chat
@@ -1099,16 +1134,6 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="h-7 w-7 p-0 text-muted-foreground"
-              title="Add system message"
-              onClick={addSystemMessage}
-            >
-              <Bot className="h-3.5 w-3.5" />
-            </Button>
           </div>
         </div>
       </CardHeader>
