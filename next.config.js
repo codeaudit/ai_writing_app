@@ -12,9 +12,10 @@ const nextConfig = {
   images: process.env.ELECTRON === 'true' ? { unoptimized: true } : {},
   // Disable server-only features when running as an Electron app
   experimental: {
-    appDir: true,
-    serverComponentsExternalPackages: [],
+    // The appDir option is no longer needed as it's the default in newer Next.js versions
   },
+  // External packages that should be treated as server components
+  serverExternalPackages: [],
   // Avoid cross-origin issues when running in Electron
   assetPrefix: process.env.ELECTRON === 'true' ? './' : undefined,
 };
