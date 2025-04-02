@@ -1,0 +1,4 @@
+[deployment]
+build = ["sh", "-c", "npm run build -- --no-lint"]
+run = ["sh", "-c", "npm start"]
+deploymentTarget = "gce"
