@@ -36,7 +36,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743586524667-ghxx5vj",
+    "id": "doc-1743605058002-nkg6xop",
     "name": "1-Formatting-Test|Formatting Examples",
     "content": "\n# 1-Formatting-Test|Formatting Examples\n\n",
     "createdAt": "2025-04-02T09:26:42.717Z",
@@ -461,7 +461,7 @@
   {
     "id": "doc-1743551639924-0t9vfnf",
     "name": "history",
-    "content": "# Chat History\n\nThis file contains a record of all user messages from the AI chat interface.\n\n## History\n\n### 2025-04-01 19:38:03\n\nList the chapters of the art of war. \n\n### 2025-04-01 20:01:26\n\nWhat is chapter 11\n\n### 2025-04-01 20:03:29\n\nWhat is chapter 9?\n\n### 2025-04-01 20:13:50\n\nList the chapters of the art of war.\n\n### 2025-04-01 20:14:19\n\nDescribe in detail chapter 1.\n\n### 2025-04-01 20:14:46\n\n[EDITED] Original: \"Describe in detail chapter 1.\" → New: \"Describe in detail chapter 1.\"\n\n### 2025-04-01 20:15:09\n\n[EDITED] Original: \"Describe in detail chapter 1.\" → New: \"Describe in detail chapter 2.\"\n\n### 2025-04-01 20:15:40\n\n[EDITED] Original: \"Describe in detail chapter 2.\" → New: \"Describe in detail chapter 3.\"\n",
+    "content": "# Chat History\n\nThis file contains a record of all user messages from the AI chat interface.\n\n## History\n\n### 2025-04-01 19:38:03\n\nList the chapters of the art of war. \n\n### 2025-04-01 20:01:26\n\nWhat is chapter 11\n\n### 2025-04-01 20:03:29\n\nWhat is chapter 9?\n\n### 2025-04-01 20:13:50\n\nList the chapters of the art of war.\n\n### 2025-04-01 20:14:19\n\nDescribe in detail chapter 1.\n\n### 2025-04-01 20:14:46\n\n[EDITED] Original: \"Describe in detail chapter 1.\" → New: \"Describe in detail chapter 1.\"\n\n### 2025-04-01 20:15:09\n\n[EDITED] Original: \"Describe in detail chapter 1.\" → New: \"Describe in detail chapter 2.\"\n\n### 2025-04-01 20:15:40\n\n[EDITED] Original: \"Describe in detail chapter 2.\" → New: \"Describe in detail chapter 3.\"\n\n### 2025-04-02 10:36:43\n\ntest\n",
     "createdAt": "2025-04-01T23:53:59.924Z",
     "updatedAt": "2025-04-01T23:59:31.941Z",
     "versions": [],
@@ -470,18 +470,18 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743586524668-pwt1erq",
+    "id": "doc-1743605058006-t12ijfb",
     "name": "mcp-servers",
     "content": "# MCP Servers Configuration\n\nThis file contains configuration for installed MCP servers.\n\n```yaml\nservers:\n  - qualifiedName: exa\n    config:\n      exaApiKey: b4f1c7aa-6263-47c3-bb82-897414271ffc\n      apiKey: b4f1c7aa-6263-47c3-bb82-897414271ffc\n      description: |-\n        Fast, intelligent web search and crawling.\n\n        Exa combines embeddings and traditional search to deliver the best results for LLMs.\n      homepage: https://smithery.ai/server/exa\n      owner: ''\n      repo: ''\n      enabled: true\n      useCount: 25854\n      createdAt: '2024-12-13T15:46:50.750Z'\n    enabled: true\n    name: Exa Search\n    deploymentUrl: https://server.smithery.ai/exa\n    connections:\n      - type: stdio\n        configSchema:\n          type: object\n          required:\n            - exaApiKey\n          properties:\n            exaApiKey:\n              type: string\n              description: The API key for the Exa AI Search server.\n        exampleConfig:\n          exaApiKey: your-api-key-here\n        published: true\n        stdioFunction: 'config => ({ command: ''npx'', args: [''-y'', ''exa-mcp-server''], env: { EXA_API_KEY: config.exaApiKey } })'\n      - type: ws\n        deploymentUrl: https://server.smithery.ai/exa\n        configSchema:\n          type: object\n          required:\n            - exaApiKey\n          properties:\n            exaApiKey:\n              type: string\n              description: The API key for accessing the Exa Search API.\n  - qualifiedName: '@wonderwhy-er/desktop-commander'\n    config:\n      description: Execute terminal commands and manage files with diff editing capabilities. Coding, shell and terminal, task automation\n      homepage: https://smithery.ai/server/@wonderwhy-er/desktop-commander\n      owner: '@wonderwhy-er'\n      repo: desktop-commander\n      enabled: true\n      useCount: 2825\n      createdAt: '2025-03-24T03:05:46.076Z'\n    enabled: true\n    name: Desktop Commander\n    deploymentUrl: ''\n    connections:\n      - type: stdio\n        configSchema: {}\n        exampleConfig: {}\n        published: true\n        stdioFunction: 'config => ({ command: ''npx'', args: [''-y'', ''@wonderwhy-er/desktop-commander''] })'\n      - type: ws\n        deploymentUrl: https://server.smithery.ai/@wonderwhy-er/desktop-commander\n        configSchema:\n          type: object\n          properties: {}\n\n```\n",
-    "createdAt": "2025-04-02T09:35:24.668Z",
-    "updatedAt": "2025-04-02T09:35:24.668Z",
+    "createdAt": "2025-04-02T14:44:18.006Z",
+    "updatedAt": "2025-04-02T14:44:18.006Z",
     "versions": [],
     "folderId": "folder-1742582748295-cvk7ccu",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743586524668-ik2f705",
+    "id": "doc-1743605058006-nnwblek",
     "name": "add_evidence",
     "content": "# Add Supporting Evidence Template\n\nStrengthen the following text by adding relevant supporting evidence, examples, statistics, or expert opinions:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. The original text with supporting evidence or examples integrated naturally\n2. A mix of different types of evidence (statistics, research findings, case studies, expert quotes)\n3. Citations or sources for the evidence when appropriate\n4. Clear connections between the evidence and the claims being supported\n5. Proper transitions to introduce the supporting material\n6. A brief explanation of how the evidence strengthens the overall argument ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -589,11 +589,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743586524670-co6haco",
+    "id": "doc-1743605058007-osv1w1l",
     "name": "expand",
     "content": "---\nid: doc-1742343001043\nname: expand\ncreatedAt: '2025-03-19T01:03:01.030Z'\nupdatedAt: 2025-03-27T00:53:18.591Z\nversions:\n  - id: ver-1742343001043-initial\n    createdAt: '2025-03-19T01:03:01.030Z'\n    message: Initial version\nannotations: []---\n\nExpand on the following text to make it more detailed, comprehensive, and informative:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. An expanded version with more details, examples, and explanations\n2. Additional context and background information\n3. Supporting evidence or data where relevant\n4. Elaboration on key points and concepts\n5. Logical transitions between ideas\n6. A conclusion that summarizes the expanded content ",
-    "createdAt": "2025-04-02T09:35:24.670Z",
-    "updatedAt": "2025-04-02T09:35:24.670Z",
+    "createdAt": "2025-04-02T14:44:18.007Z",
+    "updatedAt": "2025-04-02T14:44:18.007Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -618,7 +618,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743586524671-1maldhp",
+    "id": "doc-1743605058007-lood8m3",
     "name": "improve_flow",
     "content": "# Improve Paragraph Transitions and Flow Template\n\nEnhance the following text by improving transitions between paragraphs and creating a smoother flow of ideas:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A revised version with improved transitions between paragraphs and sentences\n2. Natural connections between ideas that guide the reader through the text\n3. Consistent progression of thought that builds logically from beginning to end\n4. Elimination of any abrupt shifts or disconnected sections\n5. Appropriate transition words and phrases where needed (e.g., \"furthermore,\" \"in contrast,\" \"consequently\")\n6. A brief explanation of how the improved flow enhances readability and coherence ",
     "createdAt": "2025-03-19T01:03:01.030Z",
@@ -636,11 +636,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743586524671-2n8yoi8",
+    "id": "doc-1743605058007-7gult6d",
     "name": "llm-demo",
     "content": "\n# LLM Extension Demo\n\nThis template demonstrates the capabilities of the LLM extension in Nunjucks templates.\n\n## Basic Example\n\n### Prompt: Generate a short paragraph about climate change\n\n{% llm \"Generate a short paragraph about climate change\" %}\n\n## Using Parameters\n\n### Prompt: Generate a creative story with high temperature\n\n{% llm \"Generate a short creative story about a robot discovering emotions\", \n   temperature: 0.9, \n   maxTokens: 500\n%}\n\n## Using Context Variables\n\n### Prompt: Answer a question about {{ topic | default('artificial intelligence') }}\n\n{% llm \"Write a short explanation about \" + topic | default('artificial intelligence') %}\n\n## Using AI Roles\n\n### Prompt: Write as a poet\n\n{% llm \"Write a poem about the ocean\", \n   aiRole: \"creative\"\n%}\n\n## Content Transformation\n\n### Original Content:\n```\n{{ content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.') }}\n```\n\n### LLM-Enhanced Content:\n{% llm \"Improve the following content to make it more engaging and descriptive: \" + content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.'),\n   temperature: 0.7,\n   maxTokens: 300\n%}\n\n## Custom Context Documents (when provided)\n\n{% if contextDocuments and contextDocuments.length > 0 %}\n### Summary of Context Documents:\n\n{% llm \"Summarize the following documents in a few paragraphs:\", \n   contextDocuments: contextDocuments,\n   temperature: 0.5\n%}\n{% else %}\n*No context documents provided. To see this feature in action, provide context documents when processing this template.*\n{% endif %}\n\n## Chat Mode Example\n\n{% llm \"Provide a conclusion based on this conversation\", \n   chat: true,\n   messages: [\n     { role: \"user\", content: \"What are the benefits of exercise?\" },\n     { role: \"assistant\", content: \"Exercise has many benefits including improved cardiovascular health, better mood through endorphin release, increased strength and flexibility, better sleep quality, and reduced risk of chronic diseases.\" },\n     { role: \"user\", content: \"What about the mental health benefits specifically?\" }\n   ]\n%}\n\n---\n\n*This template was rendered at {{ date | dateFormat('PP') }} {{ date | timeFormat }}* ",
-    "createdAt": "2025-04-02T09:35:24.671Z",
-    "updatedAt": "2025-04-02T09:35:24.671Z",
+    "createdAt": "2025-04-02T14:44:18.007Z",
+    "updatedAt": "2025-04-02T14:44:18.007Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -683,11 +683,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743586524671-iv2pjqf",
+    "id": "doc-1743605058008-mnhn1an",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-04-02T09:35:24.671Z",
-    "updatedAt": "2025-04-02T09:35:24.671Z",
+    "createdAt": "2025-04-02T14:44:18.013Z",
+    "updatedAt": "2025-04-02T14:44:18.013Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -795,7 +795,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743586524671-8nf4y04",
+    "id": "doc-1743605058016-cxjzoej",
     "name": "Test Template",
     "content": "\nThis is a test template\n",
     "createdAt": "2023-07-05T12:00:00.000Z",
@@ -806,11 +806,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743586524671-3d30ixv",
+    "id": "doc-1743605058016-ygqp1fc",
     "name": "test_simple",
     "content": "\n# Simple LLM Test\n\nThis is a basic test of the LLM extension:\n\n{% llm \"Generate a short paragraph about climate change\" %} ",
-    "createdAt": "2025-04-02T09:35:24.671Z",
-    "updatedAt": "2025-04-02T09:35:24.671Z",
+    "createdAt": "2025-04-02T14:44:18.016Z",
+    "updatedAt": "2025-04-02T14:44:18.016Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -835,7 +835,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743586524671-t6at168",
+    "id": "doc-1743605058016-sjoj9p9",
     "name": "translate",
     "content": "# Prompt template\n\ntranslate this to English: '''\n{{selectedText}}\n'''\n\n\n",
     "createdAt": "2025-03-19T00:10:01.030Z",

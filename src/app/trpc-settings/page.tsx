@@ -14,7 +14,6 @@ import { toast } from "@/components/ui/use-toast";
 import { TrpcTemplateTester } from "@/components/trpc-template-tester";
 import { useTrpcConfigStore, LLMProvider } from "@/lib/trpc-config-store";
 import { useTrpcKVCacheStore } from "@/lib/trpc-kv-cache-store";
-import TrpcIntegrationTestPage from "../trpc-test-integration/page";
 
 // Define config type to match what's expected
 interface ConfigSaveParams {
@@ -306,7 +305,6 @@ export default function TrpcSettingsPage() {
               Test and verify the tRPC API integration with various stores and components.
             </p>
           </div>
-          <TrpcIntegrationTestPage />
         </TabsContent>
         
         <TabsContent value="advanced">
