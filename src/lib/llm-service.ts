@@ -8,9 +8,7 @@ import { cookies } from 'next/headers';
 import { formatDebugPrompt, logAIDebug } from '@/lib/ai-debug';
 import { getAIRoleSystemPrompt, AIRole, DEFAULT_PROMPTS } from './ai-roles';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat';
-import { MultiClient, createTransport } from '@smithery/sdk';
 import { OpenAIChatAdapter } from '@smithery/sdk';
-import { AnthropicChatAdapter } from '@smithery/sdk';
 import { LLM_MODELS } from '@/lib/config';
 import { 
   getMCPClient, 
@@ -177,7 +175,7 @@ export interface ChatRequest {
 }
 
 export interface ChatResponse {
-  message: ChatMessageWithTools;
+  message: ChatMessage;
   model: string;
   provider: string;
   debugPrompt?: string;
@@ -201,23 +199,16 @@ interface FormattedMessages {
 interface AnthropicFormattedMessages {
   systemPrompt: string;
   messages: AnthropicMessageParam[];
-  [key: string]: any; // Add index signature to satisfy the FormattedMessages constraint
 }
 
-// For OpenAI messages, create a wrapper type with index signature
-interface OpenAIFormattedMessages extends Array<ChatCompletionMessageParam> {
-  [key: string]: any;
-}
+type OpenAIFormattedMessages = ChatCompletionMessageParam[];
 
 interface GeminiMessage {
   role: 'user' | 'model';
   parts: Part[];
 }
 
-// For Gemini messages, create a wrapper type with index signature
-interface GeminiFormattedMessages extends Array<Content> {
-  [key: string]: any;
-}
+type GeminiFormattedMessages = Content[];
 
 // Helper function to generate a unique ID
 function generateId(): string {
@@ -249,51 +240,92 @@ function logApiKeyInfo(provider: string): void {
   }
 }
 
-// Add these type definitions at the top with the other interfaces
-interface StreamCallbacks {
-  onContent?: (content: string) => void;
-  onToolCall?: (toolCalls: ToolCall[]) => void;
-}
-
-type ChatCompletionCreateParams = {
-  model: string;
-  messages: ChatCompletionMessageParam[];
-  temperature?: number;
-  max_tokens?: number;
-  top_p?: number;
-  frequency_penalty?: number;
-  presence_penalty?: number;
-  tools?: any[];
-  tool_choice?: any;
-  stream?: boolean;
-};
-
-type ChatCompletionToolChoiceOption = 'auto' | 'none' | {
-  type: string;
-  function: {
-    name: string;
-  };
-};
-
 /**
  * Converts chat history for the appropriate provider format
  */
-export async function formatMessages(
-  chatMessages: ChatMessage[],
-  systemPrompt?: string
-): Promise<FormattedMessages> {
-  const llmProvider = getLLMProvider();
-
-  if (llmProvider.toLowerCase() === "anthropic") {
-    return await formatAnthropicMessages(chatMessages, systemPrompt);
-  } else if (llmProvider.toLowerCase() === "openai") {
-    return await formatOpenAIMessages(chatMessages, systemPrompt) as unknown as FormattedMessages;
-  } else if (llmProvider.toLowerCase() === "google") {
-    return await formatGeminiMessages(chatMessages, systemPrompt) as unknown as FormattedMessages;
+function formatMessagesForProvider(
+  messages: ChatMessage[], 
+  systemMessage: string, 
+  provider: string
+): FormattedMessages {
+  // Ensure we have a system message at the beginning
+  const hasSystemMessage = messages.some(msg => msg.role === 'system');
+  const formattedMessages = [...messages];
+  
+  if (!hasSystemMessage) {
+    formattedMessages.unshift({
+      role: 'system',
+      content: systemMessage
+    });
   }
-
-  // Default to OpenAI format
-  return await formatOpenAIMessages(chatMessages, systemPrompt) as unknown as FormattedMessages;
+  
+  // Format messages based on provider
+  switch (provider) {
+    case 'anthropic': {
+      // Anthropic uses a specific format with system prompt as a separate parameter
+      // Filter out system messages and convert to Anthropic format
+      const anthropicMessages: AnthropicMessageParam[] = formattedMessages
+        .filter(msg => msg.role !== 'system')
+        .map(msg => ({
+          role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: msg.content
+        }));
+      
+      const result: AnthropicFormattedMessages = {
+        systemPrompt: systemMessage,
+        messages: anthropicMessages
+      };
+      return result;
+    }
+      
+    case 'gemini': {
+      // Gemini doesn't support system messages directly, so we need to convert them to user messages
+      const geminiContents: Content[] = formattedMessages.map(msg => {
+        // Convert system messages to user messages with a special prefix
+        if (msg.role === 'system') {
+          return {
+            role: 'user',
+            parts: [{ text: `System Instructions: ${msg.content}` }]
+          };
+        } else if (msg.role === 'user') {
+          return {
+            role: 'user',
+            parts: [{ text: msg.content }]
+          };
+        } else { // assistant
+          return {
+            role: 'model',
+            parts: [{ text: msg.content }]
+          };
+        }
+      });
+      
+      return geminiContents;
+    }
+        
+    case 'openai':
+    case 'openrouter':
+    case 'featherless':
+    default: {
+      // Convert to OpenAI's specific message format
+      const openAIMessages: ChatCompletionMessageParam[] = formattedMessages.map(msg => {
+        // Validate that the role is one of OpenAI's supported roles
+        if (msg.role === 'system' || msg.role === 'user' || msg.role === 'assistant') {
+          return {
+            role: msg.role,
+            content: msg.content
+          };
+        }
+        // Default to user role for any unsupported roles
+        return {
+          role: 'user',
+          content: msg.content
+        };
+      });
+      
+      return openAIMessages;
+    }
+  }
 }
 
 /**
@@ -502,13 +534,7 @@ async function processWithOpenAISmithery(
     if (toolMessages.length > 0) {
       return {
         text: toolMessages[0].content,
-        toolCalls: message.tool_calls.map((tc: { 
-          id: string; 
-          function: { 
-            name: string; 
-            arguments: string; 
-          }; 
-        }) => ({
+        toolCalls: message.tool_calls.map(tc => ({
           id: tc.id,
           type: 'function' as const,
           function: {
@@ -543,16 +569,16 @@ async function processWithAnthropicSmithery(
   
   // For Anthropic, we need to add tools through the adapter
   // and handle their different format for tool calls
-  const response = await (anthropicClient.messages.create as any)({
+  const response = await anthropicClient.messages.create({
     ...options,
     tools: smitheryTools
   });
   
   // Check if there are tool calls to process
-  const toolCalls = response.content.filter((item: { type: string }) => 
+  const toolCalls = response.content.filter(item => 
     item.type === 'tool_use'
-  ).map((item: { type: string; tool_use: any }) => {
-    const toolUse = item.tool_use;
+  ).map(item => {
+    const toolUse = (item as any).tool_use;
     return {
       id: toolUse.id,
       type: 'function' as const,
@@ -569,7 +595,7 @@ async function processWithAnthropicSmithery(
       // Here we'd ideally use the Anthropic adapter's method for handling tool calls
       // For now, we'll use our manual approach
       const toolResponses = await Promise.all(
-        toolCalls.map(async (toolCall: ToolCall) => {
+        toolCalls.map(async (toolCall) => {
           try {
             const result = await smitheryClient?.clients.mcp.request({
               method: toolCall.function.name,
@@ -599,8 +625,8 @@ async function processWithAnthropicSmithery(
   
   // If no tool calls, just return the text content
   const textContent = response.content
-    .filter((item: { type: string }) => item.type === 'text')
-    .map((item: { type: string; text: string }) => (item.type === 'text' ? item.text : ''))
+    .filter(item => item.type === 'text')
+    .map(item => (item as any).text)
     .join('');
   
   return { text: textContent };
@@ -683,7 +709,7 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
   }
   
   // Format messages for the model
-  const formattedMessages = await formatMessages(messages, enhancedSystemMessage);
+  const formattedMessages = formatMessagesForProvider(messages, enhancedSystemMessage, provider);
   
   // Check if response is in cache
   const cacheKey = createCacheKey(provider, modelName, formattedMessages);
@@ -734,10 +760,7 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
           
           // Handle streaming response
           for await (const chunk of response) {
-            if (chunk.type === 'content_block_delta' && 
-                chunk.delta && 
-                'text' in chunk.delta && 
-                typeof chunk.delta.text === 'string') {
+            if (chunk.type === 'content_block_delta' && chunk.delta.text) {
               responseText += chunk.delta.text;
             }
           }
@@ -855,22 +878,47 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
           toolCalls = result.toolCalls;
         } else if (stream) {
           // Regular streaming, no tools
-          const response = await streamOpenAIWithTools(
-            (formattedMessages as unknown) as ChatCompletionMessageParam[],
-            openAIOptions,
-            (toolChoice as unknown) as ChatCompletionToolChoiceOption,
-            {
-              onContent: (content: string) => {
-                responseText += content;
-              },
-              onToolCall: (tools: ToolCall[]) => {
-                if (tools) {
-                  toolCalls = tools;
+          const response = await client.chat.completions.create({
+            ...openAIOptions,
+            stream: true
+          });
+          
+          // Handle streaming response
+          for await (const chunk of response) {
+            if (chunk.choices[0]?.delta?.content) {
+              responseText += chunk.choices[0].delta.content;
+            }
+            
+            // Handle tool calls in streaming
+            if (chunk.choices[0]?.delta?.tool_calls) {
+              if (!toolCalls) {
+                toolCalls = [];
+              }
+              
+              // Process each tool call in the chunk
+              for (const toolCallDelta of chunk.choices[0].delta.tool_calls) {
+                const id = toolCallDelta.index;
+                const existingCall = toolCalls.find(call => call.id === id);
+                
+                if (existingCall) {
+                  // Update function arguments if they exist
+                  if (toolCallDelta.function?.arguments) {
+                    existingCall.function.arguments += toolCallDelta.function.arguments;
+                  }
+                } else if (toolCallDelta.function) {
+                  // Create new tool call
+                  toolCalls.push({
+                    id: id || `call-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                    type: 'function',
+                    function: {
+                      name: toolCallDelta.function.name || '',
+                      arguments: toolCallDelta.function.arguments || ''
+                    }
+                  });
                 }
               }
-            },
-            client
-          );
+            }
+          }
         } else {
           // Regular non-streaming, no tools
           const response = await client.chat.completions.create(openAIOptions);
@@ -897,19 +945,13 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
     }
     
     // Prepare the response
-    const responseMessage: ChatMessageWithTools = {
-      role: 'assistant',
-      content: responseText,
-      id: generateId()
-    };
-
-    // Only add tool_calls if they exist
-    if (toolCalls && toolCalls.length > 0) {
-      responseMessage.tool_calls = toolCalls;
-    }
-
     const chatResponse: ChatResponse = {
-      message: responseMessage,
+      message: {
+        role: 'assistant',
+        content: responseText,
+        id: generateId(),
+        tool_calls: toolCalls
+      } as ChatMessageWithTools,
       model: modelName,
       provider,
       debugPrompt: formatDebugPrompt(enhancedSystemMessage, lastMessage.content, provider, modelName)
@@ -1058,27 +1100,14 @@ export async function executeToolCall(toolCall: ToolCall, availableTools: Record
   }
 }
 
-// Helper function to safely get text from Gemini chunks
+// Improve the Gemini response handling
 function safeGetTextFromGeminiChunk(chunk: unknown): string {
   try {
-    // Use a more specific type assertion
-    const chunkWithText = chunk as { text?: () => string } | { parts?: { text?: string }[] };
-    
-    // Check if it has a text function
-    if ('text' in chunkWithText && typeof chunkWithText.text === 'function') {
-      return chunkWithText.text() || '';
+    // This is a simplification due to typing issues
+    const textFn = (chunk as { text?: () => string }).text;
+    if (typeof textFn === 'function') {
+      return textFn() || '';
     }
-    
-    // Check if it has parts with text property
-    if ('parts' in chunkWithText && Array.isArray(chunkWithText.parts)) {
-      return chunkWithText.parts
-        .map(part => {
-          const textPart = part as { text?: string };
-          return textPart.text || '';
-        })
-        .join('');
-    }
-    
     return '';
   } catch (error) {
     console.warn('Error extracting text from Gemini chunk:', error);
@@ -1174,181 +1203,4 @@ Style: ${style}`,
       summary: response.message.content
     }
   };
-}
-
-// Get the LLM provider from environment variables
-function getLLMProvider(): string {
-  return process.env.LLM_PROVIDER || 'openai';
-}
-
-// Format messages for Anthropic
-async function formatAnthropicMessages(
-  messages: ChatMessage[],
-  systemPrompt?: string
-): Promise<AnthropicFormattedMessages> {
-  // Extract system message if present, or use provided systemPrompt
-  const systemMessage = messages.find(msg => msg.role === 'system')?.content || systemPrompt || '';
-  
-  // Filter out system messages and convert to Anthropic format
-  const anthropicMessages: AnthropicMessageParam[] = messages
-    .filter(msg => msg.role !== 'system')
-    .map(msg => ({
-      role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
-      content: msg.content
-    }));
-  
-  return {
-    systemPrompt: systemMessage,
-    messages: anthropicMessages
-  };
-}
-
-// Format messages for OpenAI
-async function formatOpenAIMessages(
-  messages: ChatMessage[],
-  systemPrompt?: string
-): Promise<OpenAIFormattedMessages> {
-  const formattedMessages: ChatCompletionMessageParam[] = [];
-  
-  // Add system message if provided and not already present
-  if (systemPrompt && !messages.some(msg => msg.role === 'system')) {
-    formattedMessages.push({
-      role: 'system',
-      content: systemPrompt
-    });
-  }
-  
-  // Add the rest of the messages
-  messages.forEach(msg => {
-    formattedMessages.push({
-      role: msg.role === 'user' ? 'user' : 
-            msg.role === 'system' ? 'system' : 'assistant',
-      content: msg.content
-    });
-  });
-  
-  // Cast to our extended type with index signature
-  return formattedMessages as OpenAIFormattedMessages;
-}
-
-// Format messages for Gemini
-async function formatGeminiMessages(
-  messages: ChatMessage[],
-  systemPrompt?: string
-): Promise<GeminiFormattedMessages> {
-  const formattedMessages: Content[] = [];
-  
-  // Add system message as a user message with special prefix if provided
-  if (systemPrompt && !messages.some(msg => msg.role === 'system')) {
-    formattedMessages.push({
-      role: 'user',
-      parts: [{ text: `System Instructions: ${systemPrompt}` }]
-    });
-  }
-  
-  // Convert regular messages
-  messages.forEach(msg => {
-    if (msg.role === 'system') {
-      formattedMessages.push({
-        role: 'user',
-        parts: [{ text: `System Instructions: ${msg.content}` }]
-      });
-    } else if (msg.role === 'user') {
-      formattedMessages.push({
-        role: 'user',
-        parts: [{ text: msg.content }]
-      });
-    } else { // assistant
-      formattedMessages.push({
-        role: 'model',
-        parts: [{ text: msg.content }]
-      });
-    }
-  });
-  
-  // Cast to our extended type with index signature
-  return formattedMessages as GeminiFormattedMessages;
-}
-
-function streamOpenAIWithTools(
-  messages: ChatCompletionMessageParam[],
-  options: ChatCompletionCreateParams,
-  toolChoice: ChatCompletionToolChoiceOption | undefined,
-  callbacks: StreamCallbacks,
-  openaiClient: OpenAI
-): Promise<string> {
-  return new Promise<string>(async (resolve, reject) => {
-    try {
-      // If we have tools, configure them correctly
-      let fullOptions: ChatCompletionCreateParams = { ...options, messages };
-      
-      if (toolChoice && toolChoice !== 'none') {
-        fullOptions = {
-          ...fullOptions,
-          tool_choice: toolChoice
-        };
-      }
-      
-      const stream = await openaiClient.chat.completions.create({
-        ...fullOptions,
-        stream: true,
-      });
-
-      let responseContent = '';
-      let toolCalls: ToolCall[] = [];
-
-      for await (const chunk of stream) {
-        const delta = chunk.choices[0]?.delta;
-        
-        // Process tool calls if present
-        if (delta?.tool_calls) {
-          delta.tool_calls.forEach((tc: { 
-            index: number; 
-            function?: { 
-              name?: string; 
-              arguments?: string 
-            }; 
-            id?: string 
-          }) => {
-            // Initialize tool call if not exists
-            if (!toolCalls[tc.index]) {
-              toolCalls[tc.index] = {
-                id: tc.id || '',
-                type: 'function',
-                function: { name: '', arguments: '' }
-              };
-            }
-            
-            // Update function name if present
-            if (tc.function?.name) {
-              toolCalls[tc.index].function.name = tc.function.name;
-            }
-            
-            // Append to arguments if present
-            if (tc.function?.arguments) {
-              toolCalls[tc.index].function.arguments += tc.function.arguments;
-            }
-          });
-          
-          // Call the tools callback
-          if (callbacks.onToolCall) {
-            callbacks.onToolCall(toolCalls);
-          }
-        }
-
-        // Handle text content
-        if (delta?.content) {
-          responseContent += delta.content;
-          if (callbacks.onContent) {
-            callbacks.onContent(delta.content);
-          }
-        }
-      }
-
-      // Resolve with the complete response
-      resolve(responseContent);
-    } catch (error) {
-      reject(error);
-    }
-  });
 } 
