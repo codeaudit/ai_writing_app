@@ -77,6 +77,7 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const GOOGLE_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || '';
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 
 // Create OpenRouter client
 const openRouterClient = new OpenAI({
@@ -92,6 +93,12 @@ const openRouterClient = new OpenAI({
 const featherlessClient = new OpenAI({
   apiKey: FEATHERLESS_API_KEY,
   baseURL: 'https://api.featherless.ai/v1'
+});
+
+// Create Groq client
+const groqClient = new OpenAI({
+  apiKey: GROQ_API_KEY,
+  baseURL: 'https://api.groq.com/openai/v1'
 });
 
 // Create OpenAI client
@@ -139,6 +146,11 @@ try {
       if (FEATHERLESS_API_KEY) {
         featherlessOpenAIAdapter = new OpenAIChatAdapter(client);
         console.log('Featherless adapter initialized successfully');
+      }
+
+      if (GROQ_API_KEY) {
+        groqClientOpenAIAdapter = new OpenAIChatAdapter(client);
+        console.log('Groq adapter initialized successfully');
       }
       
       console.log('All Smithery adapters initialized successfully');
@@ -238,6 +250,9 @@ function logApiKeyInfo(provider: string): void {
     case 'featherless':
       console.log(`Featherless API Key available: ${!!FEATHERLESS_API_KEY}`);
       break;
+    case 'groq':
+      console.log(`Groq API Key available: ${!!GROQ_API_KEY}`);
+      break;
   }
 }
 
@@ -309,6 +324,8 @@ function formatMessagesForProvider(
     case 'openai':
     case 'openrouter':
     case 'featherless':
+    case 'groq':
+
     default: {
       // Convert to OpenAI's specific message format
       const openAIMessages: ChatCompletionMessageParam[] = formattedMessages.map(msg => {
@@ -456,7 +473,7 @@ export async function getAvailableTools(): Promise<Tool[]> {
  * Process OpenAI-compatible provider with Smithery
  */
 async function processWithOpenAISmithery(
-  provider: 'openai' | 'openrouter' | 'featherless',
+  provider: 'openai' | 'openrouter' | 'featherless' | 'groq',
   options: Record<string, any>,
   tools: Tool[],
   toolChoice: any
@@ -487,6 +504,12 @@ async function processWithOpenAISmithery(
         throw new Error("Smithery Featherless adapter is not initialized");
       }
       break;
+    case 'groq':
+      adapter = groqClient;
+      client = groqClient;
+      if (!adapter) {
+        throw new Error("Smithery Groq adapter is not initialized");
+      }
   }
   
   // Get smithery tools for this specific adapter
@@ -517,6 +540,12 @@ async function processWithOpenAISmithery(
       options.model = modelFound.value;
       console.log(`Using Featherless with model: ${options.model}`);
     }
+  }
+
+  if (provider === 'groq' && options.model) {
+    // Groq models already have their provider prefixes in the config
+    const models = LLM_MODELS['groq'];
+    const modelFound = models.find(m => m.value === options.model || m.label === options.model);
   }
   
   // Make the initial request with all required parameters
@@ -670,6 +699,17 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
     if (modelFound) {
       modelName = modelFound.value;
       console.log(`Using Featherless with model: ${modelName}`);
+    }
+  }
+
+  if (provider === 'groq' && modelName) {
+    // Groq models already have their provider prefixes in the config
+    const models = LLM_MODELS['groq'];
+    const modelFound = models.find(m => m.value === modelName || m.label === modelName);
+  
+    if (modelFound) {
+      modelName = modelFound.value;
+      console.log(`Using Groq with model: ${modelName}`);
     }
   }
   
@@ -847,9 +887,11 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
       
       case 'openai': 
       case 'openrouter':
-      case 'featherless': {
+      case 'featherless':
+      case 'groq': {
         const apiKey = provider === 'openai' ? OPENAI_API_KEY : 
                        provider === 'openrouter' ? OPENROUTER_API_KEY : 
+                       provider === 'groq' ? GROQ_API_KEY :
                        FEATHERLESS_API_KEY;
         
         if (!apiKey) {
@@ -867,7 +909,8 @@ export async function generateChatResponse(request: ChatRequest | ChatRequestWit
         // Select the appropriate client based on provider
         const client = provider === 'openai' ? openaiClient :
                        provider === 'openrouter' ? openRouterClient :
-                       featherlessClient;
+                       provider === 'groq' ? groqClient :
+                       featherlessClient  
         
         if (tools.length > 0 && smitheryClient) {
           // Use Smithery for tool-enabled requests

@@ -963,7 +963,7 @@ export function MCPSettings() {
                 <Label htmlFor="provider">Provider</Label>
                 <Select 
                   value={selectedProvider} 
-                  onValueChange={(value) => setSelectedProvider(value as 'openai' | 'anthropic' | 'openrouter' | 'featherless')}
+                  onValueChange={(value) => setSelectedProvider(value as 'openai' | 'anthropic' | 'openrouter' | 'featherless' | 'groq')}
                 >
                   <SelectTrigger id="provider">
                     <SelectValue placeholder="Select provider" />
@@ -973,6 +973,7 @@ export function MCPSettings() {
                     <SelectItem value="anthropic">Anthropic</SelectItem>
                     <SelectItem value="openrouter">OpenRouter</SelectItem>
                     <SelectItem value="featherless">Featherless</SelectItem>
+                    <SelectItem value="groq">Groq</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

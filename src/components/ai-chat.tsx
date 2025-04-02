@@ -143,7 +143,7 @@ interface ModelOption {
   label: string;
 }
 
-type ProviderValue = 'openai' | 'openrouter' | 'anthropic' | 'gemini' | 'featherless';
+type ProviderValue = 'openai' | 'openrouter' | 'anthropic' | 'gemini' | 'featherless' | 'groq';
 
 interface ProviderOption {
   value: ProviderValue;

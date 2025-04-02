@@ -357,7 +357,7 @@ export default function Home() {
         </div>
       )}
       
-      <header className="border-b p-4 flex items-center justify-between shrink-0">
+      <header className="border-b p-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Button 
             variant="ghost" 
@@ -367,7 +367,7 @@ export default function Home() {
           >
             <PanelLeft className={cn("h-5 w-5", !layoutConfig.leftPanelVisible && "text-muted-foreground")} />
           </Button>
-          <h1 className="text-2xl font-bold">The AI Whisperer's Toolbox</h1>
+          <h1 className="text-lg font-semibold">The AI Whisperer's Toolbox</h1>
           {isFullscreen && (
             <span className="ml-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
               Fullscreen Mode

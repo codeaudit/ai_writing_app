@@ -24,6 +24,7 @@ export const LLM_PROVIDERS = [
   { value: 'anthropic', label: 'Anthropic Claude' },
   { value: 'gemini', label: 'Google Gemini' },
   { value: 'featherless', label: 'Featherless AI' },
+  { value: 'groq', label: 'Groq' }
 ];
 
 // LLM Model Options by Provider
@@ -62,5 +63,9 @@ export const LLM_MODELS = {
     { value: 'deepseek-ai/DeepSeek-R1', label: 'DeepSeek R1' },
     { value: 'RWKV/v6-Finch-14B-HF', label: 'RWKV Finch 14B' },
   ],
-
+  groq: [
+    { value: 'qwen-qwq-32b', label: 'Qwen QwQ 32b' },
+    { value: 'llama-3.1-8b-instant', label: 'Llama 3.1 8b Instant' },
+    { value: 'deepseek-r1-distill-llama-70b', label: 'DeepSeek R1 Distill Llama 70b' },
+  ]
 }; 
