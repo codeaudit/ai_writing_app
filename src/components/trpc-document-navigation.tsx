@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PlusCircle, File, Folder, Trash2, GitCompare, ChevronRight, ChevronDown, MoreVertical, FolderPlus, RefreshCw, Filter } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
@@ -58,7 +57,6 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   
-  const router = useRouter();
   const {
     documents,
     folders,
@@ -367,7 +365,6 @@ function DocumentItem({ document, level, filteredDocuments }: DocumentItemProps)
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(document.name);
   
-  const router = useRouter();
   const { isComparisonMode } = useContext(ComparisonModeContext);
   const {
     selectedDocumentId,
@@ -397,7 +394,10 @@ function DocumentItem({ document, level, filteredDocuments }: DocumentItemProps)
       handleToggleComparison();
     } else {
       selectDocument(document.id);
-      router.push(`/documents/${document.id}`);
+      // Update URL without page refresh using History API
+      if (typeof window !== 'undefined') {
+        window.history.pushState({}, '', `/documents/${document.id}`);
+      }
     }
   };
   
@@ -483,7 +483,6 @@ export default function TrpcDocumentNavigation({ onCompareDocuments }: TrpcDocum
     patterns: ["**/*"],
   });
   
-  const router = useRouter();
   const { isComparisonMode, setIsComparisonMode } = useContext(ComparisonModeContext);
   const {
     documents,
@@ -545,8 +544,8 @@ export default function TrpcDocumentNavigation({ onCompareDocuments }: TrpcDocum
   
   const createNewDocument = async () => {
     const newDocId = await addDocument("Untitled Document", "", selectedFolderId);
-    if (newDocId) {
-      router.push(`/documents/${newDocId}`);
+    if (newDocId && typeof window !== 'undefined') {
+      window.history.pushState({}, '', `/documents/${newDocId}`);
     }
   };
   

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useDocumentStore } from "@/lib/store";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -13,6 +13,16 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useToast } from "@/components/ui/use-toast";
 import matter from "gray-matter";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 
 interface MarkdownRendererProps {
   content: string;
@@ -20,8 +30,10 @@ interface MarkdownRendererProps {
 }
 
 export function MarkdownRenderer({ content, className = "" }: MarkdownRendererProps) {
-  const { documents, selectDocument } = useDocumentStore();
+  const { documents, selectDocument, addDocument } = useDocumentStore();
   const { toast } = useToast();
+  const [showCreateDocumentDialog, setShowCreateDocumentDialog] = useState(false);
+  const [pendingDocument, setPendingDocument] = useState<{name: string, currentDocId: string | null}>({name: "", currentDocId: null});
 
   // Strip frontmatter before rendering
   const stripFrontmatter = (content: string) => {
@@ -47,6 +59,63 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
     );
   }, []);
 
+  // Get current document ID from store
+  const { selectedDocumentId } = useDocumentStore();
+
+  // Handler for creating a new document
+  const handleCreateNewDocument = async () => {
+    if (!pendingDocument.name) return;
+
+    try {
+      // Create new document in the same folder as the current document
+      let folderId = null;
+      
+      // If we have a current document, get its folder ID
+      if (pendingDocument.currentDocId) {
+        const currentDoc = documents.find(doc => doc.id === pendingDocument.currentDocId);
+        if (currentDoc) {
+          folderId = currentDoc.folderId;
+        }
+      }
+
+      // Create initial content with title and frontmatter
+      const initialContent = `---
+title: ${pendingDocument.name}
+created: ${new Date().toISOString()}
+---
+
+# ${pendingDocument.name}
+
+`;
+
+      // Create the new document with the initial content
+      const newDocId = await addDocument(pendingDocument.name, initialContent, folderId);
+      
+      // Select the new document without navigating
+      selectDocument(newDocId);
+      
+      // Update the URL without a full page refresh
+      // Use replaceState to change the URL without causing a navigation/refresh
+      if (typeof window !== 'undefined') {
+        window.history.pushState({}, '', `/documents/${newDocId}`);
+      }
+      
+      toast({
+        title: "Document created",
+        description: `Created and navigated to "${pendingDocument.name}"`,
+      });
+    } catch (error) {
+      console.error("Error creating document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create document",
+        variant: "destructive"
+      });
+    } finally {
+      setShowCreateDocumentDialog(false);
+    }
+  };
+
   // Handle internal link clicks
   const handleLinkClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -67,19 +136,25 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
         
         if (targetDoc) {
           console.log("Selecting document:", targetDoc.id);
+          // Select the document without navigating
           selectDocument(targetDoc.id);
+          
+          // Update the URL without a full page refresh
+          if (typeof window !== 'undefined') {
+            window.history.pushState({}, '', `/documents/${targetDoc.id}`);
+          }
+          
           toast({
             title: "Document opened",
             description: `Navigated to "${targetDoc.name}"`,
           });
         } else {
-          // Show a toast notification that the document doesn't exist
-          console.log(`Document "${linkText}" not found`);
-          toast({
-            title: "Link Error",
-            description: `Document "${linkText}" not found`,
-            variant: "destructive"
+          // Show dialog to create the document
+          setPendingDocument({
+            name: linkText,
+            currentDocId: selectedDocumentId
           });
+          setShowCreateDocumentDialog(true);
         }
       } 
       // Handle external links (http/https)
@@ -95,39 +170,62 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
       }
       // All other links will use their default behavior
     },
-    [documents, selectDocument, toast]
+    [documents, selectDocument, toast, selectedDocumentId, addDocument]
   );
 
   return (
-    <div className={`prose dark:prose-invert max-w-none ${className}`}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex, rehypeRaw, rehypeSanitize]}
-        components={{
-          a: ({ node, ...props }) => (
-            <a {...props} onClick={handleLinkClick} />
-          ),
-          code: ({ node, inline, className, children, ...props }: any) => {
-            const match = /language-(\w+)/.exec(className || "");
-            return !inline && match ? (
-              <SyntaxHighlighter
-                style={vscDarkPlus}
-                language={match[1]}
-                PreTag="div"
-                {...props}
-              >
-                {String(children).replace(/\n$/, "")}
-              </SyntaxHighlighter>
-            ) : (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            );
-          },
-        }}
+    <>
+      <div className={`prose dark:prose-invert max-w-none ${className}`}>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[rehypeKatex, rehypeRaw, rehypeSanitize]}
+          components={{
+            a: (props) => (
+              <a {...props} onClick={handleLinkClick} />
+            ),
+            code: function CodeBlock({ className, children, ...props }) {
+              const match = /language-(\w+)/.exec(className || "");
+              return match ? (
+                <SyntaxHighlighter
+                  // @ts-expect-error - SyntaxHighlighter prop types are incompatible
+                  style={vscDarkPlus}
+                  language={match[1]}
+                  PreTag="div"
+                  {...props}
+                >
+                  {String(children).replace(/\n$/, "")}
+                </SyntaxHighlighter>
+              ) : (
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              );
+            },
+          }}
+        >
+          {processedContent(content)}
+        </ReactMarkdown>
+      </div>
+
+      <AlertDialog 
+        open={showCreateDocumentDialog} 
+        onOpenChange={setShowCreateDocumentDialog}
       >
-        {processedContent(content)}
-      </ReactMarkdown>
-    </div>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Create New Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Document &ldquo;{pendingDocument.name}&rdquo; doesn&apos;t exist. Would you like to create it?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCreateNewDocument}>
+              Create Document
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 } 

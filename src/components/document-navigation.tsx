@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { File, Folder, GitCompare, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Upload, Download, FileText, Shield, RefreshCw, Filter } from "lucide-react";
 import { useDocumentStore } from "@/lib/store";
-import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { VersionHistory } from "./version-history";
@@ -81,7 +80,6 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
   const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   
-  const router = useRouter();
   const {
     documents,
     folders,
@@ -441,7 +439,6 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect }: Docu
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
   
-  const router = useRouter();
   const {
     selectedDocumentId,
     comparisonDocumentIds,
@@ -475,19 +472,23 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect }: Docu
     // This is a placeholder since we can't directly show diff from here
     // We'll select the document instead and let the user know to use the version history in the editor
     selectDocument(document.id);
-    // Update URL to reflect the selected document
-    router.push(`/documents/${document.id}`);
+    // Update URL without page refresh using History API
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', `/documents/${document.id}`);
+    }
     toast({
       title: "Document selected",
       description: "Use the version history button in the editor to compare versions.",
     });
-  }, [document.id, selectDocument, router]);
+  }, [document.id, selectDocument]);
 
   // Handle document selection with URL update
   const handleSelectDocument = () => {
     selectDocument(document.id);
-    // Update URL to reflect the selected document
-    router.push(`/documents/${document.id}`);
+    // Update URL without page refresh using History API
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', `/documents/${document.id}`);
+    }
   };
 
   // Document can always be selected
@@ -709,7 +710,6 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect }: Docu
 }
 
 export function DocumentNavigation({ onCompareDocuments, onFileSelect, className }: DocumentNavigationProps) {
-  const router = useRouter();
   const { 
     documents, 
     selectedDocumentId, 
@@ -746,6 +746,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [items, setItems] = useState<FileItem[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Apply search filter with fuzzy search
   const searchFilteredDocuments = searchQuery.trim() 
@@ -820,9 +821,9 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     setNewItemName("");
     setIsCreatingDocument(false);
     
-    // Update URL to reflect the newly created document
-    if (newDocId) {
-      router.push(`/documents/${newDocId}`);
+    // Update URL without page refresh using History API
+    if (newDocId && typeof window !== 'undefined') {
+      window.history.pushState({}, '', `/documents/${newDocId}`);
     }
   };
 
@@ -882,13 +883,26 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     }
   };
 
-  const handleCreateFolder = () => {
-    if (newItemName.trim()) {
-      // Create folder at root level
-      addFolder(newItemName.trim(), null);
-      setNewItemName("");
-      setIsCreatingFolder(false);
-    }
+  const handleCreateFolderInParent = (parentId: string | null) => {
+    // Create a new folder
+    const newFolderId = addFolder(
+      newItemName.trim() || `New Folder ${folders.length + 1}`,
+      parentId
+    );
+    
+    // Clear the input and hide it
+    setNewItemName("");
+    setIsCreatingFolder(false);
+    setIsExpanded((prev) => {
+      // Add the parent folder ID to the expanded set to show the new folder
+      const updated = new Set(prev);
+      if (parentId) {
+        updated.add(parentId);
+      }
+      return updated;
+    });
+    
+    // No need to update URL for folder creation
   };
 
   const confirmDelete = () => {
@@ -1232,6 +1246,14 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleFilterShortcuts = (e: KeyboardEvent) => {
+    // Check if command/ctrl key is pressed with F
+    if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    }
+  };
+
   return (
     <DocumentNavigationContext.Provider value={{ onCompareDocuments }}>
       <div className={cn("flex flex-col h-full", className)}>
@@ -1334,7 +1356,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
               placeholder={isCreatingDocument ? "Document name..." : "Folder name..."}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  isCreatingDocument ? createNewDocument() : handleCreateFolder();
+                  isCreatingDocument ? createNewDocument() : handleCreateFolderInParent(selectedFolderId);
                 }
                 if (e.key === 'Escape') {
                   setIsCreatingDocument(false);
@@ -1347,7 +1369,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
             />
             <Button
               size="sm"
-              onClick={isCreatingDocument ? createNewDocument : handleCreateFolder}
+              onClick={isCreatingDocument ? createNewDocument : handleCreateFolderInParent}
               className="h-6 text-xs px-2"
             >
               Create
@@ -1360,6 +1382,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="mb-2 h-6 text-xs"
+          ref={searchInputRef}
         />
         
         {comparisonMode && (
