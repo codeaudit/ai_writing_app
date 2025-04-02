@@ -1,0 +1,18 @@
+
+run = "npm run dev"
+hidden = [".config", "package-lock.json"]
+compile = "npm run build"
+
+[nix]
+channel = "stable-23_11"
+
+[deployment]
+run = ["sh", "-c", "npm start"]
+build = ["sh", "-c", "npm run build -- --no-lint"]
+deploymentTarget = "gce"
+
+[languages]
+[languages.typescript]
+pattern = "**/{*.ts,*.js,*.tsx,*.jsx}"
+[languages.typescript.languageServer]
+start = "typescript-language-server --stdio"
