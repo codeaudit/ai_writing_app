@@ -1260,20 +1260,20 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                                   />
                             <Button
                               variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
+                              size="icon"
+                              className="h-6 w-6 transition-all active:scale-90 active:bg-muted/50"
                               onClick={handleCancelEdit}
-                                    title="Cancel"
+                              title="Cancel"
                             >
                                     <X className="h-3 w-3" />
                             </Button>
                             <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="rounded-sm bg-primary/10 hover:bg-primary/20 h-6 w-6"
-                                    onClick={() => handleSaveEdit(message.id, editedPrompt)}
+                              variant="ghost"
+                              size="icon"
+                              className="rounded-sm bg-primary/10 hover:bg-primary/20 h-6 w-6 transition-all active:scale-90 active:bg-primary/30"
+                              onClick={() => handleSaveEdit(message.id, editedPrompt)}
                               disabled={!editedPrompt.trim()}
-                                    title="Update message"
+                              title="Update message"
                             >
                                     <Send className="h-3 w-3 text-primary" />
                             </Button>
@@ -1287,8 +1287,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                           <Button
                             variant="ghost"
                             size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() => handleEditMessage({ id: message.id, userContent: message.userContent || '' })}
+                            className="h-6 w-6 transition-all active:scale-90 active:bg-primary/20"
+                            onClick={() => handleEditMessage({ id: message.id, userContent: message.userContent || '' })}
                           >
                                     <Pencil className="h-3 w-3" />
                           </Button>
@@ -1329,8 +1329,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                             <Button
                               variant="ghost"
                               size="icon"
-                                  className="h-6 w-6"
-                                  onClick={() => handleCopyToClipboard(message.assistantContent || '', message.id)}
+                              className="h-6 w-6 transition-all active:scale-90 active:bg-primary/20"
+                              onClick={() => handleCopyToClipboard(message.assistantContent || '', message.id)}
                                 >
                                   {isCopied === message.id ? (
                                     <Check className="h-3 w-3" />
@@ -1341,8 +1341,8 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                             <Button
                               variant="ghost"
                               size="icon"
-                                  className="h-6 w-6"
-                                  onClick={() => handleInsertResponse(message.assistantContent || '')}
+                              className="h-6 w-6 transition-all active:scale-90 active:bg-primary/20"
+                              onClick={() => handleInsertResponse(message.assistantContent || '')}
                                 >
                                   <FileText className="h-3 w-3" />
                             </Button>
