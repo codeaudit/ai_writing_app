@@ -21,16 +21,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { editor as monacoEditor } from "monaco-editor";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,7 +31,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchTemplates, processTemplate } from "@/lib/api-service";
-import { isElectron, getElectronTemplates, processElectronTemplate, getElectronTemplateContent } from "@/lib/electron-service";
+
+// Define window.electron for TypeScript
+declare global {
+  interface Window {
+    electron?: {
+      saveTemplate: (template: { name: string; content: string; category: string }) => Promise<void>;
+      getTemplates: () => Promise<Array<{
+        name: string;
+        path?: string;
+        category?: string;
+        createdAt?: string;
+        updatedAt?: string;
+      }>>;
+      processTemplate?: (params: { path: string; variables: Record<string, string> }) => Promise<string>;
+      getTemplateContent?: (path: string) => Promise<string>;
+    };
+  }
+}
 
 interface LLMDialogProps {
   isOpen: boolean;
@@ -69,7 +76,61 @@ interface ModelOption {
 
 interface TemplateItem {
   name: string;
-  path: string;
+  path?: string;
+  category?: string;
+}
+
+// Simple check if we're in an Electron environment
+function isElectron(): boolean {
+  return typeof window !== 'undefined' && 
+         !!window.electron;
+}
+
+// Function to get templates in an Electron environment
+async function getElectronTemplates(): Promise<TemplateItem[]> {
+  if (!isElectron()) {
+    return [];
+  }
+  
+  try {
+    const templates = await window.electron?.getTemplates() || [];
+    return templates.map(template => ({
+      name: template.name,
+      path: template.path || template.name, // Fallback to name if path is missing
+      category: template.category
+    }));
+  } catch (error) {
+    console.error("Error getting Electron templates:", error);
+    return [];
+  }
+}
+
+// Function to process an Electron template
+async function processElectronTemplate(templatePath: string, variables: Record<string, string>): Promise<string> {
+  if (!isElectron() || !window.electron?.processTemplate) {
+    throw new Error("Template processing not available");
+  }
+  
+  try {
+    return await window.electron.processTemplate({ path: templatePath, variables }) || "";
+  } catch (error) {
+    console.error("Error processing Electron template:", error);
+    throw error;
+  }
+}
+
+// Function to get template content in an Electron environment
+async function getElectronTemplateContent(templatePath: string): Promise<string> {
+  if (!isElectron() || !window.electron?.getTemplateContent) {
+    throw new Error("Template content not available");
+  }
+  
+  try {
+    return await window.electron.getTemplateContent(templatePath) || "";
+  } catch (error) {
+    console.error("Error getting Electron template content:", error);
+    throw error;
+  }
 }
 
 export function LLMDialog({ isOpen, onClose, selectedText, position, editor, selection }: LLMDialogProps) {
@@ -400,8 +461,8 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
     
     // Get the exact end position after insertion
     const lines = insertText.split('\n');
-    let newEndLine = insertedStartLine + lines.length - 1;
-    let newEndColumn = lines.length > 1 
+    const newEndLine = insertedStartLine + lines.length - 1;
+    const newEndColumn = lines.length > 1 
       ? lines[lines.length - 1].length + 1 
       : insertedStartColumn + insertText.length;
     
@@ -608,7 +669,7 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
             if (previewContent) {
               try {
                 previewContent = await processElectronTemplate(templateId, variables);
-              } catch (error) {
+              } catch (_error) {
                 // If processing fails, just show raw content with a note
                 previewContent = `Template Preview (unprocessed):\n\n${previewContent}`;
               }
@@ -624,7 +685,7 @@ export function LLMDialog({ isOpen, onClose, selectedText, position, editor, sel
                 // Try to process the template with placeholder variables
                 try {
                   previewContent = await processTemplate(templateId, variables);
-                } catch (error) {
+                } catch (_error) {
                   // If processing fails, just show raw content with a note
                   previewContent = `Template Preview (unprocessed):\n\n${previewContent}`;
                 }

@@ -3,29 +3,14 @@
  * This provides in-memory storage that mimics the Vercel KV API
  */
 
-import { useLLMStore } from './store';
+import { isCachingEnabled } from './middleware-safe-config';
+import { isCacheKey } from './middleware-safe-cache';
 
-// In-memory storage
-const store = new Map<string, any>();
+// In-memory storage with properly typed values
+const store = new Map<string, unknown>();
 
 // Mock expiration timers
 const expirations = new Map<string, NodeJS.Timeout>();
-
-// Helper function to check if a key is cache-related
-const isCacheKey = (key: string): boolean => {
-  return key.startsWith('ai-cache:') || key.startsWith('ai-stream-cache:') || key.startsWith('ai-response:');
-};
-
-// Helper function to check if caching is enabled
-const isCachingEnabled = (): boolean => {
-  try {
-    return useLLMStore.getState().config.enableCache;
-  } catch (error) {
-    // If store is not available (e.g., during initialization), default to false
-    console.warn('[Mock KV] Could not access LLM store, defaulting cache to disabled');
-    return false;
-  }
-};
 
 // Helper function to determine if an operation should be logged
 const shouldLog = (key: string): boolean => {
@@ -60,7 +45,7 @@ export const mockKV = {
     return store.get(key) || null;
   },
   
-  set: async (key: string, value: any, options?: { ex?: number }) => {
+  set: async (key: string, value: unknown, options?: { ex?: number }) => {
     if (shouldLog(key)) {
       console.log(`[Mock KV] SET: ${key}`);
     }
@@ -97,6 +82,24 @@ export const mockKV = {
   delete: async (key: string) => {
     if (shouldLog(key)) {
       console.log(`[Mock KV] DELETE: ${key}`);
+    }
+    
+    const existed = store.has(key);
+    store.delete(key);
+    
+    // Clear any expiration
+    if (expirations.has(key)) {
+      clearTimeout(expirations.get(key)!);
+      expirations.delete(key);
+    }
+    
+    return existed ? 1 : 0;
+  },
+  
+  // Add del method as an alias to delete for Vercel KV compatibility
+  del: async (key: string) => {
+    if (shouldLog(key)) {
+      console.log(`[Mock KV] DEL: ${key}`);
     }
     
     const existed = store.has(key);

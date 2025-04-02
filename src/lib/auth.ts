@@ -1,8 +1,9 @@
-import { NextAuthOptions } from "next-auth";
+import NextAuth from "next-auth";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
+import type { NextAuthConfig } from "next-auth";
 
-export const authOptions: NextAuthOptions = {
+export const config = {
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_ID || "",
@@ -13,18 +14,38 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
   ],
-  session: {
-    strategy: "jwt",
-  },
   callbacks: {
-    async session({ session, token }) {
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+      const isOnProtected = nextUrl.pathname.startsWith('/protected');
+      if (isOnProtected) {
+        if (isLoggedIn) return true;
+        return false; // Redirect unauthenticated users to login page
+      } else if (isLoggedIn) {
+        return true;
+      }
+      return true;
+    },
+    jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.sub || "";
       }
       return session;
-    },
+    }
   },
-};
+  pages: {
+    signIn: '/',
+    error: '/',
+  },
+} satisfies NextAuthConfig;
+
+export const { handlers, auth, signIn, signOut } = NextAuth(config);
 
 // This is a placeholder TypeScript declaration to avoid type errors
 // while we implement the actual functionality
@@ -36,5 +57,9 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
     };
+  }
+
+  interface User {
+    id?: string;
   }
 } 

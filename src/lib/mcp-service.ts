@@ -56,7 +56,7 @@ export interface ChatRequest {
 }
 
 export interface ChatResponse {
-  message: ChatMessage;
+  message: ChatMessageWithTools;
   model: string;
   provider: string;
   debugPrompt?: string;
@@ -125,7 +125,8 @@ async function getFromCache(cacheKey: string, enableCache: boolean): Promise<Cha
   if (!enableCache) return null;
   
   try {
-    return await kv.get(cacheKey);
+    const cached = await kv.get(cacheKey) as ChatResponse | null;
+    return cached;
   } catch (error) {
     logger.warn('Error getting from cache:', error);
     return null;
@@ -767,15 +768,21 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
     }
     
     // Prepare the final response
+    const responseMessage: ChatMessageWithTools = {
+      role: 'assistant',
+      content: responseText,
+      id: generateId(),
+      model: modelName,
+      provider: `mcp-${provider}`
+    };
+
+    // Only add tool_calls if they exist
+    if (toolCalls && toolCalls.length > 0) {
+      responseMessage.tool_calls = toolCalls;
+    }
+
     const chatResponse: ChatResponse = {
-      message: {
-        role: 'assistant',
-        content: responseText,
-        id: generateId(),
-        model: modelName,
-        provider: `mcp-${provider}`,
-        tool_calls: toolCalls
-      } as ChatMessageWithTools,
+      message: responseMessage,
       model: modelName,
       provider: `mcp-${provider}`,
       debugPrompt: formatDebugPrompt(enhancedSystemMessage, lastMessage.content, provider, modelName)

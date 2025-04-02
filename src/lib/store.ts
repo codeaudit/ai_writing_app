@@ -24,7 +24,7 @@ import {
   DEFAULT_MAX_TOKENS
 } from './config';
 import { fuzzySearch } from './search-utils';
-import { ChatMessage } from './llm-service';
+import { ChatMessage, generateChatResponse } from './llm-service';
 import { getAvailableAIRoles } from './ai-roles';
 
 export interface DocumentVersion {
@@ -130,6 +130,9 @@ interface DocumentStore {
   updateComposition: (id: string, data: Partial<Composition>) => Promise<void>;
   deleteComposition: (id: string) => Promise<void>;
   loadCompositions: () => Promise<void>;
+  
+  // Generate a response to a user message
+  generateResponse: (content: string) => Promise<string>;
 }
 
 // Helper function to fix Date objects after rehydration
@@ -1086,6 +1089,22 @@ ${updatedComposition.content}`;
           set({ error: 'Failed to load compositions' });
         }
       },
+      
+      // Generate a response to a user message
+      generateResponse: async (content: string): Promise<string> => {
+        try {
+          // Call the LLM service to generate a response
+          const response = await generateChatResponse({
+            messages: [{ role: 'user', content }],
+            stream: false
+          });
+          
+          return response.message.content;
+        } catch (error) {
+          console.error('Error generating response:', error);
+          return 'Sorry, I could not generate a response at this time.';
+        }
+      },
     }),
     {
       name: 'document-store',
@@ -1269,13 +1288,9 @@ export interface ChatTree {
   activeThread: string[];                  // Ordered list of node IDs in the active thread
 }
 
-interface AIChatStore {
-  chatTree: {
-    nodes: Record<string, ChatMessageNode>;
-    rootId: string | null;
-    activeThread: string[];
-  };
-  setChatTree: (tree: AIChatStore['chatTree']) => void;
+export interface AIChatStore {
+  chatTree: ChatTree;
+  setChatTree: (tree: ChatTree) => void;
   addNode: (node: ChatMessageNode) => void;
   updateNode: (nodeId: string, updates: Partial<ChatMessageNode>) => void;
   deleteNode: (nodeId: string) => void;
@@ -1285,6 +1300,7 @@ interface AIChatStore {
   navigateToThread: (thread: string[]) => void;
   clearAll: () => void;
   ensureActiveThread: () => void;
+  generateResponse: (content: string) => Promise<string>;
 }
 
 // Helper function to generate a unique node ID
@@ -1612,6 +1628,22 @@ export const useAIChatStore = create<AIChatStore>()(
       // Add selectors to the store
       selectActiveMessages: () => selectActiveMessages(get()),
       selectThreadMetadata: () => selectThreadMetadata(get()),
+      
+      // Generate a response to a user message
+      generateResponse: async (content: string): Promise<string> => {
+        try {
+          // Call the LLM service to generate a response
+          const response = await generateChatResponse({
+            messages: [{ role: 'user', content }],
+            stream: false
+          });
+          
+          return response.message.content;
+        } catch (error) {
+          console.error('Error generating response:', error);
+          return 'Sorry, I could not generate a response at this time.';
+        }
+      },
     }),
     {
       name: 'ai-chat-storage'

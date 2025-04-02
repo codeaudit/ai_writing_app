@@ -1,7 +1,6 @@
 'use server'
 
 import { generateChatResponse, ChatMessage } from "@/lib/llm-service";
-import { isElectron } from "@/lib/electron-service";
 
 /**
  * Interface for template data
@@ -22,12 +21,23 @@ declare global {
       saveTemplate: (template: { name: string; content: string; category: string }) => Promise<void>;
       getTemplates: () => Promise<Array<{
         name: string;
+        path?: string;
         category?: string;
         createdAt?: string;
         updatedAt?: string;
       }>>;
+      processTemplate?: (params: { path: string; variables: Record<string, string> }) => Promise<string>;
+      getTemplateContent?: (path: string) => Promise<string>;
     };
   }
+}
+
+/**
+ * Simple check if we're in an Electron environment
+ */
+function isElectron(): boolean {
+  return typeof window !== 'undefined' && 
+         !!window.electron;
 }
 
 /**
@@ -113,7 +123,7 @@ export async function enhancePrompt(
 export async function savePromptTemplate(name: string, content: string, category: string = "General"): Promise<void> {
   try {
     // Use the appropriate method depending on environment
-    if (typeof window !== 'undefined' && isElectron()) {
+    if (isElectron()) {
       // Format the content with frontmatter to include category metadata
       const timestamp = new Date().toISOString();
       const templateContent = `---
@@ -166,7 +176,7 @@ ${content}`;
 export async function getPromptTemplates(): Promise<PromptTemplate[]> {
   try {
     // Use the appropriate method depending on environment
-    if (typeof window !== 'undefined' && isElectron()) {
+    if (isElectron()) {
       // Get templates using Electron's file system API
       const templates = await window.electron!.getTemplates();
       return templates.map(template => ({

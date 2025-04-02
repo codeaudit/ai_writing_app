@@ -436,11 +436,30 @@ export function MCPSettings() {
       
       // Configure the adapter with the selected model if needed
       if (selectedModel) {
-        // Use a more specific type assertion 
-        if (selectedProvider === 'openai' || selectedProvider === 'openrouter') {
-          (adapter as OpenAIChatAdapter).model = selectedModel;
-        } else {
-          (adapter as AnthropicChatAdapter).model = selectedModel;
+        try {
+          // Configure the model via the LLM options object
+          const options = { model: selectedModel };
+          
+          // Define an interface for the adapter with configuration methods
+          interface ConfigurableAdapter {
+            setOptions?: (options: Record<string, unknown>) => void;
+            initialize?: (options: Record<string, unknown>) => void;
+          }
+          
+          // Cast the adapter to our interface type
+          const configurableAdapter = adapter as unknown as ConfigurableAdapter;
+          
+          // Initialize/configure the adapter with the selected model
+          if (configurableAdapter.setOptions) {
+            configurableAdapter.setOptions(options);
+          } else if (configurableAdapter.initialize) {
+            configurableAdapter.initialize(options);
+          } else {
+            // If neither method is available, log a warning
+            console.warn('Could not configure adapter with model:', selectedModel);
+          }
+        } catch (error) {
+          console.error('Error configuring adapter with model:', error);
         }
       }
       

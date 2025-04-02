@@ -31,25 +31,17 @@ src/
 ├── utils/
 │   └── trpc.ts                    # tRPC client setup
 ├── lib/
-│   ├── trpc-llm-store.ts          # LLM store with tRPC
-│   ├── trpc-document-store.ts     # Document store with tRPC
-│   ├── trpc-template-store.ts     # Template store with tRPC
-│   └── trpc-config-store.ts       # Config store with tRPC
+│   ├── trpc-config-store.ts       # Config store with tRPC
+│   ├── trpc-kv-cache-store.ts     # KV Cache store with tRPC
+│   └── trpc-ai-roles-store.ts     # AI Roles store with tRPC
 ├── components/
-│   ├── trpc-llm-dialog.tsx        # LLM dialog with tRPC
-│   ├── trpc-template-tester.tsx   # Template tester with tRPC
-│   ├── trpc-markdown-editor.tsx   # Document editor with tRPC
+│   ├── trpc-provider.tsx          # tRPC provider for app
 │   └── ...                        # Other components
 └── app/
-    ├── api/
-    │   └── trpc/
-    │       └── [trpc]/
-    │           └── route.ts       # tRPC API handler
-    ├── trpc-settings/
-    │   └── page.tsx               # Settings page with tRPC
-    └── trpc-admin/
-        └── ai-roles/
-            └── page.tsx           # Admin page with tRPC
+    └── api/
+        └── trpc/
+            └── [trpc]/
+                └── route.ts       # tRPC API handler
 ```
 
 ## Implementation Details
@@ -373,7 +365,7 @@ const handleUpdate = async () => {
 Use consistent prefixes for tRPC-integrated components:
 
 - `Trpc` prefix for components using tRPC directly
-- Example: `TrpcLLMDialog`, `TrpcMarkdownEditor`
+- Example: `TrpcDocumentView`, `TrpcSettingsPanel`
 
 ### 5. Store Naming Conventions
 

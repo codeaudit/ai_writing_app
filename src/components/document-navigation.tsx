@@ -38,6 +38,7 @@ import { saveAs } from 'file-saver';
 import { Document } from "@/lib/store";
 import { CompositionComposer } from "./composition-composer";
 import { DirectoryView } from './directory-view';
+import { useRouter } from "next/navigation";
 
 // Create a context for the DocumentNavigation props
 interface DocumentNavigationContextProps {
@@ -70,6 +71,7 @@ interface FolderItemProps {
 }
 
 function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQuery, filterConfig, onFileSelect }: FolderItemProps) {
+  const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(true);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(folder.name);
@@ -710,6 +712,7 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect }: Docu
 }
 
 export function DocumentNavigation({ onCompareDocuments, onFileSelect, className }: DocumentNavigationProps) {
+  const router = useRouter();
   const { 
     documents, 
     selectedDocumentId, 
@@ -883,26 +886,18 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     }
   };
 
-  const handleCreateFolderInParent = (parentId: string | null) => {
-    // Create a new folder
-    const newFolderId = addFolder(
-      newItemName.trim() || `New Folder ${folders.length + 1}`,
-      parentId
-    );
-    
-    // Clear the input and hide it
-    setNewItemName("");
-    setIsCreatingFolder(false);
-    setIsExpanded((prev) => {
-      // Add the parent folder ID to the expanded set to show the new folder
-      const updated = new Set(prev);
-      if (parentId) {
-        updated.add(parentId);
-      }
-      return updated;
-    });
-    
-    // No need to update URL for folder creation
+  const handleCreateFolderInParent = () => {
+    if (newItemName.trim()) {
+      // Create a new folder
+      addFolder(
+        newItemName.trim() || `New Folder ${folders.length + 1}`,
+        selectedFolderId
+      );
+      
+      // Clear the input and hide it
+      setNewItemName("");
+      setIsCreatingFolder(false);
+    }
   };
 
   const confirmDelete = () => {
@@ -1356,7 +1351,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
               placeholder={isCreatingDocument ? "Document name..." : "Folder name..."}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  isCreatingDocument ? createNewDocument() : handleCreateFolderInParent(selectedFolderId);
+                  isCreatingDocument ? createNewDocument() : handleCreateFolderInParent();
                 }
                 if (e.key === 'Escape') {
                   setIsCreatingDocument(false);

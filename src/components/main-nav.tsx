@@ -3,7 +3,8 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { FileText, MessageSquare, Settings, BookText } from 'lucide-react';
+import { FileText, MessageSquare, Settings, BookText, Lock } from 'lucide-react';
+import { LoginButton } from './auth/login-button';
 
 export function MainNav() {
   const pathname = usePathname();
@@ -57,7 +58,21 @@ export function MainNav() {
               History
             </Link>
           </Button>
+          {/* Protected page link */}
+          <Button
+            variant={pathname === "/protected" ? 'default' : 'ghost'}
+            size="sm"
+            asChild
+          >
+            <Link href="/protected">
+              <Lock className="h-4 w-4 mr-2" />
+              Protected
+            </Link>
+          </Button>
         </nav>
+        <div className="ml-auto">
+          <LoginButton />
+        </div>
       </div>
     </div>
   );

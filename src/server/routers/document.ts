@@ -74,4 +74,22 @@ export const documentRouter = router({
         success: true,
       };
     }),
+    
+  createDocumentVersion: publicProcedure
+    .input(z.object({
+      documentId: z.string(),
+      content: z.string(),
+      name: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      // Implementation will create a version of a document
+      // This is a placeholder
+      return {
+        id: `version-${Date.now()}`,
+        documentId: input.documentId,
+        name: input.name || `Version ${new Date().toLocaleString()}`,
+        createdAt: new Date().toISOString(),
+        success: true,
+      };
+    }),
 }); 

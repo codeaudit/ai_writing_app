@@ -14,6 +14,13 @@ export interface Template {
   tags?: string[];
 }
 
+// Define a type that matches what the server returns
+interface TemplateResponse {
+  id: string;
+  name: string;
+  description: string;
+}
+
 // Define the store state
 interface TemplateStore {
   templates: Template[];
@@ -52,7 +59,20 @@ export const useTemplateStore = create<TemplateStore>()(
           
           if (utils) {
             // Use tRPC query to get templates
-            const templates = await utils.client.template.getTemplates.query();
+            const templateData = await utils.client.template.getTemplates.query();
+            
+            // Map the returned data to the Template interface with default values for missing fields
+            const templates: Template[] = templateData.map((template: TemplateResponse) => ({
+              id: template.id,
+              name: template.name,
+              description: template.description || '',
+              content: '', // Provide default empty content as it's not returned by the server
+              createdAt: new Date(), // Default to current date
+              updatedAt: new Date(), // Default to current date
+              category: 'General', // Default category
+              tags: [] // Default empty tags
+            }));
+            
             set({ templates, isLoading: false });
           } else {
             // Fallback using fetch for non-component context
@@ -60,10 +80,19 @@ export const useTemplateStore = create<TemplateStore>()(
             const data = await response.json();
             
             if (data.result.data) {
-              set({ 
-                templates: data.result.data,
-                isLoading: false 
-              });
+              // Map the data to the Template interface
+              const templates: Template[] = data.result.data.map((template: TemplateResponse) => ({
+                id: template.id,
+                name: template.name,
+                description: template.description || '',
+                content: '', // Default content
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                category: 'General',
+                tags: []
+              }));
+              
+              set({ templates, isLoading: false });
             }
           }
         } catch (error) {
@@ -197,13 +226,17 @@ export const useTemplateStore = create<TemplateStore>()(
             selectedTemplateId: state.selectedTemplateId === id ? null : state.selectedTemplateId
           }));
           
-          // Delete template using tRPC
+          // In a real implementation, we would call a tRPC endpoint to delete the template
+          // Since the endpoint doesn't exist yet, we'll just log a message
+          console.log(`Deleting template with ID: ${id}`);
+          
+          // Commented out code for when the deleteTemplate endpoint is implemented
+          /*
           const utils = trpc.useUtils?.() || null;
           
           if (utils) {
-            // We're using a custom mutation since we don't have a deleteTemplate in the router yet
-            // This would need to be added to the template router
-            utils.client.template.deleteTemplate.mutate({ id });
+            // Use tRPC mutation to delete template
+            await utils.client.template.deleteTemplate.mutate({ id });
             
             // Invalidate the templates query cache
             utils.template.getTemplates.invalidate();
@@ -217,6 +250,8 @@ export const useTemplateStore = create<TemplateStore>()(
               }),
             });
           }
+          */
+          
         } catch (error) {
           console.error('Error deleting template:', error);
           set({ error: 'Failed to delete template. Please try again.' });

@@ -4,8 +4,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import ConfigInitializer from "@/components/config-initializer";
-import ElectronProvider from '@/components/electron-provider';
 import { TrpcProvider } from '@/components/trpc-provider';
+import { AuthProvider } from '@/components/auth/auth-provider';
 import { siteConfig } from '@/config/site';
 import { initializeMCPServers } from '@/lib/mcp-server-manager';
 import fs from 'fs';
@@ -63,7 +63,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ElectronProvider>
+          <AuthProvider>
             <TrpcProvider>
               <div className="min-h-screen bg-grid">
                 <div className="relative">
@@ -80,7 +80,7 @@ export default function RootLayout({
                 </div>
               </div>
             </TrpcProvider>
-          </ElectronProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
