@@ -8,7 +8,7 @@ import AIComposer from "@/components/ai-composer";
 import Compositions from "@/components/compositions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { PanelLeft, PanelRight, Maximize2, Minimize2, Settings, FileText, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon, BookOpen, BookText } from "lucide-react";
+import { PanelLeft, PanelRight, Maximize2, Minimize2, Settings, FileText, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon, BookOpen, BookText, ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,8 @@ import { AboutSplash } from "@/components/about-splash";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { DirectoryView } from "@/components/directory-view";
 import HistoryDropdown from "@/components/history-dropdown";
+import { useNavigationHistory } from "@/lib/navigation-history";
+import { Tooltip } from "@/components/ui/tooltip";
 
 // Define layout constants
 const LAYOUT_STORAGE_KEY = "editor-layout-config";
@@ -62,7 +64,7 @@ export default function Home() {
     scrollToAnnotation?: (annotation: Annotation) => void;
   } | null>(null);
   const router = useRouter();
-  const { loadData: loadDocuments, selectDocument, documents } = useDocumentStore();
+  const { loadData: loadDocuments, selectDocument, documents, folders } = useDocumentStore();
   
   // Media queries for responsive layout
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -74,6 +76,21 @@ export default function Home() {
   
   // AIComposer state reference - will be preserved even when component is not visible
   const [aiComposerMounted, setAiComposerMounted] = useState(false);
+
+  // Add navigation history hook
+  const { 
+    addToHistory, 
+    canGoBack, 
+    canGoForward, 
+    goBack, 
+    goForward,
+    history,
+    currentIndex
+  } = useNavigationHistory();
+
+  // Add state for tooltip info
+  const [backTooltip, setBackTooltip] = useState<string>("");
+  const [forwardTooltip, setForwardTooltip] = useState<string>("");
 
   // Handle client-side mounting
   useEffect(() => {
@@ -368,6 +385,107 @@ export default function Home() {
     ? COLLAPSED_PANEL_SIZE 
     : layoutConfig.rightPanelSize;
 
+  // Update the file select handler to pass name to history
+  const handleFileSelect = useCallback((path: string, isDirectory: boolean) => {
+    setSelectedPath(path);
+    setIsDirectoryView(isDirectory);
+    
+    // Get name for the item
+    let itemName: string | undefined;
+    if (isDirectory) {
+      const folder = folders.find(f => f.id === path);
+      itemName = folder?.name;
+    } else {
+      const doc = documents.find(d => d.id === path);
+      itemName = doc?.name;
+    }
+    
+    // Add to navigation history with name
+    addToHistory(path, isDirectory, itemName);
+  }, [addToHistory, folders, documents]);
+
+  // Add navigation functions to properly focus elements
+  const handleNavigateBack = useCallback(() => {
+    const prevItem = goBack();
+    if (prevItem) {
+      setSelectedPath(prevItem.path);
+      setIsDirectoryView(prevItem.isDirectory);
+      
+      // If it's a document, ensure it's selected in the store and UI
+      if (!prevItem.isDirectory) {
+        selectDocument(prevItem.path);
+        
+        // Update URL without a full page refresh
+        window.history.replaceState(null, '', `/documents/${prevItem.path}`);
+      } else {
+        // If it's a directory, deselect any selected document
+        selectDocument(null);
+        
+        // Update URL without a full page refresh
+        window.history.replaceState(null, '', '/');
+      }
+    }
+  }, [goBack, selectDocument]);
+
+  const handleNavigateForward = useCallback(() => {
+    const nextItem = goForward();
+    if (nextItem) {
+      setSelectedPath(nextItem.path);
+      setIsDirectoryView(nextItem.isDirectory);
+      
+      // If it's a document, ensure it's selected in the store and UI
+      if (!nextItem.isDirectory) {
+        selectDocument(nextItem.path);
+        
+        // Update URL without a full page refresh
+        window.history.replaceState(null, '', `/documents/${nextItem.path}`);
+      } else {
+        // If it's a directory, deselect any selected document
+        selectDocument(null);
+        
+        // Update URL without a full page refresh
+        window.history.replaceState(null, '', '/');
+      }
+    }
+  }, [goForward, selectDocument]);
+
+  // Create getNameFromPath function before using it
+  // Helper to get display name from path with proper types
+  const getNameFromPath = useCallback((path: string, isDirectory: boolean) => {
+    if (isDirectory) {
+      // Find folder by id
+      const folder = folders.find((f: { id: string }) => f.id === path);
+      return folder ? folder.name : "Unknown folder";
+    } else {
+      // Find document by id
+      const document = documents.find((d: { id: string }) => d.id === path);
+      return document ? document.name : "Unknown document";
+    }
+  }, [folders, documents]);
+
+  // Update tooltips when history changes
+  useEffect(() => {
+    // Set back tooltip
+    if (currentIndex > 0 && history[currentIndex - 1]) {
+      const prevItem = history[currentIndex - 1];
+      // Use stored name if available, otherwise look it up
+      const itemName = prevItem.name || getNameFromPath(prevItem.path, prevItem.isDirectory);
+      setBackTooltip(`Back to: ${itemName}`);
+    } else {
+      setBackTooltip("Back");
+    }
+
+    // Set forward tooltip
+    if (currentIndex < history.length - 1 && history[currentIndex + 1]) {
+      const nextItem = history[currentIndex + 1];
+      // Use stored name if available, otherwise look it up
+      const itemName = nextItem.name || getNameFromPath(nextItem.path, nextItem.isDirectory);
+      setForwardTooltip(`Forward to: ${itemName}`);
+    } else {
+      setForwardTooltip("Forward");
+    }
+  }, [history, currentIndex, getNameFromPath]);
+
   return (
     <main className="flex flex-col h-screen overflow-hidden">
       {isMounted && <AboutSplash isOpen={showAboutSplash} onClose={() => setShowAboutSplash(false)} />}
@@ -397,6 +515,28 @@ export default function Home() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <Tooltip content={backTooltip}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleNavigateBack}
+              disabled={!canGoBack()}
+              title="Navigate back"
+            >
+              <ArrowLeft className={cn("h-5 w-5", !canGoBack() && "text-muted-foreground")} />
+            </Button>
+          </Tooltip>
+          <Tooltip content={forwardTooltip}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleNavigateForward}
+              disabled={!canGoForward()}
+              title="Navigate forward"
+            >
+              <ArrowRight className={cn("h-5 w-5", !canGoForward() && "text-muted-foreground")} />
+            </Button>
+          </Tooltip>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -524,10 +664,7 @@ export default function Home() {
                         <div className="p-4 h-full flex flex-col overflow-auto">
                           <DocumentNavigation
                             onCompareDocuments={handleCompareDocuments}
-                            onFileSelect={(path, isDirectory) => {
-                              setSelectedPath(path);
-                              setIsDirectoryView(isDirectory);
-                            }}
+                            onFileSelect={handleFileSelect}
                           />
                         </div>
                       </TabsContent>
@@ -559,10 +696,8 @@ export default function Home() {
               {isDirectoryView ? (
                 <DirectoryView 
                   path={selectedPath || ''} 
-                  onFileSelect={(path, isDirectory) => {
-                    setSelectedPath(path);
-                    setIsDirectoryView(isDirectory);
-                  }}
+                  onFileSelect={handleFileSelect}
+                  onCompareDocuments={handleCompareDocuments}
                 />
               ) : (
                 <MarkdownEditor ref={editorRef} />

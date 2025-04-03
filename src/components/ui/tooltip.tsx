@@ -27,11 +27,35 @@ const TooltipContent = React.forwardRef<
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-const Tooltip = ({ ...props }) => (
-  <TooltipRoot>
-    <TooltipTrigger asChild>{props.children}</TooltipTrigger>
-    <TooltipContent>{props.content}</TooltipContent>
-  </TooltipRoot>
+type TooltipProps = {
+  children: React.ReactNode
+  content: React.ReactNode
+  delayDuration?: number
+  side?: "top" | "right" | "bottom" | "left"
+  sideOffset?: number
+  align?: "start" | "center" | "end"
+}
+
+const Tooltip = ({
+  children,
+  content,
+  delayDuration = 300,
+  side = "top",
+  sideOffset = 4,
+  align = "center",
+}: TooltipProps) => (
+  <TooltipProvider>
+    <TooltipRoot delayDuration={delayDuration}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent 
+        side={side} 
+        sideOffset={sideOffset}
+        align={align}
+      >
+        {content}
+      </TooltipContent>
+    </TooltipRoot>
+  </TooltipProvider>
 )
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, TooltipRoot } 
+export { Tooltip, TooltipContent, TooltipProvider, TooltipRoot, TooltipTrigger } 
