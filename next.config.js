@@ -11,6 +11,12 @@ const nextConfig = {
   },
   // External packages that should be treated as server components
   serverExternalPackages: [],
+  reactStrictMode: true,
+  // Watch for changes to the sessions.md file
+  watchOptions: {
+    // Add vault/system/sessions.md to the list of watched files
+    ignored: ['node_modules/**', '.git/**', '.next/**', '!vault/system/sessions.md'],
+  },
 };
 
 module.exports = nextConfig; 

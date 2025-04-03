@@ -121,6 +121,7 @@ let smitheryClient: SmitheryClient | null = null;
 let openaiOpenAIAdapter: any = null;
 let openrouterOpenAIAdapter: any = null;
 let featherlessOpenAIAdapter: any = null;
+let groqClientOpenAIAdapter: any = null;
 let anthropicAdapter: any = null;
 
 // Initialize Smithery client

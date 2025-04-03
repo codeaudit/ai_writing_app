@@ -49,6 +49,11 @@ initializeMCPServers().catch(error => {
   console.error('Error initializing MCP servers at startup:', error);
 });
 
+// Initialize sessions store
+fetch('/api/initialize').catch(error => {
+  console.error('Error initializing sessions at startup:', error);
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{

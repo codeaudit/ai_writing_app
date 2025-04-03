@@ -85,6 +85,7 @@
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^2.1.7",
     "react-syntax-highlighter": "^15.6.1",
+    "react-toastify": "^11.0.5",
     "rehype-highlight": "^7.0.2",
     "rehype-katex": "^7.0.1",
     "rehype-raw": "^7.0.0",
