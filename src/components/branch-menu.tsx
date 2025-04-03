@@ -54,7 +54,7 @@ export function BranchMenu({
   
   return (
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip content="View and switch between different AI responses">
         <DropdownMenu>
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
