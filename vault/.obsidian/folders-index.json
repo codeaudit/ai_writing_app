@@ -6,6 +6,12 @@
     "parentId": null
   },
   {
+    "id": "folder-1743691244633",
+    "name": "Trash",
+    "createdAt": "2025-04-03T14:40:44.633Z",
+    "parentId": null
+  },
+  {
     "id": "folder-1742346055866-k6ddp67",
     "name": "UI_Test_Files",
     "createdAt": "2025-03-19T01:00:55.866Z",
@@ -58,6 +64,48 @@
     "name": "compositions",
     "createdAt": "2025-03-19T01:00:55.866Z",
     "parentId": null
+  },
+  {
+    "id": "folder-1743688027121",
+    "name": "designs",
+    "createdAt": "2025-04-03T13:47:07.121Z",
+    "parentId": null
+  },
+  {
+    "id": "folder-1743688083869",
+    "name": "native-ai",
+    "createdAt": "2025-04-03T13:48:03.869Z",
+    "parentId": "folder-1743688027121"
+  },
+  {
+    "id": "folder-1743688465671",
+    "name": "gemini-2.5",
+    "createdAt": "2025-04-03T13:54:25.671Z",
+    "parentId": "folder-1743688083869"
+  },
+  {
+    "id": "folder-1743689267855-h7f4wkm",
+    "name": "gemini-2.5 (Copy)",
+    "createdAt": "2025-04-03T14:07:47.855Z",
+    "parentId": "folder-1743688083869"
+  },
+  {
+    "id": "folder-1743689338571-6tczhjx",
+    "name": "grok-3",
+    "createdAt": "2025-04-03T14:08:58.571Z",
+    "parentId": "folder-1743688083869"
+  },
+  {
+    "id": "folder-1743688762510-7vubxj2",
+    "name": "o1-pro",
+    "createdAt": "2025-04-03T13:59:22.510Z",
+    "parentId": "folder-1743688083869"
+  },
+  {
+    "id": "folder-1743689433155-x6wpr22",
+    "name": "o1-pro (Copy)",
+    "createdAt": "2025-04-03T14:10:33.155Z",
+    "parentId": "folder-1743688083869"
   },
   {
     "id": "folder-1742346055866-zav1lsp",

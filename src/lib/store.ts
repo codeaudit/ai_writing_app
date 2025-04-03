@@ -26,6 +26,11 @@ import {
 import { fuzzySearch } from './search-utils';
 import { ChatMessage, generateChatResponse } from './llm-service';
 import { getAvailableAIRoles } from './ai-roles';
+import { 
+  SpecialDirectoryType, 
+  initializeSpecialDirectories,
+  SpecialDirectoryIds
+} from './special-directories';
 
 export interface DocumentVersion {
   id: string;
@@ -134,6 +139,9 @@ interface DocumentStore {
   
   // Generate a response to a user message
   generateResponse: (content: string) => Promise<string>;
+  
+  // Add special directories IDs to the store
+  specialDirectoryIds: SpecialDirectoryIds;
 }
 
 // Helper function to fix Date objects after rehydration
@@ -168,6 +176,11 @@ const generateUniqueId = (prefix: string) => {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 };
 
+// Replace helper function with more generic special directories
+export const ensureSpecialDirectoriesExist = async (folderList: Folder[], addFolder: (name: string, parentId?: string | null) => Promise<void>): Promise<SpecialDirectoryIds> => {
+  return await initializeSpecialDirectories(folderList, addFolder);
+};
+
 export const useDocumentStore = create<DocumentStore>()(
   persist(
     (set, get) => ({
@@ -182,6 +195,14 @@ export const useDocumentStore = create<DocumentStore>()(
       error: null,
       backlinks: [],
       
+      // Add special directories IDs to the store
+      specialDirectoryIds: {
+        [SpecialDirectoryType.TRASH]: null,
+        [SpecialDirectoryType.SYSTEM]: null,
+        [SpecialDirectoryType.TEMPLATES]: null,
+        [SpecialDirectoryType.COMPOSITION_TEMPLATES]: null
+      } as SpecialDirectoryIds,
+      
       setError: (error) => set({ error }),
       
       loadData: async () => {
@@ -194,10 +215,20 @@ export const useDocumentStore = create<DocumentStore>()(
             fetchFolders()
           ]);
           
+          // Initialize the addFolder function for special directories
+          const addFolderFn = async (name: string, parentId?: string | null) => {
+            // Use the actual store method that's already defined
+            await get().addFolder(name, parentId);
+          };
+          
+          // Ensure special directories exist
+          const specialDirIds = await ensureSpecialDirectoriesExist(folders || [], addFolderFn);
+          
           // Set the data from the server, or empty arrays if none exists
           set({ 
             documents: documents || [],
             folders: folders || [],
+            specialDirectoryIds: specialDirIds,
             isLoading: false 
           });
           
@@ -1228,6 +1259,19 @@ ${updatedComposition.content}`;
     {
       name: 'document-store',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        selectedDocumentId: state.selectedDocumentId,
+        selectedFolderId: state.selectedFolderId,
+        specialDirectoryIds: state.specialDirectoryIds
+      }),
+      onRehydrateStorage: () => {
+        return (state) => {
+          if (state) {
+            state.documents = fixDates(state.documents);
+            console.log('Document store hydrated');
+          }
+        };
+      }
     }
   )
 );

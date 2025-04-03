@@ -1,8 +1,7 @@
 import { useEffect, useState, createContext } from 'react';
 import { useDocumentStore } from '@/lib/store';
-import { ChevronRight, ChevronDown, LayoutGrid, List as ListIcon, Columns as ColumnsIcon, Image as GalleryIcon, MoreVertical, SortAsc, SortDesc, AlignLeft, AlignCenter, AlignRight, SlidersHorizontal, Eye, EyeOff, FolderPlus, FileText, MoreHorizontal, Pencil, History, Layers, FolderInput, Trash, FolderClosed, FolderOpen, FileOutput, Copy, File as FileIcon, Folder as FolderIcon } from 'lucide-react';
+import { ChevronRight, ChevronDown, LayoutGrid, List as ListIcon, Columns as ColumnsIcon, Image as GalleryIcon, MoreVertical, SortAsc, SortDesc, AlignLeft, AlignCenter, AlignRight, SlidersHorizontal, Eye, EyeOff, FolderPlus, FileText, MoreHorizontal, Pencil, History, Layers, FolderInput, Trash, FolderClosed, FolderOpen, FileOutput, Copy, File as FileIcon, Folder as FolderIcon, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -29,10 +28,20 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/card';
 import { format } from 'date-fns';
 import * as filesizeLib from 'filesize';
+import { Label } from "@/components/ui/label";
+import { 
+  SpecialDirectoryType, 
+  getSpecialDirectoryType, 
+  isSpecialDirectory,
+  isDirectoryProtected,
+  SPECIAL_DIRECTORIES
+} from "@/lib/special-directories";
+import { Folder as FolderType } from "@/lib/store";
 const fileSizeFormat = filesizeLib.filesize;
 
 interface FileItem {
@@ -40,9 +49,10 @@ interface FileItem {
   type: 'file' | 'directory';
   path: string;
   children?: FileItem[];
-  modified?: Date;
+  modified: Date;
   extension?: string;
   size?: number;
+  modifiedAt?: string;
   metadata?: {
     lastModified?: string;
     versions?: number;
@@ -82,26 +92,30 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
   const [showAlternatingRows, setShowAlternatingRows] = useState(true);
   const [showMetadata, setShowMetadata] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(true);
-  const router = useRouter();
+  const { toast } = useToast();
   
   // States for operations
-  const [comparisonMode, setComparisonMode] = useState(false);
   const [isCreatingDocument, setIsCreatingDocument] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newItemName, setNewItemName] = useState("");
-  const [showTokenCounterDialog, setShowTokenCounterDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [documentForVersionHistory, setDocumentForVersionHistory] = useState<string | null>(null);
+  // Add rename states
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [itemToRename, setItemToRename] = useState<FileItem | null>(null);
+  const [newName, setNewName] = useState("");
+  // Add move states
+  const [isMoving, setIsMoving] = useState(false);
+  const [itemToMove, setItemToMove] = useState<FileItem | null>(null);
+  const [targetFolder, setTargetFolder] = useState<string>("");
+  const [availableFolders, setAvailableFolders] = useState<string[]>([]);
+  
+  const [trashFolderId, setTrashFolderId] = useState<string | null>(null);
   
   const { 
     documents,
     folders,
-    selectedDocumentId,
-    comparisonDocumentIds,
-    selectedFolderId,
-    selectDocument,
-    selectFolder,
     addDocument,
     updateDocument,
     deleteDocument,
@@ -112,7 +126,10 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
     deleteFolder,
     moveDocument,
     moveFolder,
-    copyFolder
+    copyFolder,
+    renameDocument,
+    renameFolder,
+    specialDirectoryIds
   } = useDocumentStore();
 
   // Load directory contents when path, documents, or folders change
@@ -120,50 +137,100 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
     loadDirectoryContents();
   }, [path, documents, folders]);
 
-  const loadDirectoryContents = () => {
-    // Get all documents in the current folder
-    const folderDocuments = documents.filter(doc => doc.folderId === path);
+  // Use special directories info in useEffect for checking trash folder
+  useEffect(() => {
+    // Check if we have special directory IDs in the store
+    const trashId = specialDirectoryIds?.[SpecialDirectoryType.TRASH] || null;
     
-    // Get all subfolders
-    const subFolders = folders.filter(f => f.parentId === path);
-    
-    // Create document items
-    const documentItems = folderDocuments.map(doc => ({
-      name: doc.name,
-      type: 'file' as const,
-      path: doc.id,
-      modified: new Date(doc.updatedAt),
-      extension: doc.name.split('.').pop() || '',
-      size: doc.content?.length || 0,
-      metadata: {
-        lastModified: new Date(doc.updatedAt).toLocaleString(),
-        versions: doc.versions?.length || 0
-      },
-      children: undefined
-    }));
-    
-    // Create folder items
-    const folderItems = subFolders.map(folder => ({
-      name: folder.name,
-      type: 'directory' as const,
-      path: folder.id,
-      modified: new Date(folder.createdAt),
-      size: 0,
-      metadata: {
-        itemCount: documents.filter(doc => doc.folderId === folder.id).length
-      },
-      children: undefined
-    }));
-    
-    // Combine and sort items (folders first, then documents)
-    const sortedItems = [...folderItems, ...documentItems].sort((a, b) => {
-      if (a.type === b.type) {
-        return a.name.localeCompare(b.name);
+    if (trashId) {
+      console.log("Found trash folder from special directories:", trashId);
+      setTrashFolderId(trashId);
+    } else {
+      // Legacy fallback
+      console.log("Folders state updated, current folders:", folders.map(f => ({ id: f.id, name: f.name, parentId: f.parentId })));
+      console.log("Current path:", path);
+      console.log("Current trashFolderId:", trashFolderId);
+      
+      // Force check for trash folder on every folder update
+      const trashFolder = folders.find(folder => 
+        folder.name.toLowerCase() === "trash" && (folder.parentId === "/" || folder.parentId === null)
+      );
+      
+      if (trashFolder) {
+        console.log("Found trash folder:", trashFolder);
+        if (trashFolderId !== trashFolder.id) {
+          console.log("Updating trashFolderId from", trashFolderId, "to", trashFolder.id);
+          setTrashFolderId(trashFolder.id);
+        }
+      } else {
+        console.log("No trash folder found in folders list");
+        
+        // Check if we need to create a trash folder
+        if (!trashFolderId) {
+          console.log("Creating trash folder since none exists");
+          createTrashFolder();
+        }
       }
-      return a.type === 'directory' ? -1 : 1;
-    });
-    
-    setItems(sortedItems);
+    }
+  }, [folders, specialDirectoryIds]);
+
+  const loadDirectoryContents = () => {
+    try {
+      // Get all documents in the current folder
+      const folderDocuments = documents.filter(doc => doc.folderId === path);
+      
+      // Get all subfolders
+      const subFolders = folders.filter(f => f.parentId === path);
+      
+      // Create document items
+      const documentItems = folderDocuments.map(doc => ({
+        name: doc.name,
+        type: 'file' as const,
+        path: doc.id,
+        modified: new Date(doc.updatedAt),
+        extension: doc.name.split('.').pop() || '',
+        size: doc.content?.length || 0,
+        metadata: {
+          lastModified: new Date(doc.updatedAt).toLocaleString(),
+          versions: doc.versions?.length || 0
+        },
+        children: undefined
+      }));
+      
+      // Create folder items
+      const folderItems = subFolders.map(folder => ({
+        name: folder.name,
+        type: 'directory' as const,
+        path: folder.id,
+        modified: new Date(folder.createdAt),
+        size: 0,
+        metadata: {
+          itemCount: documents.filter(doc => doc.folderId === folder.id).length
+        },
+        children: undefined
+      }));
+      
+      // Combine and sort items (folders first, then documents)
+      const sortedItems = [...folderItems, ...documentItems].sort((a, b) => {
+        if (a.type === b.type) {
+          return a.name.localeCompare(b.name);
+        }
+        return a.type === 'directory' ? -1 : 1;
+      });
+      
+      console.log(`Directory contents loaded: ${sortedItems.length} items (${folderItems.length} folders, ${documentItems.length} documents)`);
+      
+      // Update state with fresh data
+      setItems(sortedItems);
+    } catch (error) {
+      console.error("Error loading directory contents:", error);
+      toast({
+        variant: "destructive",
+        title: "Error loading contents",
+        description: "Failed to load directory contents. Please try again."
+      });
+      setItems([]); // Set empty array in case of error
+    }
   };
 
   const toggleDirectory = (dirPath: string) => {
@@ -177,16 +244,12 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
     setSelectedPath(dirPath);
   };
 
-  const handleItemClick = (item: FileItem) => {
-    if (item.type === 'directory') {
-      toggleDirectory(item.path);
-      onFileSelect(item.path, true);
-    } else {
-      // For documents, update both the store and URL
-      selectDocument(item.path);
-      router.push(`/documents/${item.path}`);
-      onFileSelect(item.path, false);
+  const handleItemClick = (itemPath: string, isDirectory: boolean) => {
+    setSelectedPath(itemPath);
+    if (isDirectory) {
+      toggleDirectory(itemPath);
     }
+    onFileSelect(itemPath, isDirectory);
   };
 
   const sortItems = (items: FileItem[]) => {
@@ -214,12 +277,76 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const sortedItems = sortItems(filteredItems);
+  const sortedFilteredItems = sortItems(filteredItems);
 
+  // Add function to get appropriate icon for a folder
+  const getFolderIcon = (item: FileItem) => {
+    // Check if this is a directory first
+    if (item.type !== 'directory') {
+      return <FileIcon className="h-5 w-5 text-blue-500" />;
+    }
+    
+    // Find the corresponding folder
+    const folder = folders.find(f => f.id === item.path);
+    
+    if (!folder) {
+      return <FolderIcon className="h-5 w-5 text-yellow-500" />;
+    }
+    
+    // Cast the folder to include a createdAt date if not present (just for type compatibility)
+    const folderWithDate: FolderType = folder.createdAt 
+      ? folder as FolderType 
+      : { ...folder, createdAt: new Date() } as FolderType;
+    
+    // Check if it's a special directory
+    const specialDirType = getSpecialDirectoryType(folderWithDate);
+    
+    if (specialDirType) {
+      const iconName = SPECIAL_DIRECTORIES[specialDirType].icon;
+      
+      // Return appropriate icon
+      switch (iconName) {
+        case 'trash':
+          return <Trash className="h-5 w-5 text-red-500" />;
+        case 'settings':
+          return <Settings className="h-5 w-5 text-blue-500" />;
+        case 'file-text':
+          return <FileIcon className="h-5 w-5 text-amber-500" />;
+        case 'layers':
+          return <Layers className="h-5 w-5 text-violet-500" />;
+        default:
+          return <FolderIcon className="h-5 w-5 text-yellow-500" />;
+      }
+    }
+    
+    // Default folder icon
+    return <FolderIcon className="h-5 w-5 text-yellow-500" />;
+  };
+
+  // Update renderItem function to use special directory icons
   const renderItem = (item: FileItem, level: number = 0) => {
     const isDirectory = item.type === 'directory';
     const isExpanded = expandedDirs.has(item.path);
     const isSelected = selectedPath === item.path;
+
+    // Check if this is a special directory
+    let isSpecialDir = false;
+    let isProtectedDir = false;
+    
+    if (isDirectory) {
+      // Find the corresponding folder
+      const folder = folders.find(f => f.id === item.path);
+      
+      if (folder) {
+        // Cast the folder to include a createdAt date if not present
+        const folderWithDate: FolderType = folder.createdAt 
+          ? folder as FolderType 
+          : { ...folder, createdAt: new Date() } as FolderType;
+        
+        isSpecialDir = isSpecialDirectory(folderWithDate);
+        isProtectedDir = isDirectoryProtected(folderWithDate);
+      }
+    }
 
     return (
       <div key={item.path}>
@@ -228,15 +355,16 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
             "flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer",
             isSelected && "bg-accent",
             showAlternatingRows && "even:bg-accent/20",
+            isSpecialDir && "font-medium", // Highlight special directories
             className
           )}
           style={{ paddingLeft: `${level * 12 + 8}px` }}
-          onClick={() => handleItemClick(item)}
+          onClick={() => handleItemClick(item.path, item.type === 'directory')}
         >
           {isDirectory ? (
             <>
               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              <FolderIcon className="h-5 w-5 text-yellow-500" />
+              {getFolderIcon(item)}
             </>
           ) : (
             <FileIcon className="h-5 w-5 text-blue-500" />
@@ -270,13 +398,174 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
     onFileSelect(itemPath, isDirectory);
   };
 
-  // Add FileDropdownMenu component
+  // Fix getAllFolders function to use in-memory data instead of API calls
+  const getAllFolders = (): string[] => {
+    try {
+      // Return folder IDs directly from the store's folders data
+      return folders.map(folder => folder.id);
+    } catch (error) {
+      console.error('Error getting folders:', error);
+      return [];
+    }
+  };
+
+  // Add a dedicated function to create trash folder
+  const createTrashFolder = async () => {
+    try {
+      console.log("Creating trash folder...");
+      await addFolder("Trash", null);
+      console.log("Trash folder creation initiated");
+    } catch (error) {
+      console.error("Error creating trash folder:", error);
+    }
+  };
+
+  // Update move to trash function
+  const moveToTrash = async (item: FileItem) => {
+    if (!trashFolderId) {
+      toast({
+        variant: "destructive",
+        title: "Trash unavailable",
+        description: "Trash folder not found. Please refresh the page."
+      });
+      return;
+    }
+    
+    try {
+      // Get the document or folder object to check if it's already in trash
+      let isInTrash = false;
+      
+      if (item.type === 'file') {
+        const doc = documents.find(d => d.id === item.path);
+        isInTrash = doc?.folderId === trashFolderId;
+        
+        if (isInTrash) {
+          // If already in trash, delete permanently
+          await deleteDocument(item.path);
+          toast({
+            title: "Document deleted",
+            description: "The document has been permanently deleted."
+          });
+        } else {
+          // Otherwise move to trash
+          await moveDocument(item.path, trashFolderId);
+          toast({
+            title: "Item moved to trash",
+            description: `${item.name} has been moved to trash.`
+          });
+        }
+      } else {
+        const folder = folders.find(f => f.id === item.path);
+        isInTrash = folder?.parentId === trashFolderId;
+        
+        if (isInTrash) {
+          // If already in trash, delete permanently
+          await deleteFolder(item.path);
+          toast({
+            title: "Folder deleted",
+            description: "The folder has been permanently deleted."
+          });
+        } else {
+          // Otherwise move to trash
+          await moveFolder(item.path, trashFolderId);
+          toast({
+            title: "Item moved to trash",
+            description: `${item.name} has been moved to trash.`
+          });
+        }
+      }
+      
+      // Force refresh the directory listing
+      setItems([]);
+      setTimeout(() => {
+        loadDirectoryContents();
+      }, 200);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to process item",
+        description: error instanceof Error ? error.message : "An unknown error occurred"
+      });
+    }
+  };
+
+  // Add function to empty trash
+  const emptyTrash = async () => {
+    if (!trashFolderId) return;
+    
+    const confirmEmpty = window.confirm("Are you sure you want to permanently delete all items in the trash? This action cannot be undone.");
+    if (!confirmEmpty) return;
+    
+    try {
+      // Get all documents in trash
+      const trashDocuments = documents.filter(doc => doc.folderId === trashFolderId);
+      
+      // Get all folders in trash (direct children only)
+      const trashFolders = folders.filter(folder => folder.parentId === trashFolderId);
+      
+      // Delete all documents in trash
+      for (const doc of trashDocuments) {
+        await deleteDocument(doc.id);
+      }
+      
+      // Delete all folders in trash
+      for (const folder of trashFolders) {
+        await deleteFolder(folder.id);
+      }
+      
+      toast({
+        title: "Trash emptied",
+        description: "All items in trash have been permanently deleted."
+      });
+      
+      // Refresh the directory view
+      setItems([]);
+      setTimeout(() => {
+        loadDirectoryContents();
+      }, 200);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to empty trash",
+        description: error instanceof Error ? error.message : "An unknown error occurred"
+      });
+    }
+  };
+
+  // Update FileDropdownMenu to check if document is in a protected directory
   function FileDropdownMenu({ item }: { item: FileItem }) {
     const documentId = item.type === 'file' ? item.path : null;
-    const { toast } = useToast();
+    // Check if the file is in the trash folder
+    const isInTrash = documentId ? documents.find(d => d.id === documentId)?.folderId === trashFolderId : false;
+    
+    // Check if the document is in a protected directory
+    const isInProtectedDirectory = () => {
+      if (!documentId) return false;
+      
+      // Get the document and its folder
+      const doc = documents.find(d => d.id === documentId);
+      if (!doc || !doc.folderId) return false;
+      
+      // Find the folder
+      const folder = folders.find(f => f.id === doc.folderId);
+      if (!folder) return false;
+      
+      // Create a folder with date for type checking
+      const folderWithDate: FolderType = folder.createdAt 
+        ? folder as FolderType 
+        : { ...folder, createdAt: new Date() } as FolderType;
+      
+      // Check if folder is protected
+      return isDirectoryProtected(folderWithDate);
+    };
+    
+    const isProtected = isInProtectedDirectory();
     
     const handleRename = () => {
-      // Implement renaming logic
+      // Set the item to rename and its current name
+      setItemToRename(item);
+      setNewName(item.name);
+      setIsRenaming(true);
     };
     
     const handleViewVersionHistory = () => {
@@ -293,28 +582,38 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
     };
     
     const handleMove = () => {
-      // Implement move logic
+      // Set the item to move
+      setItemToMove(item);
+      
+      // Get available folders for moving
+      try {
+        const folderList = getAllFolders();
+        setAvailableFolders(folderList);
+        setTargetFolder(path || ''); // Default to current folder
+        setIsMoving(true);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Failed to get folders",
+          description: error instanceof Error ? error.message : "An unknown error occurred"
+        });
+      }
     };
     
-    const handleDelete = async () => {
+    const handleMoveToTrash = async () => {
       if (!documentId) return;
       
-      const confirmDelete = window.confirm("Are you sure you want to delete this document?");
-      if (confirmDelete) {
-        try {
-          await deleteDocument(documentId);
-          toast({
-            title: "Document deleted",
-            description: "The document has been deleted successfully."
-          });
-        } catch (error) {
-          toast({
-            variant: "destructive",
-            title: "Failed to delete document",
-            description: error instanceof Error ? error.message : "An unknown error occurred"
-          });
-        }
+      // Prevent trashing documents in protected directories
+      if (isProtected) {
+        toast({
+          variant: "destructive",
+          title: "Cannot move to trash",
+          description: "This document is in a protected system directory and cannot be moved to trash."
+        });
+        return;
       }
+      
+      await moveToTrash(item);
     };
 
     return (
@@ -342,22 +641,60 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
             <FolderInput className="mr-2 h-4 w-4" />
             <span>Move</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleDelete}>
+          <DropdownMenuItem 
+            onClick={handleMoveToTrash}
+            className={isProtected ? "text-muted-foreground" : "text-destructive"}
+            disabled={isProtected}
+          >
             <Trash className="mr-2 h-4 w-4" />
-            <span>Delete</span>
+            <span>{isInTrash ? "Delete Permanently" : "Move to Trash"}</span>
+            {isProtected && <span className="text-xs ml-2">(Protected)</span>}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     );
   }
 
-  // Add FolderDropdownMenu component
+  // Update FolderDropdownMenu to check if folder is protected
   function FolderDropdownMenu({ item }: { item: FileItem }) {
     const folderId = item.type === 'directory' ? item.path : null;
-    const { toast } = useToast();
+    
+    // Get the actual folder object
+    const folder = folderId ? folders.find(f => f.id === folderId) : null;
+    
+    // Check if this is a special directory
+    let isSpecialDir = false;
+    let isProtectedDir = false;
+    
+    if (folder) {
+      // Cast the folder to include a createdAt date if not present
+      const folderWithDate: FolderType = folder.createdAt 
+        ? folder as FolderType 
+        : { ...folder, createdAt: new Date() } as FolderType;
+      
+      isSpecialDir = isSpecialDirectory(folderWithDate);
+      isProtectedDir = isDirectoryProtected(folderWithDate);
+    }
+    
+    // Check if the folder is the trash folder itself
+    const isTrashFolder = folderId === trashFolderId;
+    // Check if the folder is in the trash folder
+    const isInTrash = folderId ? folders.find(f => f.id === folderId)?.parentId === trashFolderId : false;
     
     const handleRename = () => {
-      // Implement renaming logic
+      if (isProtectedDir && !isTrashFolder) {
+        toast({
+          variant: "destructive",
+          title: "Cannot rename protected directory",
+          description: "This is a system directory and cannot be renamed."
+        });
+        return;
+      }
+      
+      // Continue with existing rename code
+      setItemToRename(item);
+      setNewName(item.name);
+      setIsRenaming(true);
     };
     
     const handleNewDocument = () => {
@@ -381,7 +718,7 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
     };
     
     const handleCopyDirectory = async () => {
-      if (!folderId) return;
+      if (!folderId || isTrashFolder) return;
       
       try {
         await copyFolder(folderId);
@@ -389,6 +726,15 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
           title: "Directory copied",
           description: "The directory has been copied successfully."
         });
+        
+        // Force refresh of the component state
+        setItems([]); // Clear the items first
+        
+        // Add a delay to ensure store changes are complete
+        setTimeout(() => {
+          loadDirectoryContents(); // Then reload
+        }, 200);
+        
       } catch (error) {
         toast({
           variant: "destructive",
@@ -398,25 +744,58 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
       }
     };
     
-    const handleDelete = async () => {
+    const handleMove = () => {
+      if (isTrashFolder) {
+        toast({
+          variant: "destructive",
+          title: "Cannot move Trash",
+          description: "The Trash folder cannot be moved."
+        });
+        return;
+      }
+      
+      // Set the item to move
+      setItemToMove(item);
+      
+      // Get available folders for moving
+      try {
+        const folderList = getAllFolders();
+        // Filter out current folder and its subfolders to prevent circular references
+        const filteredFolders = folderList.filter((folder: string) => 
+          !folder.startsWith(item.path) && folder !== item.path
+        );
+        setAvailableFolders(filteredFolders);
+        setTargetFolder(path || ''); // Default to current folder
+        setIsMoving(true);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Failed to get folders",
+          description: error instanceof Error ? error.message : "An unknown error occurred"
+        });
+      }
+    };
+    
+    const handleEmptyTrash = async () => {
+      if (isTrashFolder) {
+        await emptyTrash();
+      }
+    };
+    
+    const handleMoveToTrash = async () => {
       if (!folderId) return;
       
-      const confirmDelete = window.confirm("Are you sure you want to delete this folder and all its contents?");
-      if (confirmDelete) {
-        try {
-          await deleteFolder(folderId);
-          toast({
-            title: "Folder deleted",
-            description: "The folder has been deleted successfully."
-          });
-        } catch (error) {
-          toast({
-            variant: "destructive",
-            title: "Failed to delete folder",
-            description: error instanceof Error ? error.message : "An unknown error occurred"
-          });
-        }
+      // Check if folder is protected
+      if (isProtectedDir) {
+        toast({
+          variant: "destructive",
+          title: "Cannot delete protected directory",
+          description: "This is a system directory and cannot be deleted."
+        });
+        return;
       }
+      
+      await moveToTrash(item);
     };
 
     return (
@@ -428,34 +807,138 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handleRename}>
-            <Pencil className="mr-2 h-4 w-4" />
-            <span>Rename</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleNewDocument}>
-            <FileText className="mr-2 h-4 w-4" />
-            <span>New Document</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleNewFromTemplate}>
-            <FileOutput className="mr-2 h-4 w-4" />
-            <span>New from Template</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleNewFolder}>
-            <FolderPlus className="mr-2 h-4 w-4" />
-            <span>New Folder</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleCopyDirectory}>
-            <Copy className="mr-2 h-4 w-4" />
-            <span>Copy Directory</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleDelete}>
-            <Trash className="mr-2 h-4 w-4" />
-            <span>Delete</span>
-          </DropdownMenuItem>
+          {!isTrashFolder && (
+            <>
+              <DropdownMenuItem onClick={handleRename}>
+                <Pencil className="mr-2 h-4 w-4" />
+                <span>Rename</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleNewDocument}>
+                <FileText className="mr-2 h-4 w-4" />
+                <span>New Document</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleNewFromTemplate}>
+                <FileOutput className="mr-2 h-4 w-4" />
+                <span>New from Template</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleNewFolder}>
+                <FolderPlus className="mr-2 h-4 w-4" />
+                <span>New Folder</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleCopyDirectory}>
+                <Copy className="mr-2 h-4 w-4" />
+                <span>Copy Directory</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleMove}>
+                <FolderInput className="mr-2 h-4 w-4" />
+                <span>Move</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleMoveToTrash}>
+                <Trash className="mr-2 h-4 w-4" />
+                <span>{isInTrash ? "Delete Permanently" : "Move to Trash"}</span>
+              </DropdownMenuItem>
+            </>
+          )}
+          
+          {isTrashFolder && (
+            <DropdownMenuItem onClick={handleEmptyTrash}>
+              <Trash className="mr-2 h-4 w-4" />
+              <span>Empty Trash</span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     );
   }
+
+  // Fix submitRename to ensure UI updates correctly
+  const submitRename = async () => {
+    if (!itemToRename || !newName.trim() || newName === itemToRename.name) {
+      // Cancel if no item or no change
+      setIsRenaming(false);
+      setItemToRename(null);
+      return;
+    }
+
+    try {
+      if (itemToRename.type === 'file') {
+        await renameDocument(itemToRename.path, newName.trim());
+        toast({
+          title: "Document renamed",
+          description: `Successfully renamed document to "${newName.trim()}"`
+        });
+      } else {
+        await renameFolder(itemToRename.path, newName.trim());
+        toast({
+          title: "Folder renamed",
+          description: `Successfully renamed folder to "${newName.trim()}"`
+        });
+      }
+      
+      // Reset state
+      setIsRenaming(false);
+      setItemToRename(null);
+      setNewName("");
+      
+      // Force refresh of the component state by clearing and re-loading items
+      setItems([]); // Clear the items first
+      
+      // Add a delay to ensure store changes are complete
+      setTimeout(() => {
+        loadDirectoryContents(); // Then reload
+      }, 200);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to rename",
+        description: error instanceof Error ? error.message : "An unknown error occurred"
+      });
+    }
+  };
+
+  // Fix submitMove to ensure UI updates correctly and handle folder data properly
+  const submitMove = async () => {
+    if (!itemToMove || !targetFolder) {
+      setIsMoving(false);
+      setItemToMove(null);
+      return;
+    }
+
+    try {
+      if (itemToMove.type === 'file') {
+        await moveDocument(itemToMove.path, targetFolder);
+        toast({
+          title: "Document moved",
+          description: `Successfully moved document to destination folder`
+        });
+      } else {
+        await moveFolder(itemToMove.path, targetFolder);
+        toast({
+          title: "Folder moved",
+          description: `Successfully moved folder to destination folder`
+        });
+      }
+      
+      // Reset state
+      setIsMoving(false);
+      setItemToMove(null);
+      setTargetFolder("");
+      
+      // Force refresh of the component state by clearing and re-loading items
+      setItems([]); // Clear the items first
+      
+      // Add a delay to ensure store changes are complete
+      setTimeout(() => {
+        loadDirectoryContents(); // Then reload
+      }, 200);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to move",
+        description: error instanceof Error ? error.message : "An unknown error occurred"
+      });
+    }
+  };
 
   const renderListView = () => {
     return (
@@ -509,61 +992,74 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
   };
 
   const renderGridView = () => {
+    // Apply the same filtering as in the list view
+    const filteredItems = items
+      .filter(item => 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .sort((a, b) => {
+        // Apply the same sorting as in sortItems function
+        if (a.type === 'directory' && b.type === 'file') return -1;
+        if (a.type === 'file' && b.type === 'directory') return 1;
+        
+        switch (sortOption) {
+          case 'name':
+            return sortDirection === 'asc' 
+              ? a.name.localeCompare(b.name)
+              : b.name.localeCompare(a.name);
+          case 'date':
+            const dateA = a.modified ? a.modified.getTime() : 0;
+            const dateB = b.modified ? b.modified.getTime() : 0;
+            return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+          case 'size':
+            const sizeA = a.size || 0;
+            const sizeB = b.size || 0;
+            return sortDirection === 'asc' ? sizeA - sizeB : sizeB - sizeA;
+          default:
+            return 0;
+        }
+      });
+    
     return (
-      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 py-4">
-        {filteredItems.map((item) => {
-          const isSelected = selectedPath === item.path;
-          
-          return (
-            <Card
-              key={item.path}
-              className={cn(
-                "p-2 flex flex-col items-center cursor-pointer group relative",
-                isSelected && "bg-accent"
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 p-4 pb-20">
+        {filteredItems.map((item: FileItem) => (
+          <Card
+            key={item.path}
+            className={cn(
+              "flex flex-col items-center justify-center p-4 cursor-pointer h-[200px] relative",
+              selectedPath === item.path && "border-primary"
+            )}
+            onClick={() => handleItemClick(item.path, item.type === 'directory')}
+          >
+            <div className="absolute top-2 right-2 z-10">
+              {item.type === 'file' ? (
+                <FileDropdownMenu item={item} />
+              ) : (
+                <FolderDropdownMenu item={item} />
               )}
-            >
-              <div 
-                className="w-full flex flex-col items-center" 
-                onClick={() => handleSelectPath(item.path, item.type === 'directory')}
-              >
-                <div style={{ width: iconSize, height: iconSize }} className="flex items-center justify-center mb-2">
-                  {item.type === 'directory' ? (
-                    <FolderClosed className="w-full h-full text-yellow-500" />
-                  ) : (
-                    <FileText className="w-full h-full text-blue-500" />
-                  )}
+            </div>
+            
+            {item.type === 'directory' ? (
+              <FolderIcon className={cn("h-12 w-12 mb-2", selectedPath === item.path && "text-primary")} />
+            ) : (
+              <FileText className={cn("h-12 w-12 mb-2", selectedPath === item.path && "text-primary")} />
+            )}
+            
+            <div className="text-center mt-2">
+              <div className="font-medium truncate max-w-[150px]">{item.name}</div>
+              {showMetadata && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  {item.modified && format(item.modified, 'MMM d, yyyy')}
                 </div>
-                <div className={cn(
-                  "text-sm font-medium truncate max-w-full",
-                  labelAlignment === 'left' && "self-start",
-                  labelAlignment === 'right' && "self-end",
-                  labelAlignment === 'center' && "text-center"
-                )}>
-                  {item.name}
+              )}
+              {showMetadata && item.type === 'file' && item.size && (
+                <div className="text-xs text-muted-foreground">
+                  {fileSizeFormat(item.size)}
                 </div>
-                {showMetadata && (
-                  <div className={cn(
-                    "text-xs text-muted-foreground mt-1",
-                    labelAlignment === 'left' && "self-start",
-                    labelAlignment === 'right' && "self-end",
-                    labelAlignment === 'center' && "text-center"
-                  )}>
-                    {item.type === 'file' ? fileSizeFormat(item.size || 0) : 'Folder'}
-                  </div>
-                )}
-              </div>
-              
-              {/* Add dropdown menus */}
-              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {item.type === 'directory' ? (
-                  <FolderDropdownMenu item={item} />
-                ) : (
-                  <FileDropdownMenu item={item} />
-                )}
-              </div>
-            </Card>
-          );
-        })}
+              )}
+            </div>
+          </Card>
+        ))}
       </div>
     );
   };
@@ -709,6 +1205,73 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
           open={showTemplateDialog} 
           onOpenChange={setShowTemplateDialog}
         />
+      )}
+      
+      {/* Add rename dialog */}
+      {isRenaming && itemToRename && (
+        <Dialog open={isRenaming} onOpenChange={setIsRenaming}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Rename {itemToRename.type === 'file' ? 'Document' : 'Folder'}</DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center space-y-2">
+              <Input
+                id="name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') submitRename();
+                  if (e.key === 'Escape') setIsRenaming(false);
+                }}
+                className="flex-1"
+                autoFocus
+              />
+            </div>
+            <DialogFooter className="sm:justify-start">
+              <Button type="button" variant="secondary" onClick={() => setIsRenaming(false)}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={submitRename}>
+                Rename
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Move dialog */}
+      {isMoving && itemToMove && (
+        <Dialog open={isMoving} onOpenChange={setIsMoving}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Move {itemToMove.type === 'file' ? 'Document' : 'Folder'}</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col space-y-4">
+              <Label htmlFor="target-folder">Select destination folder:</Label>
+              <Select value={targetFolder} onValueChange={setTargetFolder}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a folder" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="/">Root</SelectItem>
+                  {availableFolders.map((folder) => (
+                    <SelectItem key={folder} value={folder}>
+                      {folder === "" ? "Root" : folder}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter className="sm:justify-start">
+              <Button type="button" variant="secondary" onClick={() => setIsMoving(false)}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={submitMove}>
+                Move
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </DirectoryViewContext.Provider>
   );

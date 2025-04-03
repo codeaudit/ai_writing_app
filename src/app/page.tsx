@@ -179,7 +179,29 @@ export default function Home() {
 
   // Load data from server when the app starts
   useEffect(() => {
-    loadDocuments();
+    const initializeApp = async () => {
+      await loadDocuments();
+      
+      // Check if the trash folder exists, and create it if it doesn't
+      const folders = useDocumentStore.getState().folders;
+      const existingTrashFolder = folders.find(folder => 
+        folder.name === "Trash" && (folder.parentId === "/" || folder.parentId === null)
+      );
+      
+      if (!existingTrashFolder) {
+        console.log("Creating trash folder on app startup...");
+        try {
+          await useDocumentStore.getState().addFolder("Trash", null);
+          console.log("Trash folder created successfully on startup");
+        } catch (error) {
+          console.error("Failed to create trash folder on startup:", error);
+        }
+      } else {
+        console.log("Trash folder already exists, skipping creation");
+      }
+    };
+    
+    initializeApp();
   }, [loadDocuments]);
 
   // Check if user has visited before - only run on client side

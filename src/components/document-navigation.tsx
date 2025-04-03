@@ -3,8 +3,38 @@
 import { useState, useRef, useCallback, useContext, useEffect, createContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { File, Folder, GitCompare, Plus, FolderPlus, ChevronRight, ChevronDown, MoreVertical, Move, Upload, Download, FileText, Shield, RefreshCw, Filter } from "lucide-react";
-import { useDocumentStore } from "@/lib/store";
+import { 
+  File, 
+  Folder, 
+  GitCompare, 
+  Plus, 
+  FolderPlus, 
+  ChevronRight, 
+  ChevronDown, 
+  MoreVertical, 
+  Move, 
+  Upload, 
+  Download, 
+  FileText, 
+  Shield, 
+  RefreshCw, 
+  Filter,
+  Settings,
+  Layers,
+  Trash as TrashIcon
+} from "lucide-react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { useDocumentStore, Folder as FolderType } from "@/lib/store";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { VersionHistory } from "./version-history";
@@ -15,16 +45,6 @@ import { FilterDialog, FilterConfig } from "./filter-dialog";
 import { filterDocuments, shouldShowFolder, matchesPatterns } from "@/lib/filter-utils";
 import { loadFilterFromServer } from "@/lib/api-service";
 import { fuzzySearch } from "@/lib/search-utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +59,13 @@ import { Document } from "@/lib/store";
 import { CompositionComposer } from "./composition-composer";
 import { DirectoryView } from './directory-view';
 import { useRouter } from "next/navigation";
+import { 
+  SpecialDirectoryType, 
+  getSpecialDirectoryType, 
+  isSpecialDirectory,
+  isDirectoryProtected,
+  SPECIAL_DIRECTORIES
+} from "@/lib/special-directories";
 
 // Create a context for the DocumentNavigation props
 interface DocumentNavigationContextProps {
@@ -68,9 +95,42 @@ interface FolderItemProps {
   searchQuery: string;
   filterConfig: FilterConfig;
   onFileSelect: (path: string, isDirectory: boolean) => void;
+  trashFolderId: string | null;
+  handleDocumentDelete: (documentId: string) => void;
 }
 
-function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQuery, filterConfig, onFileSelect }: FolderItemProps) {
+// Helper function to get the appropriate folder icon component
+function getFolderIcon(folder: { id: string; name: string; parentId: string | null }) {
+  // Cast the folder object to include createdAt for compatibility with Folder type
+  const folderWithDate = {
+    ...folder,
+    createdAt: new Date() // Add a placeholder date since it's only used for type checking
+  } as FolderType;
+  
+  const specialDirType = getSpecialDirectoryType(folderWithDate);
+  
+  if (specialDirType) {
+    const iconName = SPECIAL_DIRECTORIES[specialDirType].icon;
+    // Return the appropriate icon based on the special directory type
+    switch (iconName) {
+      case 'trash':
+        return <TrashIcon className="h-3 w-3 text-red-500" />;
+      case 'settings':
+        return <Settings className="h-3 w-3 text-blue-500" />;
+      case 'file-text':
+        return <FileText className="h-3 w-3 text-amber-500" />;
+      case 'layers':
+        return <Layers className="h-3 w-3 text-violet-500" />;
+      default:
+        return <Folder className="h-3 w-3 text-muted-foreground" />;
+    }
+  }
+  
+  // Default folder icon
+  return <Folder className="h-3 w-3 text-muted-foreground" />;
+}
+
+function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQuery, filterConfig, onFileSelect, trashFolderId, handleDocumentDelete }: FolderItemProps) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(true);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -98,6 +158,7 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
     moveFolder,
     toggleComparisonFolder,
     copyFolder,
+    specialDirectoryIds
   } = useDocumentStore();
 
   const childFolders = folders.filter(f => f.parentId === folder.id);
@@ -150,6 +211,16 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
     
     return false;
   });
+
+  // Cast the folder to FolderType for isSpecialDirectory function
+  const folderWithDate = {
+    ...folder,
+    createdAt: new Date() // Add a placeholder date for type compatibility
+  } as FolderType;
+
+  // Check if this is a special directory
+  const isSpecial = isSpecialDirectory(folderWithDate);
+  const isProtected = isDirectoryProtected(folderWithDate);
 
   const handleRename = () => {
     if (newName.trim() && newName !== folder.name) {
@@ -227,7 +298,8 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
       <div 
         className={cn(
           "flex items-center gap-0.5 py-0.5 px-1 rounded-sm hover:bg-muted/50 group",
-          selectedFolderId === folder.id && "bg-muted/70"
+          selectedFolderId === folder.id && "bg-muted/70",
+          isSpecial && "font-medium" // Special directories have slightly bolder text
         )}
         style={{ paddingLeft: `${level * 8 + 2}px` }}
       >
@@ -254,7 +326,7 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
           )}
         </button>
         
-        <Folder className="h-3 w-3 text-muted-foreground ml-0.5" />
+        {getFolderIcon(folder)}
         
         {isRenaming ? (
           <Input
@@ -294,9 +366,12 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="text-xs">
-            <DropdownMenuItem onClick={() => setIsRenaming(true)}>
-              Rename
-            </DropdownMenuItem>
+            {/* Only allow renaming if not a special directory or if it's trash */}
+            {(!isSpecial || folder.id === trashFolderId) && (
+              <DropdownMenuItem onClick={() => setIsRenaming(true)}>
+                Rename
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => setIsCreatingDocument(true)}>
               New Document
             </DropdownMenuItem>
@@ -336,16 +411,44 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
               Copy Directory
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={() => {
-                if (confirm(`Are you sure you want to delete the folder "${folder.name}" and all its contents?`)) {
-                  deleteFolder(folder.id);
-                }
-              }}
-            >
-              Delete
-            </DropdownMenuItem>
+            {/* Only show delete option if not protected or if it's trash (which can be emptied) */}
+            {(!isProtected || folder.id === trashFolderId) && (
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => {
+                  if (folder.id === trashFolderId) {
+                    // For trash folder, empty it
+                    if (confirm("Are you sure you want to empty the trash? All items will be permanently deleted.")) {
+                      const trashDocuments = documents.filter(doc => doc.folderId === trashFolderId);
+                      const trashFolders = folders.filter(f => f.parentId === trashFolderId);
+                      
+                      // Delete all documents in trash using the store's deleteDocument function
+                      trashDocuments.forEach(doc => {
+                        // Need to use parent scope deleteDocument from useDocumentStore
+                        useDocumentStore.getState().deleteDocument(doc.id);
+                      });
+                      
+                      // Delete all folders in trash
+                      trashFolders.forEach(folder => {
+                        deleteFolder(folder.id);
+                      });
+                      
+                      toast({
+                        title: "Trash emptied",
+                        description: "All items in trash have been permanently deleted."
+                      });
+                    }
+                  } else {
+                    // For regular folders
+                    if (confirm(`Are you sure you want to delete the folder "${folder.name}" and all its contents?`)) {
+                      deleteFolder(folder.id);
+                    }
+                  }
+                }}
+              >
+                {folder.id === trashFolderId ? "Empty Trash" : "Delete"}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -414,6 +517,8 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
               searchQuery={searchQuery}
               filterConfig={filterConfig}
               onFileSelect={onFileSelect}
+              trashFolderId={trashFolderId}
+              handleDocumentDelete={handleDocumentDelete}
             />
           ))}
           
@@ -424,6 +529,8 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
               level={level + 1}
               filteredDocuments={filteredDocuments}
               onFileSelect={onFileSelect}
+              trashFolderId={trashFolderId}
+              handleDocumentDelete={handleDocumentDelete}
             />
           ))}
         </>
@@ -454,9 +561,11 @@ interface DocumentItemProps {
   level: number;
   filteredDocuments?: Document[];
   onFileSelect: (path: string, isDirectory: boolean) => void;
+  trashFolderId: string | null;
+  handleDocumentDelete: (documentId: string) => void;
 }
 
-function DocumentItem({ document, level, filteredDocuments, onFileSelect }: DocumentItemProps) {
+function DocumentItem({ document, level, filteredDocuments, onFileSelect, trashFolderId, handleDocumentDelete }: DocumentItemProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(document.name);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
@@ -474,6 +583,7 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect }: Docu
     moveDocument,
     folders,
     documents,
+    specialDirectoryIds
   } = useDocumentStore();
 
   // Get access to onCompareDocuments from the parent component
@@ -519,6 +629,44 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect }: Docu
 
   // Get all selected documents from the store
   const selectedDocuments = documents.filter(doc => comparisonDocumentIds.includes(doc.id));
+
+  const handleContextMenuAction = (action: string) => {
+    // Determine if this document is in a protected directory
+    const isInProtectedDirectory = () => {
+      // Get the folder where this document is located
+      if (!document.folderId) return false;
+      
+      // Find the folder
+      const folder = folders.find(f => f.id === document.folderId);
+      if (!folder) return false;
+      
+      // Create a folder with date for type checking
+      const folderWithDate = {
+        ...folder,
+        createdAt: folder.createdAt instanceof Date ? folder.createdAt : new Date()
+      } as FolderType;
+      
+      // Check if it's protected
+      return isDirectoryProtected(folderWithDate);
+    };
+    
+    const isProtected = isInProtectedDirectory();
+    
+    switch(action) {
+      case "delete":
+        if (isProtected) {
+          toast({
+            variant: "destructive",
+            title: "Cannot delete",
+            description: "This document is in a protected system directory and cannot be moved to trash."
+          });
+          return;
+        }
+        handleDocumentDelete(document.id);
+        break;
+      // ... other actions
+    }
+  };
 
   return (
     <>
@@ -661,34 +809,9 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect }: Docu
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive"
-              onClick={() => {
-                // Check if we're in comparison mode with multiple documents selected
-                if (comparisonDocumentIds.length > 1 && comparisonDocumentIds.includes(document.id)) {
-                  // Get names of selected documents for confirmation message
-                  const selectedDocs = documents.filter(doc => comparisonDocumentIds.includes(doc.id));
-                  const docCount = selectedDocs.length;
-                  
-                  if (confirm(`Are you sure you want to delete ${docCount} selected documents? This action cannot be undone.`)) {
-                    // Delete all selected documents
-                    deleteMultipleDocuments(comparisonDocumentIds);
-                    toast({
-                      title: "Documents deleted",
-                      description: `${docCount} documents have been deleted.`,
-                    });
-                  }
-                } else {
-                  // Regular single document deletion
-                  if (confirm(`Are you sure you want to delete "${document.name}"?`)) {
-                    deleteDocument(document.id);
-                    toast({
-                      title: "Document deleted",
-                      description: `"${document.name}" has been deleted.`,
-                    });
-                  }
-                }
-              }}
+              onClick={() => handleContextMenuAction("delete")}
             >
-              Delete
+              {document.folderId === trashFolderId ? "Delete Permanently" : "Move to Trash"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -751,6 +874,9 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     folders,
     loadData,
     copyFolder,
+    moveDocument,
+    moveFolder,
+    specialDirectoryIds
   } = useDocumentStore();
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -772,6 +898,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [items, setItems] = useState<FileItem[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [trashFolderId, setTrashFolderId] = useState<string | null>(null);
 
   // Apply search filter with fuzzy search
   const searchFilteredDocuments = searchQuery.trim() 
@@ -925,14 +1052,17 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
   const confirmDelete = () => {
     if (!itemToDelete) return;
     
-    if (itemToDelete.type === 'folder') {
-      deleteFolder(itemToDelete.id);
-    } else {
-      deleteDocument(itemToDelete.id);
+    // Close the confirmation dialog
+    setShowDeleteConfirm(false);
+    
+    if (itemToDelete.type === 'document') {
+      handleDocumentDelete(itemToDelete.id);
+    } else if (itemToDelete.type === 'folder') {
+      handleFolderDelete(itemToDelete.id);
     }
     
+    // Reset the state
     setItemToDelete(null);
-    setShowDeleteConfirm(false);
   };
 
   const handleImportDocuments = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1271,6 +1401,141 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     }
   };
 
+  // Update useEffect to find the trash folder ID
+  useEffect(() => {
+    // For backward compatibility, support both special directory IDs and legacy trash folder
+    const trashId = specialDirectoryIds?.[SpecialDirectoryType.TRASH] || null;
+    
+    if (trashId) {
+      console.log("Found trash folder from special directories:", trashId);
+      setTrashFolderId(trashId);
+    } else {
+      // Legacy fallback
+      const trashFolder = folders.find(folder => 
+        folder.name.toLowerCase() === "trash" && (folder.parentId === "/" || folder.parentId === null)
+      );
+      
+      if (trashFolder) {
+        console.log("Found trash folder in document navigation:", trashFolder.id);
+        setTrashFolderId(trashFolder.id);
+      } else {
+        console.log("No trash folder found in document navigation");
+      }
+    }
+  }, [folders, specialDirectoryIds]);
+
+  // Handle document delete with trash functionality
+  const handleDocumentDelete = (documentId: string) => {
+    const doc = documents.find(d => d.id === documentId);
+    if (!doc) return;
+    
+    const trashId = specialDirectoryIds?.[SpecialDirectoryType.TRASH] || trashFolderId;
+    const isInTrash = doc.folderId === trashId;
+    
+    if (isInTrash) {
+      // If already in trash, confirm permanent deletion
+      if (confirm(`Are you sure you want to permanently delete "${doc.name}"? This action cannot be undone.`)) {
+        deleteDocument(documentId);
+        toast({
+          title: "Document deleted",
+          description: `"${doc.name}" has been permanently deleted.`
+        });
+      }
+    } else {
+      // If not in trash, move to trash
+      if (trashId) {
+        moveDocument(documentId, trashId);
+        toast({
+          title: "Document moved to trash",
+          description: `"${doc.name}" has been moved to trash.`
+        });
+      } else {
+        // No trash folder, fall back to delete
+        if (confirm(`Are you sure you want to delete "${doc.name}"?`)) {
+          deleteDocument(documentId);
+          toast({
+            title: "Document deleted",
+            description: `"${doc.name}" has been deleted.`
+          });
+        }
+      }
+    }
+  };
+  
+  // Handle folder delete with trash functionality
+  const handleFolderDelete = (folderId: string) => {
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+    
+    const trashId = specialDirectoryIds?.[SpecialDirectoryType.TRASH] || trashFolderId;
+    
+    // Check if it's the trash folder itself
+    if (folder.id === trashId) {
+      // Empty trash instead of deleting it
+      if (confirm("Are you sure you want to empty the trash? All items will be permanently deleted.")) {
+        const trashDocuments = documents.filter(doc => doc.folderId === trashId);
+        const trashFolders = folders.filter(f => f.parentId === trashId);
+        
+        // Delete all documents in trash
+        trashDocuments.forEach(doc => {
+          deleteDocument(doc.id);
+        });
+        
+        // Delete all folders in trash
+        trashFolders.forEach(folder => {
+          deleteFolder(folder.id);
+        });
+        
+        toast({
+          title: "Trash emptied",
+          description: "All items in trash have been permanently deleted."
+        });
+      }
+      return;
+    }
+    
+    // Check if the folder is protected (system, templates, etc.)
+    if (isDirectoryProtected(folder)) {
+      toast({
+        variant: "destructive",
+        title: "Protected folder",
+        description: `"${folder.name}" is a protected system folder and cannot be deleted.`
+      });
+      return;
+    }
+    
+    const isInTrash = folder.parentId === trashId;
+    
+    if (isInTrash) {
+      // If already in trash, confirm permanent deletion
+      if (confirm(`Are you sure you want to permanently delete folder "${folder.name}" and all its contents? This action cannot be undone.`)) {
+        deleteFolder(folderId);
+        toast({
+          title: "Folder deleted",
+          description: `"${folder.name}" has been permanently deleted.`
+        });
+      }
+    } else {
+      // If not in trash, move to trash
+      if (trashId) {
+        moveFolder(folderId, trashId);
+        toast({
+          title: "Folder moved to trash",
+          description: `"${folder.name}" has been moved to trash.`
+        });
+      } else {
+        // No trash folder, fall back to delete
+        if (confirm(`Are you sure you want to delete folder "${folder.name}" and all its contents?`)) {
+          deleteFolder(folderId);
+          toast({
+            title: "Folder deleted",
+            description: `"${folder.name}" has been deleted.`
+          });
+        }
+      }
+    }
+  };
+
   return (
     <DocumentNavigationContext.Provider value={{ onCompareDocuments }}>
       <div className={cn("flex flex-col h-full", className)}>
@@ -1446,6 +1711,8 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
               searchQuery={searchQuery}
               filterConfig={filterConfig}
               onFileSelect={onFileSelect}
+              trashFolderId={trashFolderId}
+              handleDocumentDelete={handleDocumentDelete}
             />
           ))}
           
@@ -1456,6 +1723,8 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
               level={0}
               filteredDocuments={filteredDocuments}
               onFileSelect={onFileSelect}
+              trashFolderId={trashFolderId}
+              handleDocumentDelete={handleDocumentDelete}
             />
           ))}
         </div>
