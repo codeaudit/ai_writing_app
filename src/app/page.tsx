@@ -8,7 +8,7 @@ import AIComposer from "@/components/ai-composer";
 import Compositions from "@/components/compositions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { PanelLeft, PanelRight, Maximize2, Minimize2, Settings, FileText, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon, BookOpen, BookText, ArrowLeft, ArrowRight } from "lucide-react";
+import { PanelLeft, PanelRight, Maximize2, Minimize2, Settings, FileText, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon, BookOpen, BookText, ArrowLeft, ArrowRight, Folder } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useRouter } from "next/navigation";
@@ -19,7 +19,12 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { DirectoryView } from "@/components/directory-view";
 import HistoryDropdown from "@/components/history-dropdown";
 import { useNavigationHistory } from "@/lib/navigation-history";
-import { Tooltip } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Define layout constants
 const LAYOUT_STORAGE_KEY = "editor-layout-config";
@@ -87,10 +92,6 @@ export default function Home() {
     history,
     currentIndex
   } = useNavigationHistory();
-
-  // Add state for tooltip info
-  const [backTooltip, setBackTooltip] = useState<string>("");
-  const [forwardTooltip, setForwardTooltip] = useState<string>("");
 
   // Handle client-side mounting
   useEffect(() => {
@@ -463,29 +464,6 @@ export default function Home() {
     }
   }, [folders, documents]);
 
-  // Update tooltips when history changes
-  useEffect(() => {
-    // Set back tooltip
-    if (currentIndex > 0 && history[currentIndex - 1]) {
-      const prevItem = history[currentIndex - 1];
-      // Use stored name if available, otherwise look it up
-      const itemName = prevItem.name || getNameFromPath(prevItem.path, prevItem.isDirectory);
-      setBackTooltip(`Back to: ${itemName}`);
-    } else {
-      setBackTooltip("Back");
-    }
-
-    // Set forward tooltip
-    if (currentIndex < history.length - 1 && history[currentIndex + 1]) {
-      const nextItem = history[currentIndex + 1];
-      // Use stored name if available, otherwise look it up
-      const itemName = nextItem.name || getNameFromPath(nextItem.path, nextItem.isDirectory);
-      setForwardTooltip(`Forward to: ${itemName}`);
-    } else {
-      setForwardTooltip("Forward");
-    }
-  }, [history, currentIndex, getNameFromPath]);
-
   return (
     <main className="flex flex-col h-screen overflow-hidden">
       {isMounted && <AboutSplash isOpen={showAboutSplash} onClose={() => setShowAboutSplash(false)} />}
@@ -515,28 +493,112 @@ export default function Home() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Tooltip content={backTooltip}>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleNavigateBack}
-              disabled={!canGoBack()}
-              title="Navigate back"
-            >
-              <ArrowLeft className={cn("h-5 w-5", !canGoBack() && "text-muted-foreground")} />
-            </Button>
-          </Tooltip>
-          <Tooltip content={forwardTooltip}>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleNavigateForward}
-              disabled={!canGoForward()}
-              title="Navigate forward"
-            >
-              <ArrowRight className={cn("h-5 w-5", !canGoForward() && "text-muted-foreground")} />
-            </Button>
-          </Tooltip>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleNavigateBack}
+                disabled={!canGoBack()}
+                title="Navigate back"
+              >
+                <ArrowLeft className={cn("h-5 w-5", !canGoBack() && "text-muted-foreground")} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              {history.slice(0, currentIndex).reverse().map((item, index) => (
+                <DropdownMenuItem 
+                  key={`back-${index}`}
+                  onClick={() => {
+                    // Navigate directly to this history item
+                    const targetIndex = currentIndex - index - 1;
+                    if (targetIndex >= 0) {
+                      // Update currentIndex directly
+                      const targetItem = history[targetIndex];
+                      setSelectedPath(targetItem.path);
+                      setIsDirectoryView(targetItem.isDirectory);
+                      
+                      // Select the document or folder
+                      if (!targetItem.isDirectory) {
+                        selectDocument(targetItem.path);
+                        window.history.replaceState(null, "", `/documents/${targetItem.path}`);
+                      } else {
+                        selectDocument(null);
+                        window.history.replaceState(null, "", "/");
+                      }
+                      
+                      // Update the navigation history state
+                      useNavigationHistory.setState({ currentIndex: targetIndex });
+                    }
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  {item.isDirectory ? (
+                    <Folder className="h-4 w-4 text-yellow-500" />
+                  ) : (
+                    <FileText className="h-4 w-4 text-blue-500" />
+                  )}
+                  <span className="truncate">{item.name || getNameFromPath(item.path, item.isDirectory)}</span>
+                </DropdownMenuItem>
+              ))}
+              {!canGoBack() && (
+                <DropdownMenuItem disabled>No previous items</DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleNavigateForward}
+                disabled={!canGoForward()}
+                title="Navigate forward"
+              >
+                <ArrowRight className={cn("h-5 w-5", !canGoForward() && "text-muted-foreground")} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              {history.slice(currentIndex + 1).map((item, index) => (
+                <DropdownMenuItem 
+                  key={`forward-${index}`}
+                  onClick={() => {
+                    // Navigate directly to this history item
+                    const targetIndex = currentIndex + index + 1;
+                    if (targetIndex < history.length) {
+                      // Update currentIndex directly
+                      const targetItem = history[targetIndex];
+                      setSelectedPath(targetItem.path);
+                      setIsDirectoryView(targetItem.isDirectory);
+                      
+                      // Select the document or folder
+                      if (!targetItem.isDirectory) {
+                        selectDocument(targetItem.path);
+                        window.history.replaceState(null, "", `/documents/${targetItem.path}`);
+                      } else {
+                        selectDocument(null);
+                        window.history.replaceState(null, "", "/");
+                      }
+                      
+                      // Update the navigation history state
+                      useNavigationHistory.setState({ currentIndex: targetIndex });
+                    }
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  {item.isDirectory ? (
+                    <Folder className="h-4 w-4 text-yellow-500" />
+                  ) : (
+                    <FileText className="h-4 w-4 text-blue-500" />
+                  )}
+                  <span className="truncate">{item.name || getNameFromPath(item.path, item.isDirectory)}</span>
+                </DropdownMenuItem>
+              ))}
+              {!canGoForward() && (
+                <DropdownMenuItem disabled>No forward items</DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button 
             variant="ghost" 
             size="icon" 
