@@ -104,6 +104,7 @@ interface DocumentStore {
   renameFolder: (folderId: string, newName: string) => Promise<void>;
   moveFolder: (folderId: string, parentId: string | null) => Promise<void>;
   selectFolder: (id: string | null) => void;
+  copyFolder: (folderId: string) => Promise<string>; // Add copyFolder operation
   
   // Annotation operations
   addAnnotation: (documentId: string, startOffset: number, endOffset: number, content: string, color?: string, tags?: string[]) => Promise<void>;
@@ -1105,6 +1106,124 @@ ${updatedComposition.content}`;
           return 'Sorry, I could not generate a response at this time.';
         }
       },
+      
+      copyFolder: async (folderId) => {
+        set({ error: null });
+        
+        try {
+          const state = get();
+          const folder = state.folders.find(f => f.id === folderId);
+          if (!folder) {
+            throw new Error('Folder not found');
+          }
+          
+          // Create a map to track original folder IDs to their new copies
+          const folderIdMap = new Map<string, string>();
+          
+          // Create a copy of the main folder with "(Copy)" appended to the name
+          const newFolderId = generateUniqueId('folder');
+          folderIdMap.set(folderId, newFolderId);
+          
+          const newFolder: Folder = {
+            id: newFolderId,
+            name: `${folder.name} (Copy)`,
+            createdAt: new Date(),
+            parentId: folder.parentId, // Create as a sibling of the original
+          };
+          
+          // Update local state with the new main folder
+          set((state) => ({
+            folders: [...state.folders, newFolder],
+          }));
+          
+          // Save the new folder to the server
+          await saveFolderToServer(newFolder);
+          
+          // Recursively copy subfolders
+          const copySubfolders = async (originalParentId: string, newParentId: string) => {
+            // Find all child folders of the original folder
+            const childFolders = state.folders.filter(f => f.parentId === originalParentId);
+            
+            for (const childFolder of childFolders) {
+              const newChildId = generateUniqueId('folder');
+              folderIdMap.set(childFolder.id, newChildId);
+              
+              const newChildFolder: Folder = {
+                id: newChildId,
+                name: childFolder.name,
+                createdAt: new Date(),
+                parentId: newParentId,
+              };
+              
+              // Update local state with the new subfolder
+              set((state) => ({
+                folders: [...state.folders, newChildFolder],
+              }));
+              
+              // Save the new subfolder to the server
+              await saveFolderToServer(newChildFolder);
+              
+              // Recursively copy child folders
+              await copySubfolders(childFolder.id, newChildId);
+            }
+          };
+          
+          // Start the recursive copy of subfolders
+          await copySubfolders(folderId, newFolderId);
+          
+          // Copy all documents in all folders we've copied
+          // Process by mapping over all documents and copying those that belong to copied folders
+          const allDocsToCopy = state.documents.filter(doc => 
+            doc.folderId && folderIdMap.has(doc.folderId)
+          );
+          
+          const newDocuments: Document[] = [];
+          
+          for (const doc of allDocsToCopy) {
+            const timestamp = new Date();
+            const newDocId = generateUniqueId('doc');
+            
+            // Get the new parent folder ID from our mapping
+            const newParentId = doc.folderId ? folderIdMap.get(doc.folderId) : null;
+            
+            const newDoc: Document = {
+              id: newDocId,
+              name: doc.name,
+              content: doc.content,
+              createdAt: timestamp,
+              updatedAt: timestamp,
+              folderId: newParentId,
+              versions: [{
+                id: generateUniqueId('ver'),
+                content: doc.content,
+                createdAt: timestamp,
+                message: "Initial version"
+              }],
+              annotations: [], // Start with empty annotations
+              ...(doc.contextDocuments && { contextDocuments: doc.contextDocuments }),
+            };
+            
+            // Save to local array for bulk update
+            newDocuments.push(newDoc);
+            
+            // Save to server
+            await saveDocumentToServer(newDoc);
+          }
+          
+          // Update local state with all new documents at once
+          if (newDocuments.length > 0) {
+            set((state) => ({
+              documents: [...state.documents, ...newDocuments],
+            }));
+          }
+          
+          return newFolderId;
+        } catch (error) {
+          console.error('Error copying folder:', error);
+          set({ error: error instanceof Error ? error.message : 'Failed to copy folder' });
+          throw error;
+        }
+      }
     }),
     {
       name: 'document-store',

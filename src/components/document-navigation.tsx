@@ -97,6 +97,7 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
     moveDocument,
     moveFolder,
     toggleComparisonFolder,
+    copyFolder,
   } = useDocumentStore();
 
   const childFolders = folders.filter(f => f.parentId === folder.id);
@@ -313,6 +314,26 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
               }}
             >
               Compose
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={async () => {
+                try {
+                  const newFolderId = await copyFolder(folder.id);
+                  toast({
+                    title: "Directory copied",
+                    description: `Successfully copied "${folder.name}" and its contents.`,
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Error copying directory",
+                    description: error instanceof Error ? error.message : 'An error occurred',
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              Copy Directory
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -729,6 +750,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     updateFolder,
     folders,
     loadData,
+    copyFolder,
   } = useDocumentStore();
   
   const [searchQuery, setSearchQuery] = useState("");
