@@ -46,6 +46,7 @@ A Next.js application for writing markdown files with AI assistance, built with 
 2. Install dependencies:
    ```bash
    npm install
+   # This will install all required dependencies
    ```
 
 3. Run the development server:
