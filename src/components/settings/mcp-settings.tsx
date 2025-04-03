@@ -90,7 +90,7 @@ export function MCPSettings() {
   const [installLoading, setInstallLoading] = useState(false);
   const [serverConfig, setServerConfig] = useState<Record<string, string>>({});
   const [apiKeyField, setApiKeyField] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState<'openai' | 'anthropic' | 'openrouter' | 'featherless'>('openai');
+  const [selectedProvider, setSelectedProvider] = useState<'openai' | 'anthropic' | 'openrouter' | 'featherless' | 'groq'>('openai');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [availableTools, setAvailableTools] = useState<Tool[]>([]);
   const [selectedTool, setSelectedTool] = useState<string>('');
