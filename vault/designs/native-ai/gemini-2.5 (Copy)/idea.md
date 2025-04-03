@@ -1,11 +1,11 @@
 ---
-id: doc-1743688763359-gbh7y3g
+id: doc-1743706013290-hti53jz
 name: idea
-createdAt: '2025-04-03T13:59:23.359Z'
-updatedAt: '2025-04-03T13:59:23.359Z'
+createdAt: '2025-04-03T18:46:53.250Z'
+updatedAt: '2025-04-03T18:46:53.250Z'
 versions:
-  - id: ver-1743688763359-qgehkzl
-    createdAt: '2025-04-03T13:59:23.359Z'
+  - id: ver-1743706013290-1mippfn
+    createdAt: '2025-04-03T18:46:53.250Z'
     message: Initial version
 annotations: []
 ---
