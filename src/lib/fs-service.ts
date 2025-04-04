@@ -1,5 +1,5 @@
 // This file should only be imported in server components or API routes
-import fs from 'fs-extra';
+import fs from 'fs';
 import path from 'path';
 import { Document, Folder, DocumentVersion } from './store';
 import matter from 'gray-matter';
@@ -15,14 +15,18 @@ const TEMPLATES_DIR = path.join(VAULT_DIR, 'templates');
 
 // Ensure vault directory exists
 try {
-  fs.ensureDirSync(VAULT_DIR);
+  if (!fs.existsSync(VAULT_DIR)) {
+    fs.mkdirSync(VAULT_DIR, { recursive: true });
+  }
 } catch (error) {
   console.error('Error creating vault directory:', error);
 }
 
 // Ensure templates directory exists
 try {
-  fs.ensureDirSync(TEMPLATES_DIR);
+  if (!fs.existsSync(TEMPLATES_DIR)) {
+    fs.mkdirSync(TEMPLATES_DIR, { recursive: true });    
+  }
 } catch (error) {
   console.error('Error creating templates directory:', error);
 }
@@ -34,7 +38,9 @@ const FOLDERS_INDEX = path.join(VAULT_DIR, '.obsidian', 'folders-index.json');
 // Ensure .obsidian directory exists for metadata
 try {
   const obsidianDir = path.join(VAULT_DIR, '.obsidian');
-  fs.ensureDirSync(obsidianDir);
+  if (!fs.existsSync(obsidianDir)) {
+    fs.mkdirSync(obsidianDir, { recursive: true });
+  }
 } catch (error) {
   console.error('Error creating .obsidian directory:', error);
 }
@@ -42,7 +48,9 @@ try {
 // Helper function to ensure a directory exists
 const ensureDir = (dirPath: string) => {
   try {
-    fs.ensureDirSync(dirPath);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
   } catch (error) {
     console.error(`Error ensuring directory ${dirPath}:`, error);
     throw error;
@@ -50,10 +58,10 @@ const ensureDir = (dirPath: string) => {
 };
 
 // Helper function to write JSON to a file
-const writeJsonFile = (filePath: string, data: unknown) => {
+const writeJsonFile = (filePath: string, data: any) => {
   try {
     ensureDir(path.dirname(filePath));
-    fs.writeJsonSync(filePath, data, { spaces: 2 });
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
   } catch (error) {
     console.error(`Error writing JSON file ${filePath}:`, error);
     throw error;
@@ -66,7 +74,8 @@ const readJsonFile = <T>(filePath: string, defaultValue: T): T => {
     if (!fs.existsSync(filePath)) {
       return defaultValue;
     }
-    return fs.readJsonSync(filePath) as T;
+    const data = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(data) as T;
   } catch (error) {
     console.error(`Error reading ${filePath}:`, error);
     return defaultValue;
@@ -94,20 +103,8 @@ const getDocumentPath = (document: Document, folders: Folder[]): string => {
   return fullPath;
 };
 
-// Get the full path for a folder based on its folder ID
-function getFolderPath(folderId: string): string {
-  const folders = loadFolders();
-  const folder = folders.find(f => f.id === folderId);
-  
-  if (!folder) {
-    throw new Error(`Folder with ID ${folderId} not found`);
-  }
-  
-  return getFolderPathFromFolder(folder, folders);
-}
-
-// Get the full path for a folder based on the folder object
-function getFolderPathFromFolder(folder: Folder, folders: Folder[]): string {
+// Get the full path for a folder based on its parent structure
+const getFolderPath = (folder: Folder, folders: Folder[]): string => {
   // Start with the current folder
   let currentFolderId = folder.parentId;
   const folderPath: string[] = [sanitizeName(folder.name)];
@@ -123,7 +120,7 @@ function getFolderPathFromFolder(folder: Folder, folders: Folder[]): string {
   
   // Create the full path
   return path.join(VAULT_DIR, ...folderPath);
-}
+};
 
 // Sanitize a name for use in the filesystem
 const sanitizeName = (name: string): string => {
@@ -173,7 +170,7 @@ const markdownToDocument = (filePath: string, relativePath: string): Document =>
   const { data, content } = matter(fileContent);
   
   // Extract the filename without extension as the document name
-  const fileName = path.basename(filePath, path.extname(filePath));
+  const fileName = path.basename(filePath, '.md');
   
   // Determine the folder ID based on the relative path
   const folderPath = path.dirname(relativePath);
@@ -238,7 +235,6 @@ const markdownToDocument = (filePath: string, relativePath: string): Document =>
       message: v.message
     })),
     folderId,
-    extension: path.extname(filePath),
     annotations: Array.isArray(data.annotations) ? data.annotations.map((anno: any) => ({
       id: anno.id,
       documentId: anno.documentId || doc.id, // Default to the document ID if not specified
@@ -259,84 +255,38 @@ const markdownToDocument = (filePath: string, relativePath: string): Document =>
   return doc;
 };
 
-/**
- * Gets the path to the data directory
- */
-function getDataPath(): string {
-  return path.join(getUserDataPath(), 'data');
-}
-
-/**
- * Gets the path to the user data directory
- * In Electron context, this would use app.getPath('userData')
- * Here we're using a fallback for server-side code
- */
-function getUserDataPath(): string {
-  // For server context, use a fallback path
-  return process.env.USER_DATA_PATH || path.join(process.cwd(), 'userData', 'writing-app');
-}
-
-/**
- * Gets the path to the documents directory
- */
-function getDocumentsPath(): string {
-  return path.join(getDataPath(), 'documents');
-}
-
-/**
- * Updates document metadata in the documents index
- */
-function updateDocumentMetadata(document: Document): void {
-  const documents = loadDocuments();
-  const existingIndex = documents.findIndex(doc => doc.id === document.id);
-  
-  if (existingIndex >= 0) {
-    documents[existingIndex] = document;
-  } else {
-    documents.push(document);
-  }
-  
-  updateDocumentsIndex(documents);
-}
-
 // Save a document to the file system
-export const saveDocument = (document: Document, content: string): { success: boolean, error?: string } => {
+export const saveDocument = (document: Document) => {
   try {
-    // Step 1: Get the document path
-    let folderPath: string;
+    // Get all folders for path resolution
+    const folders = loadFolders();
     
-    if (document.folderId) {
-      const folders = loadFolders();
-      const folder = folders.find(f => f.id === document.folderId);
-      if (folder) {
-        folderPath = getFolderPath(document.folderId);
-      } else {
-        folderPath = getDocumentsPath();
-      }
+    // Save document metadata to the index
+    const documents = loadDocuments();
+    const existingIndex = documents.findIndex(doc => doc.id === document.id);
+    
+    if (existingIndex >= 0) {
+      documents[existingIndex] = document;
     } else {
-      folderPath = getDocumentsPath();
+      documents.push(document);
     }
     
-    // Determine file extension - keep existing extension or default to .md
-    const extension = document.extension || '.md';
-    const filePath = path.join(folderPath, `${document.id}${extension}`);
+    writeJsonFile(DOCUMENTS_INDEX, documents);
     
-    // Step 2: Ensure the parent directory exists
-    fs.ensureDirSync(folderPath);
+    // Get the full path for the document
+    const documentPath = getDocumentPath(document, folders);
     
-    // Step 3: Write the document content
-    fs.writeFileSync(filePath, content, 'utf8');
+    // Ensure the directory exists
+    ensureDir(path.dirname(documentPath));
     
-    // Step 4: Update document metadata
-    updateDocumentMetadata(document);
+    // Convert document to Markdown with frontmatter and save
+    const markdownContent = documentToMarkdown(document);
+    fs.writeFileSync(documentPath, markdownContent, 'utf8');
     
-    return { success: true };
+    return document;
   } catch (error) {
     console.error('Error saving document:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : String(error)
-    };
+    throw error;
   }
 };
 
@@ -344,8 +294,16 @@ export const saveDocument = (document: Document, content: string): { success: bo
 export const loadDocuments = (): Document[] => {
   try {
     // Try to load existing document index first to maintain consistent IDs
-    const existingDocuments: Document[] = readJsonFile<Document[]>(DOCUMENTS_INDEX, []);
-    
+    let existingDocuments: Document[] = [];
+    try {
+      if (fs.existsSync(DOCUMENTS_INDEX)) {
+        const data = fs.readFileSync(DOCUMENTS_INDEX, 'utf8');
+        existingDocuments = JSON.parse(data) as Document[];
+      }
+    } catch (error) {
+      console.error('Error reading existing document index:', error);
+    }
+
     // Create a map of existing document IDs for quick lookup
     const existingDocMap = new Map<string, Document>();
     existingDocuments.forEach(doc => {
@@ -403,14 +361,13 @@ export const loadDocuments = (): Document[] => {
         if (entry.isDirectory()) {
           // Recursively scan subdirectories
           scanDirectory(fullPath, entryRelativePath);
-        } else if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.mdx'))) {
-          // Parse Markdown and MDX files
+        } else if (entry.isFile() && entry.name.endsWith('.md')) {
+          // Parse Markdown files
           const fileContent = fs.readFileSync(fullPath, 'utf8');
           const { data, content } = matter(fileContent);
           
-          // Extract the filename without extension and get the file extension
-          const fileName = path.basename(entry.name, path.extname(entry.name));
-          const fileExtension = path.extname(entry.name);
+          // Extract the filename without extension as the document name
+          const fileName = path.basename(fullPath, '.md');
           
           // Determine the folder ID based on the relative path
           const dirPath = path.dirname(entryRelativePath);
@@ -458,7 +415,6 @@ export const loadDocuments = (): Document[] => {
               message: v.message
             })),
             folderId,
-            extension: fileExtension,
             annotations: Array.isArray(data.annotations) ? data.annotations.map((anno: any) => ({
               id: anno.id,
               documentId: anno.documentId || docId, // Default to the document ID if not specified
@@ -511,14 +467,21 @@ export const loadDocuments = (): Document[] => {
 // Save a folder to the file system
 export const saveFolder = (folder: Folder) => {
   try {
-    // Step 1: Generate the physical path
-    const folderPath = getFolderPath(folder.id);
+    // Save folder metadata
+    const folders = loadFolders();
+    const existingIndex = folders.findIndex(f => f.id === folder.id);
     
-    // Step 2: Create the directory (one fs-extra call)
-    fs.ensureDirSync(folderPath);
+    if (existingIndex >= 0) {
+      folders[existingIndex] = folder;
+    } else {
+      folders.push(folder);
+    }
     
-    // Step 3: Update metadata (separate concern)
-    updateFolderMetadata(folder);
+    writeJsonFile(FOLDERS_INDEX, folders);
+    
+    // Create folder directory if it doesn't exist
+    const folderPath = getFolderPath(folder, folders);
+    ensureDir(folderPath);
     
     return folder;
   } catch (error) {
@@ -531,7 +494,15 @@ export const saveFolder = (folder: Folder) => {
 export const loadFolders = (): Folder[] => {
   try {
     // Try to load existing folder index first to maintain consistent IDs
-    const existingFolders: Folder[] = readJsonFile<Folder[]>(FOLDERS_INDEX, []);
+    let existingFolders: Folder[] = [];
+    try {
+      if (fs.existsSync(FOLDERS_INDEX)) {
+        const data = fs.readFileSync(FOLDERS_INDEX, 'utf8');
+        existingFolders = JSON.parse(data) as Folder[];
+      }
+    } catch (error) {
+      console.error('Error reading existing folder index:', error);
+    }
     
     // Create a map of folder paths to existing folder IDs
     const folderPathMap = new Map<string, string>();
@@ -622,130 +593,73 @@ export const loadFolders = (): Folder[] => {
 };
 
 // Delete a document from the file system
-export const deleteDocument = (docId: string): { success: boolean, error?: string } => {
+export const deleteDocument = (docId: string) => {
   try {
-    // Step 1: Get document metadata
+    // Get document metadata
     const documents = loadDocuments();
     const document = documents.find(doc => doc.id === docId);
     
     if (!document) {
-      return {
-        success: false,
-        error: "Document not found"
-      };
+      return;
     }
     
-    // Step 2: Get document path
-    const folders = loadFolders();
-    let documentPath: string;
-    
-    if (document.folderId) {
-      const folder = folders.find(f => f.id === document.folderId);
-      if (folder) {
-        documentPath = path.join(getFolderPathFromFolder(folder, folders), `${document.id}.md`);
-      } else {
-        documentPath = path.join(getDocumentsPath(), `${document.id}.md`);
-      }
-    } else {
-      documentPath = path.join(getDocumentsPath(), `${document.id}.md`);
-    }
-    
-    // Step 3: Delete file if it exists
-    if (fs.existsSync(documentPath)) {
-      fs.removeSync(documentPath);
-    }
-    
-    // Step 4: Update document metadata
+    // Remove document from index
     const updatedDocuments = documents.filter(doc => doc.id !== docId);
-    updateDocumentsIndex(updatedDocuments);
+    writeJsonFile(DOCUMENTS_INDEX, updatedDocuments);
     
-    return { success: true };
+    // Remove document file
+    const folders = loadFolders();
+    const documentPath = getDocumentPath(document, folders);
+    
+    if (fs.existsSync(documentPath)) {
+      fs.unlinkSync(documentPath);
+    }
   } catch (error) {
     console.error('Error deleting document:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : String(error)
-    };
+    throw error;
   }
 };
 
 // Delete a folder from the file system
-export const deleteFolder = (folderId: string, options: { recursive?: boolean } = {}) => {
+export const deleteFolder = (folderId: string) => {
   try {
-    // Step 1: Get folder info
+    // Get folder metadata
     const folders = loadFolders();
     const folder = folders.find(f => f.id === folderId);
     
     if (!folder) {
-      return { success: false, error: "Folder not found in metadata" };
+      return;
     }
     
-    const folderPath = getFolderPath(folderId);
+    // Check if folder has documents
+    const documents = loadDocuments();
+    const hasDocuments = documents.some(doc => doc.folderId === folderId);
     
-    // Step 2: Check constraints for non-recursive delete
-    if (!options.recursive) {
-      const validationResult = validateEmptyFolder(folderId, folderPath);
-      if (!validationResult.success) {
-        return validationResult;
-      }
+    // Check if folder has subfolders
+    const hasSubfolders = folders.some(f => f.parentId === folderId);
+    
+    if (hasDocuments || hasSubfolders) {
+      throw new Error('Cannot delete folder that contains documents or subfolders');
     }
     
-    // Step 3: Delete folder physically with one fs-extra call
+    // Remove folder from index
+    const updatedFolders = folders.filter(f => f.id !== folderId);
+    writeJsonFile(FOLDERS_INDEX, updatedFolders);
+    
+    // Remove folder directory
+    const folderPath = getFolderPath(folder, folders);
+    
     if (fs.existsSync(folderPath)) {
       try {
-        // This one call handles both recursive and non-recursive cases
-        if (options.recursive) {
-          fs.removeSync(folderPath);
-        } else {
-          // For non-recursive, ensure it's empty first
-          const dirContents = fs.readdirSync(folderPath);
-          if (dirContents.length === 0) {
-            fs.removeSync(folderPath);
-          } else {
-            return { 
-              success: false, 
-              error: "Folder is not empty on disk but appears empty in metadata" 
-            };
-          }
-        }
+        fs.rmdirSync(folderPath);
       } catch (error) {
-        return { 
-          success: false, 
-          error: `Filesystem error: ${error instanceof Error ? error.message : String(error)}` 
-        };
+        console.error(`Error removing folder directory ${folderPath}:`, error);
       }
     }
-    
-    // Step 4: Update metadata
-    if (options.recursive) {
-      // Delete all child folders and documents metadata
-      deleteRecursiveMetadata(folderId);
-    } else {
-      // Just remove this folder from metadata
-      updateFoldersIndex(folders.filter(f => f.id !== folderId));
-    }
-    
-    return { success: true };
   } catch (error) {
     console.error('Error deleting folder:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : String(error)
-    };
+    throw error;
   }
-};
-
-// Helper function to get all child folder IDs recursively
-const getAllChildFolderIds = (folders: Folder[], parentId: string): string[] => {
-  const directChildren = folders.filter(f => f.parentId === parentId);
-  if (directChildren.length === 0) {
-    return [];
-  }
-  
-  const directChildrenIds = directChildren.map(f => f.id);
-  const descendantIds = directChildrenIds.flatMap(id => getAllChildFolderIds(folders, id));
-  
-  return [...directChildrenIds, ...descendantIds];
 };
 
 // Rename a document (updates both metadata and file path)
@@ -759,12 +673,113 @@ export const renameDocument = (docId: string, newName: string) => {
       return null;
     }
     
-    // Get the old path
+    // Get the old path before updating the name
     const folders = loadFolders();
     const oldPath = getDocumentPath(document, folders);
     
     // Update document name
     document.name = newName;
+    document.updatedAt = new Date();
+    
+    // Get the new path after updating the name
+    const newPath = getDocumentPath(document, folders);
+    
+    // Move the file if it exists
+    if (fs.existsSync(oldPath)) {
+      // Ensure the directory exists
+      ensureDir(path.dirname(newPath));
+      
+      // Read the content
+      const content = fs.readFileSync(oldPath, 'utf8');
+      
+      // Write to new location
+      fs.writeFileSync(newPath, content, 'utf8');
+      
+      // Delete the old file - ensure this runs
+      try {
+        fs.unlinkSync(oldPath);
+      } catch (deleteError) {
+        console.error(`Error deleting old file at ${oldPath}:`, deleteError);
+        // Try with rimraf-like approach if direct unlink fails
+        if (fs.existsSync(oldPath)) {
+          fs.writeFileSync(oldPath, '', 'utf8'); // Clear the file first
+          fs.unlinkSync(oldPath); // Try delete again
+        }
+      }
+    }
+    
+    // Update the index
+    const updatedDocuments = documents.map(doc => 
+      doc.id === docId ? document : doc
+    );
+    writeJsonFile(DOCUMENTS_INDEX, updatedDocuments);
+    
+    return document;
+  } catch (error) {
+    console.error('Error renaming document:', error);
+    throw error;
+  }
+};
+
+// Rename a folder (updates both metadata and directory path)
+export const renameFolder = (folderId: string, newName: string) => {
+  try {
+    // Get folder metadata
+    const folders = loadFolders();
+    const folder = folders.find(f => f.id === folderId);
+    
+    if (!folder) {
+      return null;
+    }
+    
+    // Get the old path
+    const oldPath = getFolderPath(folder, folders);
+    
+    // Update folder name
+    folder.name = newName;
+    
+    // Get the new path
+    const newPath = getFolderPath(folder, folders);
+    
+    // Move the directory
+    if (fs.existsSync(oldPath)) {
+      // Ensure the parent directory exists
+      ensureDir(path.dirname(newPath));
+      
+      // Rename the directory
+      fs.renameSync(oldPath, newPath);
+    }
+    
+    // Update the index
+    const updatedFolders = folders.map(f => 
+      f.id === folderId ? folder : f
+    );
+    writeJsonFile(FOLDERS_INDEX, updatedFolders);
+    
+    return folder;
+  } catch (error) {
+    console.error('Error renaming folder:', error);
+    throw error;
+  }
+};
+
+// Move a document to a different folder
+export const moveDocument = (docId: string, targetFolderId: string | null) => {
+  try {
+    // Get document metadata
+    const documents = loadDocuments();
+    const document = documents.find(doc => doc.id === docId);
+    
+    if (!document) {
+      return null;
+    }
+    
+    // Get the old path
+    const folders = loadFolders();
+    const oldPath = getDocumentPath(document, folders);
+    
+    // Update document folder
+    document.folderId = targetFolderId;
     document.updatedAt = new Date();
     
     // Get the new path
@@ -793,13 +808,13 @@ export const renameDocument = (docId: string, newName: string) => {
     
     return document;
   } catch (error) {
-    console.error('Error renaming document:', error);
+    console.error('Error moving document:', error);
     throw error;
   }
 };
 
-// Rename a folder (updates both metadata and directory path)
-export const renameFolder = (folderId: string, newName: string) => {
+// Move a folder to a different parent folder
+export const moveFolder = (folderId: string, targetParentId: string | null) => {
   try {
     // Get folder metadata
     const folders = loadFolders();
@@ -809,25 +824,35 @@ export const renameFolder = (folderId: string, newName: string) => {
       return null;
     }
     
-    // Get the old path
-    const oldPath = getFolderPath(folderId);
+    // Prevent circular references
+    if (targetParentId) {
+      let currentParentId: string | null = targetParentId;
+      while (currentParentId) {
+        if (currentParentId === folderId) {
+          throw new Error('Cannot move a folder into its own subfolder');
+        }
+        const parentFolder = folders.find(f => f.id === currentParentId);
+        if (!parentFolder) break;
+        currentParentId = parentFolder.parentId;
+      }
+    }
     
-    // Update folder name
-    folder.name = newName;
+    // Get the old path
+    const oldPath = getFolderPath(folder, folders);
+    
+    // Update folder parent
+    folder.parentId = targetParentId;
     
     // Get the new path
-    const newPath = getFolderPath(folderId);
+    const newPath = getFolderPath(folder, folders);
     
     // Move the directory
     if (fs.existsSync(oldPath)) {
       // Ensure the parent directory exists
-      fs.ensureDirSync(path.dirname(newPath));
+      ensureDir(path.dirname(newPath));
       
-      // Move the directory and its contents
-      fs.moveSync(oldPath, newPath, { overwrite: true });
-    } else {
-      // Create the directory if it doesn't exist
-      fs.ensureDirSync(newPath);
+      // Rename/move the directory
+      fs.renameSync(oldPath, newPath);
     }
     
     // Update the index
@@ -837,116 +862,6 @@ export const renameFolder = (folderId: string, newName: string) => {
     writeJsonFile(FOLDERS_INDEX, updatedFolders);
     
     return folder;
-  } catch (error) {
-    console.error('Error renaming folder:', error);
-    throw error;
-  }
-};
-
-// Move document to a different folder
-export const moveDocument = (docId: string, targetFolderId: string | null): { success: boolean, error?: string } => {
-  try {
-    // Step 1: Retrieve document and validate
-    const documents = loadDocuments();
-    const document = documents.find(doc => doc.id === docId);
-    
-    if (!document) {
-      return {
-        success: false,
-        error: "Document not found"
-      };
-    }
-    
-    // If source and target folders are the same, do nothing
-    if (document.folderId === targetFolderId) {
-      return { success: true };
-    }
-    
-    // Step 2: Get source and target paths
-    const folders = loadFolders();
-    let sourcePath: string;
-    
-    if (document.folderId) {
-      const sourceFolder = folders.find(f => f.id === document.folderId);
-      if (sourceFolder) {
-        sourcePath = path.join(getFolderPathFromFolder(sourceFolder, folders), `${document.id}.md`);
-      } else {
-        sourcePath = path.join(getDocumentsPath(), `${document.id}.md`);
-      }
-    } else {
-      sourcePath = path.join(getDocumentsPath(), `${document.id}.md`);
-    }
-    
-    let targetPath: string;
-    
-    if (targetFolderId) {
-      const targetFolder = folders.find(f => f.id === targetFolderId);
-      if (targetFolder) {
-        targetPath = path.join(getFolderPathFromFolder(targetFolder, folders), `${document.id}.md`);
-      } else {
-        return {
-          success: false,
-          error: "Target folder not found"
-        };
-      }
-    } else {
-      targetPath = path.join(getDocumentsPath(), `${document.id}.md`);
-    }
-    
-    // Step 3: Move file if the paths are different
-    if (sourcePath !== targetPath && fs.existsSync(sourcePath)) {
-      // Ensure target directory exists
-      fs.ensureDirSync(path.dirname(targetPath));
-      
-      // Move the file
-      fs.moveSync(sourcePath, targetPath, { overwrite: true });
-    }
-    
-    // Step 4: Update document metadata
-    document.folderId = targetFolderId;
-    updateDocumentMetadata(document);
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error moving document:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
-};
-
-// Move a folder to a different parent folder
-export const moveFolder = (folderId: string, targetParentId: string | null) => {
-  try {
-    // Step 1: Validate folder existence and check for circular references
-    const folders = loadFolders();
-    const folder = validateFolderOperation(folderId, targetParentId, folders);
-    
-    // Step 2: Get current and new paths
-    const currentPath = getFolderPath(folderId);
-    
-    // Update the folder's parent ID in memory
-    const updatedFolder = { ...folder, parentId: targetParentId };
-    const newPath = getFolderPath(folderId);
-    
-    // Step 3: Perform the move operation in one call when paths differ
-    if (currentPath !== newPath) {
-      // Ensure parent directory exists
-      fs.ensureDirSync(path.dirname(newPath));
-      
-      // Single fs-extra call to move directory
-      if (fs.existsSync(currentPath)) {
-        fs.moveSync(currentPath, newPath, { overwrite: true });
-      } else {
-        fs.ensureDirSync(newPath);
-      }
-    }
-    
-    // Step 4: Update metadata
-    updateFolderMetadata(updatedFolder);
-    
-    return updatedFolder;
   } catch (error) {
     console.error('Error moving folder:', error);
     throw error;
@@ -1010,20 +925,21 @@ const escapeRegExp = (string: string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-// Get available templates
+// Get all available templates
 export const getTemplates = (): { name: string; path: string }[] => {
   try {
-    // Ensure templates directory exists
-    fs.ensureDirSync(TEMPLATES_DIR);
+    if (!fs.existsSync(TEMPLATES_DIR)) {
+      return [];
+    }
     
-    // Read template files
-    const files = fs.readdirSync(TEMPLATES_DIR);
-    return files
-      .filter(file => file.endsWith('.md') || file.endsWith('.mdx'))
+    const templateFiles = fs.readdirSync(TEMPLATES_DIR)
+      .filter(file => file.endsWith('.md'))
       .map(file => ({
-        name: path.basename(file, path.extname(file)),
+        name: file.replace(/\.md$/, ''),
         path: path.join(TEMPLATES_DIR, file)
       }));
+    
+    return templateFiles;
   } catch (error) {
     console.error('Error getting templates:', error);
     return [];
@@ -1085,221 +1001,189 @@ const configureNunjucks = () => {
 // Initialize Nunjucks
 const nunjucksEnv = configureNunjucks();
 
-// Process a template with variables
+// Process a template with variable substitution using Nunjucks
 export const processTemplate = (templateName: string, variables: Record<string, any>): string => {
   try {
-    // Validate template
     const templatePath = path.join(TEMPLATES_DIR, `${templateName}.md`);
+    
     if (!fs.existsSync(templatePath)) {
       throw new Error(`Template not found: ${templateName}`);
     }
     
-    // Read template content
+    // Read the template content
     const templateContent = fs.readFileSync(templatePath, 'utf8');
     
-    // Configure Nunjucks with custom filters and extensions
-    configureNunjucks();
+    // Configure Nunjucks if not already configured
+    const nunjucksEnv = configureNunjucks();
     
-    // Process the template with variables
-    const processed = nunjucks.renderString(templateContent, variables);
+    // Default variables
+    const defaultVariables = {
+      date: new Date().toISOString(),
+      dateFormatted: new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
+      time: new Date().toLocaleTimeString(),
+      timeFormatted: new Date().toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+      }),
+      timestamp: new Date().getTime().toString(),
+      year: new Date().getFullYear().toString(),
+      month: (new Date().getMonth() + 1).toString().padStart(2, '0'),
+      day: new Date().getDate().toString().padStart(2, '0'),
+    };
     
-    return processed;
+    // Merge default variables with user-provided variables
+    const mergedVariables: Record<string, any> = {
+      ...defaultVariables,
+      ...variables
+    };
+    
+    // Process Date objects to ensure they're formatted correctly for Nunjucks
+    const processDateValues = (obj: Record<string, any>): Record<string, any> => {
+      const result: Record<string, any> = {};
+      
+      Object.entries(obj).forEach(([key, value]) => {
+        // Handle Date objects
+        if (value instanceof Date) {
+          result[key] = value.toISOString();
+        } 
+        // Handle nested objects
+        else if (value && typeof value === 'object' && !Array.isArray(value)) {
+          result[key] = processDateValues(value as Record<string, any>);
+        } 
+        // Handle arrays
+        else if (Array.isArray(value)) {
+          result[key] = value.map(item => {
+            if (item instanceof Date) {
+              return item.toISOString();
+            } else if (item && typeof item === 'object') {
+              return processDateValues(item as Record<string, any>);
+            }
+            return item;
+          });
+        } 
+        // Handle primitive values
+        else {
+          result[key] = value;
+        }
+      });
+      
+      return result;
+    };
+    
+    // Process all variables to handle Date objects
+    const processedVariables = processDateValues(mergedVariables);
+    
+    // Remove the schema definition from the template before processing
+    // Using a workaround for the 's' flag (dotAll) for compatibility
+    const schemaRegex = /\{%\s*set\s+schema\s*=\s*\{[^}]*(?:\{[^}]*\}[^}]*)*\}\s*%\}/g;
+    const cleanedTemplate = templateContent.replace(schemaRegex, '');
+    
+    // Process the template with Nunjucks
+    const processedContent = nunjucksEnv.renderString(cleanedTemplate, processedVariables);
+    
+    return processedContent;
   } catch (error) {
     console.error('Error processing template:', error);
-    throw error;
+    throw new Error(`Failed to process template: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
-// Metadata helper functions
-function updateFolderMetadata(folder: Folder) {
+// Create and get the trash folder
+const getOrCreateTrashFolder = (): Folder => {
   const folders = loadFolders();
-  const existingIndex = folders.findIndex(f => f.id === folder.id);
+  let trashFolder = folders.find(f => f.name === 'Trash' && f.parentId === null);
   
-  if (existingIndex >= 0) {
-    folders[existingIndex] = folder;
-  } else {
-    folders.push(folder);
-  }
-  
-  writeJsonFile(FOLDERS_INDEX, folders);
-}
-
-/**
- * Updates the folders index file with the given folders
- */
-function updateFoldersIndex(folders: Folder[]): void {
-  writeJsonFile(FOLDERS_INDEX, folders);
-}
-
-/**
- * Updates the documents index file with the given documents
- */
-function updateDocumentsIndex(documents: Document[]): void {
-  writeJsonFile(DOCUMENTS_INDEX, documents);
-}
-
-function validateFolderOperation(folderId: string, targetParentId: string | null, folders: Folder[]) {
-  const folder = folders.find(f => f.id === folderId);
-  
-  if (!folder) {
-    throw new Error(`Folder not found: ${folderId}`);
-  }
-  
-  // Validate target parent exists
-  if (targetParentId !== null && !folders.find(f => f.id === targetParentId)) {
-    throw new Error(`Target parent folder not found: ${targetParentId}`);
-  }
-  
-  // Prevent circular references
-  if (targetParentId !== null) {
-    let currentParentId: string | null = targetParentId;
-    while (currentParentId) {
-      if (currentParentId === folderId) {
-        throw new Error("Cannot move a folder into itself or its descendants");
-      }
-      const parent = folders.find(f => f.id === currentParentId);
-      if (!parent) break;
-      currentParentId = parent.parentId;
-    }
-  }
-  
-  return folder;
-}
-
-function validateDocumentMove(docId: string, targetFolderId: string | null) {
-  const documents = loadDocuments();
-  const document = documents.find(doc => doc.id === docId);
-  
-  if (!document) {
-    throw new Error(`Document not found: ${docId}`);
-  }
-  
-  const folders = loadFolders();
-  
-  if (targetFolderId !== null && !folders.find(f => f.id === targetFolderId)) {
-    throw new Error(`Target folder not found: ${targetFolderId}`);
-  }
-  
-  return { document, folders };
-}
-
-/**
- * Validates that a folder is empty - no subfolders and no documents
- */
-function validateEmptyFolder(folderId: string, folderPath?: string): { 
-  success: boolean; 
-  error?: string; 
-  canRecurse?: boolean;
-  documentCount?: number;
-} {
-  const folders = loadFolders();
-  const documents = loadDocuments();
-  
-  // Check for subfolders
-  const hasSubfolders = folders.some(f => f.parentId === folderId);
-  if (hasSubfolders) {
-    return {
-      success: false,
-      error: "Cannot delete folder that contains subfolders",
-      canRecurse: true
-    };
-  }
-  
-  // Check for documents in the folder
-  const documentsInFolder = documents.filter(doc => doc.folderId === folderId);
-  if (documentsInFolder.length > 0) {
-    return {
-      success: false,
-      error: "Cannot delete folder that contains documents",
-      canRecurse: true, 
-      documentCount: documentsInFolder.length
-    };
-  }
-  
-  return { success: true };
-}
-
-/**
- * Recursively deletes metadata for a folder and all its contents
- */
-function deleteRecursiveMetadata(folderId: string): void {
-  const folders = loadFolders();
-  const documents = loadDocuments();
-  
-  // Get all child folder IDs
-  const allFolderIds = getAllChildFolderIds(folders, folderId);
-  allFolderIds.push(folderId); // Include the current folder
-  
-  // Remove documents in this folder hierarchy
-  const remainingDocuments = documents.filter(doc => 
-    doc.folderId === null || !allFolderIds.includes(doc.folderId)
-  );
-  updateDocumentsIndex(remainingDocuments);
-  
-  // Remove all folders in this hierarchy
-  const remainingFolders = folders.filter(f => !allFolderIds.includes(f.id));
-  updateFoldersIndex(remainingFolders);
-}
-
-/**
- * Copies a folder and all its contents to a new location
- * @param sourceId - ID of the source folder to copy
- * @param targetParentId - ID of target parent folder (or null for root)
- * @param newName - Optional new name for the copied folder
- */
-export const copyFolder = (sourceId: string, targetParentId: string | null, newName?: string): { success: boolean, newFolderId?: string, error?: string } => {
-  try {
-    // Step 1: Get source folder and validate it exists
-    const folders = loadFolders();
-    const sourceFolder = folders.find(f => f.id === sourceId);
-    
-    if (!sourceFolder) {
-      return {
-        success: false,
-        error: "Source folder not found"
-      };
-    }
-    
-    // Step 2: Generate new folder ID and create target folder object
-    const newFolderId = `folder-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const targetFolder: Folder = {
-      id: newFolderId,
-      name: newName || `${sourceFolder.name} (Copy)`,
+  if (!trashFolder) {
+    // Create a Trash folder if it doesn't exist
+    trashFolder = {
+      id: `folder-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      name: 'Trash',
       createdAt: new Date(),
-      parentId: targetParentId
+      parentId: null
     };
     
-    // Step 3: Get source and target paths
-    const sourcePath = getFolderPath(sourceId);
+    // Save the trash folder to the filesystem
+    saveFolder(trashFolder);
+  }
+  
+  return trashFolder;
+};
+
+// Move a document to the trash instead of deleting it
+export const moveToTrash = (docId: string): { success: boolean, error?: string } => {
+  try {
+    // Get document metadata
+    const documents = loadDocuments();
+    const document = documents.find(doc => doc.id === docId);
     
-    // Add target folder to the folders list temporarily
-    folders.push(targetFolder);
-    const targetPath = getFolderPathFromFolder(targetFolder, folders);
-    
-    // Step 4: Copy the directory with fs-extra (one call handles recursive copy)
-    if (fs.existsSync(sourcePath)) {
-      fs.copySync(sourcePath, targetPath, {
-        overwrite: true,
-        errorOnExist: false,
-        preserveTimestamps: true
-      });
-    } else {
-      // If source doesn't exist physically, just create the target directory
-      fs.ensureDirSync(targetPath);
+    if (!document) {
+      return { success: false, error: "Document not found" };
     }
     
-    // Step 5: Save the target folder metadata 
-    updateFolderMetadata(targetFolder);
+    // Get or create the trash folder
+    const trashFolder = getOrCreateTrashFolder();
     
-    // Step 6: Copy folder contents metadata (documents and subfolders)
-    const folderIdMap = copyFolderMetadata(sourceId, newFolderId, folders);
+    // Create the trash folder on disk if it doesn't exist
+    const folders = loadFolders();
+    const trashPath = getFolderPath(trashFolder, folders);
+    ensureDir(trashPath);
     
-    return { 
-      success: true,
-      newFolderId 
-    };
+    // Get the old path
+    const oldPath = getDocumentPath(document, folders);
+    
+    // Update document folder
+    const originalDocument = { ...document };
+    document.folderId = trashFolder.id;
+    document.updatedAt = new Date();
+    
+    // Get the new path
+    const newPath = getDocumentPath(document, folders);
+    
+    // Move the file
+    if (fs.existsSync(oldPath)) {
+      // Ensure the directory exists
+      ensureDir(path.dirname(newPath));
+      
+      try {
+        // Read the content
+        const content = fs.readFileSync(oldPath, 'utf8');
+        
+        // Write to new location
+        fs.writeFileSync(newPath, content, 'utf8');
+        
+        // Delete the old file
+        fs.unlinkSync(oldPath);
+        
+        // Update the index
+        const updatedDocuments = documents.map(doc => 
+          doc.id === docId ? document : doc
+        );
+        writeJsonFile(DOCUMENTS_INDEX, updatedDocuments);
+        
+        return { success: true };
+      } catch (fileError) {
+        // Revert the document if file operations fail
+        console.error('Error moving file to trash:', fileError);
+        return { 
+          success: false, 
+          error: fileError instanceof Error ? fileError.message : String(fileError)
+        };
+      }
+    } else {
+      // If file doesn't exist, just update the metadata
+      const updatedDocuments = documents.map(doc => 
+        doc.id === docId ? document : doc
+      );
+      writeJsonFile(DOCUMENTS_INDEX, updatedDocuments);
+      return { success: true };
+    }
   } catch (error) {
-    console.error('Error copying folder:', error);
+    console.error('Error moving document to trash:', error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : String(error)
@@ -1307,75 +1191,70 @@ export const copyFolder = (sourceId: string, targetParentId: string | null, newN
   }
 };
 
-/**
- * Helper function to copy folder metadata recursively
- * Maps original folder IDs to their new copies
- */
-function copyFolderMetadata(sourceId: string, targetId: string, allFolders: Folder[]): Map<string, string> {
-  const folderIdMap = new Map<string, string>();
-  folderIdMap.set(sourceId, targetId);
-  
-  // Step 1: Copy subfolders recursively
-  const childFolders = allFolders.filter(f => f.parentId === sourceId);
-  
-  for (const childFolder of childFolders) {
-    const newChildId = `folder-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    folderIdMap.set(childFolder.id, newChildId);
+// Empty the trash by permanently deleting all documents in the trash folder
+export const emptyTrash = (): { success: boolean, error?: string, count?: number } => {
+  try {
+    const folders = loadFolders();
+    const trashFolder = folders.find(f => f.name === 'Trash' && f.parentId === null);
     
-    // Create new subfolder with reference to new parent
-    const newChildFolder: Folder = {
-      id: newChildId,
-      name: childFolder.name,
-      createdAt: new Date(),
-      parentId: targetId
-    };
-    
-    // Save the new subfolder metadata
-    updateFolderMetadata(newChildFolder);
-    
-    // Recursively process subfolders and collect their ID mappings
-    const childMappings = copyFolderMetadata(childFolder.id, newChildId, allFolders);
-    
-    // Merge the mappings
-    for (const [origId, newId] of childMappings.entries()) {
-      folderIdMap.set(origId, newId);
-    }
-  }
-  
-  // Step 2: Copy documents in this folder
-  const documents = loadDocuments();
-  const documentsInFolder = documents.filter(doc => doc.folderId === sourceId);
-  
-  for (const doc of documentsInFolder) {
-    // Create a new document with a new ID but same content
-    const newDocId = `doc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    
-    const newDoc: Document = {
-      ...doc,
-      id: newDocId,
-      folderId: targetId,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    // Get source and target file paths
-    const allFolders = loadFolders(); // Reload to get latest folder structure
-    const sourceFolder = allFolders.find(f => f.id === sourceId);
-    const targetFolder = allFolders.find(f => f.id === targetId);
-    
-    if (sourceFolder && targetFolder) {
-      const sourcePath = path.join(getFolderPathFromFolder(sourceFolder, allFolders), `${doc.id}.md`);
-      const targetPath = path.join(getFolderPathFromFolder(targetFolder, allFolders), `${newDocId}.md`);
-      
-      // Copy the file if it exists
-      if (fs.existsSync(sourcePath)) {
-        fs.copySync(sourcePath, targetPath);
-      }
+    if (!trashFolder) {
+      return { success: true, count: 0 };
     }
     
-    // Update document metadata
-    updateDocumentMetadata(newDoc);
+    // Get all documents in the trash
+    const documents = loadDocuments();
+    const trashDocuments = documents.filter(doc => doc.folderId === trashFolder.id);
+    
+    // Delete each document
+    let deletedCount = 0;
+    for (const doc of trashDocuments) {
+      deleteDocument(doc.id);
+      deletedCount++;
+    }
+    
+    return { success: true, count: deletedCount };
+  } catch (error) {
+    console.error('Error emptying trash:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : String(error)
+    };
   }
-  
-  return folderIdMap;
-} 
+};
+
+// Restore a document from trash to its original location or root
+export const restoreFromTrash = (docId: string, targetFolderId: string | null = null): { success: boolean, error?: string } => {
+  try {
+    // Get document metadata
+    const documents = loadDocuments();
+    const document = documents.find(doc => doc.id === docId);
+    
+    if (!document) {
+      return { success: false, error: "Document not found" };
+    }
+    
+    // Get trash folder
+    const folders = loadFolders();
+    const trashFolder = folders.find(f => f.name === 'Trash' && f.parentId === null);
+    
+    // Verify document is in trash
+    if (!trashFolder || document.folderId !== trashFolder.id) {
+      return { success: false, error: "Document is not in trash" };
+    }
+    
+    // Move document to target folder or root
+    const result = moveDocument(docId, targetFolderId);
+    
+    if (!result) {
+      return { success: false, error: "Failed to restore document" };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error restoring document from trash:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}; 

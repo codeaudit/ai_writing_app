@@ -102,14 +102,26 @@
     "parentId": "folder-1743688083869"
   },
   {
+    "id": "folder-1743781823253",
+    "name": "trash",
+    "createdAt": "2025-04-04T15:50:23.253Z",
+    "parentId": "folder-1743688027121"
+  },
+  {
     "id": "folder-1743733092916-y3zpoid",
     "name": "examples",
     "createdAt": "2025-04-04T02:18:12.916Z",
     "parentId": null
   },
   {
-    "id": "folder-1743730931987-zh6lzxn",
+    "id": "folder-1743781444884-3hid83b",
     "name": "o1-pro (Copy) (Copy)",
+    "createdAt": "2025-04-04T15:44:04.884Z",
+    "parentId": null
+  },
+  {
+    "id": "folder-1743730931987-zh6lzxn",
+    "name": "o1-pro-new",
     "createdAt": "2025-04-04T01:42:11.987Z",
     "parentId": null
   },

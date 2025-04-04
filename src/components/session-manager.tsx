@@ -5,11 +5,11 @@ import { useDocumentStore } from '@/lib/store';
 import { useSessionStore, DocumentSession } from '@/lib/session-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, X, BookOpen, Bookmark, FileText, Clock, Settings, RefreshCw, AlertOctagon } from 'lucide-react';
+import { PlusCircle, X, BookOpen, Bookmark, FileText, Clock, RefreshCw, AlertOctagon } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -37,7 +37,6 @@ export default function SessionManager() {
     checkSync,
     refreshSessions,
     repairSessions,
-    lastSyncTime
   } = useSessionStore();
   
   // Add navigation history
@@ -229,16 +228,11 @@ export default function SessionManager() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-2 border-b">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <BookOpen size={18} />
+        <h2 className="text-sm font-semibold flex items-center gap-1">
+          <BookOpen size={16} />
           <span>Sessions</span>
-          {lastSyncTime && (
-            <span className="text-xs text-muted-foreground ml-2">
-              Last checked: {format(new Date(lastSyncTime), 'HH:mm:ss')}
-              {isSyncRequired && (
-                <span className="text-yellow-500 ml-1">(Out of sync)</span>
-              )}
-            </span>
+          {isSyncRequired && (
+            <span className="text-xs text-yellow-500 ml-1">(Out of sync)</span>
           )}
         </h2>
         
@@ -252,10 +246,10 @@ export default function SessionManager() {
                     variant="ghost" 
                     size="sm"
                     onClick={handleRepairSessions}
-                    className="text-yellow-500"
+                    className="text-yellow-500 h-7 w-7 p-0"
                     disabled={isLoading}
                   >
-                    <AlertOctagon size={16} />
+                    <AlertOctagon size={14} />
                   </Button>
                 </TooltipTrigger>
               </Tooltip>
@@ -264,53 +258,33 @@ export default function SessionManager() {
           
           {/* Manual refresh button with improved tooltip */}
           <TooltipProvider>
-            <Tooltip content="Manually check and refresh sessions from server">
+            <Tooltip content="Refresh sessions">
               <TooltipTrigger asChild>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={handleRefreshSessions}
+                  className="h-7 w-7 p-0"
                   disabled={isLoading}
-                  className={isLoading ? "animate-spin" : ""}
                 >
-                  <RefreshCw size={16} />
-                  <span className="sr-only">Check sessions</span>
+                  <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
                 </Button>
               </TooltipTrigger>
             </Tooltip>
           </TooltipProvider>
           
-          {activeSessionId && selectedDocumentId && (
-            <TooltipProvider>
-              <Tooltip content="Add current document to this session">
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleAddCurrentDocument}
-                    aria-label="Add current document to session"
-                    disabled={!selectedDocumentId || !activeSessionId || 
-                      (activeSession?.documentIds.includes(selectedDocumentId) ?? false) || 
-                      isLoading}
-                  >
-                    <PlusCircle size={16} />
-                  </Button>
-                </TooltipTrigger>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          
+          {/* Create new session button */}
           <TooltipProvider>
             <Tooltip content="Create new session">
               <TooltipTrigger asChild>
                 <Button 
                   variant="ghost" 
-                  size="sm" 
+                  size="sm"
                   onClick={() => setShowNewSessionDialog(true)}
-                  aria-label="Create new session"
+                  className="h-7 w-7 p-0"
                   disabled={isLoading}
                 >
-                  <Settings size={16} />
+                  <PlusCircle size={14} />
                 </Button>
               </TooltipTrigger>
             </Tooltip>
@@ -319,12 +293,12 @@ export default function SessionManager() {
       </div>
       
       {error && (
-        <div className="bg-red-500/10 text-red-500 p-2 text-xs">
-          Error: {error}
+        <div className="bg-red-500/10 text-red-500 p-1 text-xs">
+          <span className="truncate block">Error: {error}</span>
           <Button 
             variant="link" 
             size="sm" 
-            className="ml-2 p-0 h-auto text-xs text-red-500 hover:text-red-400"
+            className="p-0 h-auto text-xs text-red-500 hover:text-red-400"
             onClick={handleRepairSessions}
           >
             Try to repair
@@ -333,78 +307,109 @@ export default function SessionManager() {
       )}
       
       <Tabs defaultValue="active" className="flex-1 flex flex-col">
-        <TabsList className="px-2 pt-2 pb-0 bg-transparent justify-start">
-          <TabsTrigger value="active" className="data-[state=active]:bg-muted">Active</TabsTrigger>
-          <TabsTrigger value="all" className="data-[state=active]:bg-muted">All Sessions</TabsTrigger>
+        <TabsList className="px-1 pt-1 pb-0 bg-transparent justify-start h-8">
+          <TabsTrigger value="active" className="data-[state=active]:bg-muted h-7 text-xs px-2">Active</TabsTrigger>
+          <TabsTrigger value="all" className="data-[state=active]:bg-muted h-7 text-xs px-2">All Sessions</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="active" className="flex-1 p-2">
+        <TabsContent value="active" className="flex-1 p-1 mt-1">
           {activeSession ? (
-            <Card className="h-full flex flex-col">
-              <CardHeader className="pb-2">
+            <Card className="h-full flex flex-col overflow-hidden">
+              <div className="p-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <div 
-                      className="w-3 h-3 rounded-full" 
+                      className="w-2 h-2 rounded-full" 
                       style={{ backgroundColor: activeSession.color || '#627BFF' }}
                     />
-                    <CardTitle className="text-lg">{activeSession.name}</CardTitle>
+                    <h4 className="text-sm font-medium truncate">{activeSession.name}</h4>
                   </div>
                   <Button 
                     variant="ghost" 
                     size="sm"
                     onClick={() => setActiveSession(null)}
                     aria-label="Close session"
+                    className="h-6 w-6 p-0"
                   >
-                    <X size={14} />
+                    <X size={12} />
                   </Button>
                 </div>
                 {activeSession.description && (
-                  <CardDescription>{activeSession.description}</CardDescription>
+                  <p className="text-xs text-muted-foreground truncate">{activeSession.description}</p>
                 )}
-              </CardHeader>
+              </div>
               
-              <CardContent className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full pr-4">
-                  <h3 className="text-sm font-medium mb-2">Documents ({sessionDocuments.length})</h3>
-                  
+              <div className="px-2 pb-1">
+                {selectedDocumentId && (
+                  <div className="flex items-center gap-1 mb-2">
+                    <Button 
+                      onClick={handleAddCurrentDocument}
+                      size="sm"
+                      variant="secondary"
+                      className="text-xs h-7 w-full"
+                      disabled={activeSession.documentIds.includes(selectedDocumentId)}
+                    >
+                      <PlusCircle size={12} className="mr-1" />
+                      {activeSession.documentIds.includes(selectedDocumentId) 
+                        ? "Document in session" 
+                        : "Add current document"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-0 px-2 flex-1 overflow-hidden">
+                <ScrollArea className="h-full pr-2">
                   {sessionDocuments.length > 0 ? (
-                    <ul className="space-y-2">
+                    <div className="space-y-2">
                       {sessionDocuments.map(doc => (
-                        <li key={doc.id} className="flex items-center justify-between text-sm p-2 rounded bg-muted/50">
-                          <span className="truncate flex-1">{doc.name}</span>
+                        <div 
+                          key={doc.id}
+                          className="flex items-center justify-between group rounded-md p-1 hover:bg-muted"
+                        >
+                          <button 
+                            className="text-xs truncate text-left flex-1"
+                            onClick={() => {
+                              useDocumentStore.getState().selectDocument(doc.id);
+                            }}
+                          >
+                            <FileText size={12} className="inline mr-1 text-muted-foreground" />
+                            {doc.name}
+                          </button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRemoveDocument(doc.id, activeSession.id)}
-                            aria-label={`Remove ${doc.name} from session`}
+                            className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+                            aria-label="Remove document"
                           >
-                            <X size={14} />
+                            <X size={12} />
                           </Button>
-                        </li>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No documents in this session yet.</p>
+                    <div className="text-center py-4 text-muted-foreground text-xs">
+                      No documents in this session yet
+                    </div>
                   )}
                 </ScrollArea>
-              </CardContent>
-              
-              <CardFooter className="pt-2 text-xs text-muted-foreground flex justify-between">
-                <span>Created {format(new Date(activeSession.created), 'MMM d, yyyy')}</span>
-                <span>Last used {format(new Date(activeSession.lastAccessed), 'MMM d, yyyy')}</span>
-              </CardFooter>
+              </div>
             </Card>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full gap-4 p-4 text-center">
-              <BookOpen size={48} className="text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center h-full gap-2 p-2 text-center">
+              <BookOpen size={32} className="text-muted-foreground" />
               <div>
-                <h3 className="font-medium">No Active Session</h3>
-                <p className="text-sm text-muted-foreground mt-1 mb-4">
-                  Select a session or create a new one to start collecting related documents.
+                <h3 className="font-medium text-sm">No Active Session</h3>
+                <p className="text-xs text-muted-foreground mt-1 mb-2">
+                  Select a session to start collecting documents.
                 </p>
-                <Button onClick={() => setShowNewSessionDialog(true)}>
-                  <PlusCircle size={16} className="mr-2" />
+                <Button 
+                  onClick={() => setShowNewSessionDialog(true)} 
+                  size="sm"
+                  className="h-7 text-xs"
+                >
+                  <PlusCircle size={12} className="mr-1" />
                   New Session
                 </Button>
               </div>
@@ -412,10 +417,10 @@ export default function SessionManager() {
           )}
         </TabsContent>
         
-        <TabsContent value="all" className="flex-1 p-2">
-          <ScrollArea className="h-full">
+        <TabsContent value="all" className="flex-1 p-1 mt-1">
+          <ScrollArea className="h-full px-0.5">
             {sessions.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 {sessions.map(session => (
                   <SessionCard 
                     key={session.id} 
@@ -428,15 +433,19 @@ export default function SessionManager() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full gap-4 p-4 text-center">
-                <Bookmark size={48} className="text-muted-foreground" />
+              <div className="flex flex-col items-center justify-center h-full gap-2 p-1 text-center">
+                <Bookmark size={24} className="text-muted-foreground" />
                 <div>
-                  <h3 className="font-medium">No Sessions Yet</h3>
-                  <p className="text-sm text-muted-foreground mt-1 mb-4">
-                    Create your first session to start organizing your documents.
+                  <h3 className="font-medium text-xs">No Sessions Yet</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">
+                    Create your first session.
                   </p>
-                  <Button onClick={() => setShowNewSessionDialog(true)}>
-                    <PlusCircle size={16} className="mr-2" />
+                  <Button 
+                    onClick={() => setShowNewSessionDialog(true)}
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                  >
+                    <PlusCircle size={10} className="mr-1" />
                     New Session
                   </Button>
                 </div>
@@ -523,25 +532,26 @@ function SessionCard({
   documentCount: number;
 }) {
   return (
-    <Card className={`${isActive ? 'border-primary' : ''}`}>
-      <CardHeader className="p-3 pb-2">
+    <Card className={`${isActive ? 'border-primary' : ''} overflow-hidden`}>
+      <div className="p-1.5 pb-0.5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 max-w-[70%]">
             <div 
-              className="w-3 h-3 rounded-full" 
+              className="w-2 h-2 rounded-full flex-shrink-0" 
               style={{ backgroundColor: session.color || '#627BFF' }}
             />
-            <CardTitle className="text-sm font-medium truncate">{session.name}</CardTitle>
+            <h4 className="text-xs font-medium truncate">{session.name}</h4>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-0.5">
             {!isActive ? (
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={onActivate}
                 aria-label="Activate session"
+                className="h-5 w-5 p-0"
               >
-                <Clock size={14} />
+                <Clock size={10} />
               </Button>
             ) : null}
             <Button 
@@ -549,37 +559,39 @@ function SessionCard({
               size="sm"
               onClick={onDelete}
               aria-label="Delete session"
+              className="h-5 w-5 p-0"
             >
-              <X size={14} />
+              <X size={10} />
             </Button>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="px-3 py-2">
+        
         {session.description ? (
-          <p className="text-xs text-muted-foreground mb-1 truncate">{session.description}</p>
+          <p className="text-[10px] text-muted-foreground truncate mt-0.5">{session.description}</p>
         ) : null}
-        <div className="flex items-center text-xs gap-2">
+        
+        <div className="flex items-center text-[10px] gap-1 flex-wrap mt-0.5">
           <div className="flex items-center">
-            <FileText size={12} className="mr-1 text-muted-foreground" />
-            <span>{documentCount} document{documentCount !== 1 ? 's' : ''}</span>
+            <FileText size={8} className="mr-0.5 text-muted-foreground" />
+            <span>{documentCount}</span>
           </div>
-          <span className="text-muted-foreground">•</span>
+          <span className="text-muted-foreground px-0.5">•</span>
           <span className="text-muted-foreground">
-            Last used {format(new Date(session.lastAccessed), 'MMM d')}
+            {format(new Date(session.lastAccessed), 'MMM d')}
           </span>
         </div>
-      </CardContent>
-      <CardFooter className="p-3 pt-0">
+      </div>
+      
+      <div className="px-1.5 pb-1.5 pt-0.5">
         <Button 
           variant={isActive ? "secondary" : "default"} 
           size="sm" 
-          className="w-full"
+          className="w-full h-6 text-[10px] px-1"
           onClick={onActivate}
         >
           {isActive ? "Active" : "Activate"}
         </Button>
-      </CardFooter>
+      </div>
     </Card>
   );
 } 
