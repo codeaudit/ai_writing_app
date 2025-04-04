@@ -377,6 +377,9 @@ export const useSessionStore = create<SessionState>()(
       // Check if the server and client are in sync
       checkSync: async () => {
         try {
+          // For manual checks, we want to be thorough and always check with the server
+          // regardless of when we last checked
+          
           // Get current sessions from server
           const response = await fetch('/api/sessions');
           
@@ -387,17 +390,46 @@ export const useSessionStore = create<SessionState>()(
           const serverSessions = await response.json();
           const { sessions: clientSessions } = get();
           
-          // Basic sync check - just compare the number of sessions and IDs
-          const serverIds = new Set(serverSessions.map((s: {id: string}) => s.id));
+          // More thorough check - compare IDs, document counts, and last updated times
+          if (serverSessions.length !== clientSessions.length) {
+            // Different number of sessions, not in sync
+            set({ 
+              isSyncRequired: true,
+              lastSyncTime: Date.now()
+            });
+            return false;
+          }
           
-          // Check if all client IDs exist on server
-          const isSynced = clientSessions.length === serverSessions.length && 
-            clientSessions.every(s => serverIds.has(s.id));
+          // Check if all client sessions exist on server with matching document counts
+          const serverSessionMap = new Map();
+          serverSessions.forEach((s: {
+            id: string;
+            documentIds: string[];
+            lastAccessed: string;
+          }) => {
+            serverSessionMap.set(s.id, {
+              documentIds: s.documentIds || [],
+              lastAccessed: new Date(s.lastAccessed).getTime()
+            });
+          });
+          
+          // Check for any differences
+          const isSynced = clientSessions.every(clientSession => {
+            const serverSession = serverSessionMap.get(clientSession.id);
+            if (!serverSession) return false;
+            
+            // Check if document counts match
+            if (serverSession.documentIds.length !== clientSession.documentIds.length) {
+              return false;
+            }
+            
+            return true;
+          });
           
           // Update sync status
           set({ 
             isSyncRequired: !isSynced,
-            lastSyncTime: isSynced ? Date.now() : get().lastSyncTime
+            lastSyncTime: Date.now()
           });
           
           return isSynced;

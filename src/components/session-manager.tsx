@@ -50,23 +50,18 @@ export default function SessionManager() {
   
   // Load the sessions when the component mounts
   useEffect(() => {
-    loadSessions().catch(error => {
-      console.error('Error loading sessions:', error);
-    });
-  }, [loadSessions]);
-  
-  // Periodically check if sessions are in sync
-  useEffect(() => {
-    // Check sync status initially
-    checkSync().catch(console.error);
+    const loadSessionsOnce = async () => {
+      try {
+        await loadSessions();
+      } catch (error) {
+        console.error('Error loading sessions:', error);
+      }
+    };
     
-    // Check every 30 seconds if sessions need to be synced
-    const interval = setInterval(() => {
-      checkSync().catch(console.error);
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, [checkSync]);
+    loadSessionsOnce();
+    // Important: Don't include loadSessions in the dependency array
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Get the currently active session
   const activeSession = sessions.find(session => session.id === activeSessionId);
@@ -111,11 +106,22 @@ export default function SessionManager() {
   // Handle refreshing sessions from server
   const handleRefreshSessions = async () => {
     try {
-      await refreshSessions();
-      toast({
-        title: "Sessions refreshed",
-        description: "Sessions have been refreshed from the server."
-      });
+      // First check for sync issues
+      const isSynced = await checkSync();
+      
+      if (!isSynced) {
+        // If not in sync, refresh sessions from server
+        await refreshSessions();
+        toast({
+          title: "Sessions refreshed",
+          description: "Sessions have been refreshed from the server."
+        });
+      } else {
+        toast({
+          title: "Sessions already in sync",
+          description: "No refresh needed, your sessions are up to date."
+        });
+      }
     } catch (error) {
       console.error('Error refreshing sessions:', error);
       toast({
@@ -228,7 +234,10 @@ export default function SessionManager() {
           <span>Sessions</span>
           {lastSyncTime && (
             <span className="text-xs text-muted-foreground ml-2">
-              Last synced: {format(new Date(lastSyncTime), 'HH:mm:ss')}
+              Last checked: {format(new Date(lastSyncTime), 'HH:mm:ss')}
+              {isSyncRequired && (
+                <span className="text-yellow-500 ml-1">(Out of sync)</span>
+              )}
             </span>
           )}
         </h2>
@@ -253,9 +262,9 @@ export default function SessionManager() {
             </TooltipProvider>
           )}
           
-          {/* Refresh button */}
+          {/* Manual refresh button with improved tooltip */}
           <TooltipProvider>
-            <Tooltip content="Refresh sessions from server">
+            <Tooltip content="Manually check and refresh sessions from server">
               <TooltipTrigger asChild>
                 <Button 
                   variant="ghost" 
@@ -265,6 +274,7 @@ export default function SessionManager() {
                   className={isLoading ? "animate-spin" : ""}
                 >
                   <RefreshCw size={16} />
+                  <span className="sr-only">Check sessions</span>
                 </Button>
               </TooltipTrigger>
             </Tooltip>
