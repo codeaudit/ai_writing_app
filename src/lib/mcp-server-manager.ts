@@ -6,6 +6,7 @@ import { OpenAIChatAdapter } from "@smithery/sdk/integrations/llm/openai.js"
 import { createTransport } from "@smithery/sdk/transport.js"
 
 import { logger } from './logger';
+import { GeminiAIChatAdapter } from './gemini-adapter';
 
 // Handle WebSocket polyfill for server-side
 if (typeof global !== 'undefined' && typeof WebSocket === 'undefined') {
@@ -49,6 +50,7 @@ const enabledServers: MCPServerState[] = [];
 // Provider-specific adapters
 let openaiAdapter: OpenAIChatAdapter | null = null;
 let anthropicAdapter: AnthropicChatAdapter | null = null;
+let geminiAdapter: GeminiAIChatAdapter | null = null;
 
 // MultiClient instance
 let mcpClient: MultiClient | null = null;
@@ -77,6 +79,9 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
     // Clear the existing enabledServers array
     enabledServers.length = 0;
     
+    // Track which servers we've seen to avoid duplicates
+    const processedServers = new Set<string>();
+    
     try {
       // Load servers from the settings file
       const { loadMCPServersFromFile } = await import('./mcp-server-files');
@@ -96,13 +101,16 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
       // Process each enabled server
       for (const server of enabledMCPServers) {
         try {
-          const { qualifiedName, config, url: serverUrl, name } = server;
+          const { qualifiedName, config, url: serverUrl, name, connections } = server;
           
           // Skip if missing essential configuration
           if (!qualifiedName || !config) {
             logger.warn(`Skipping server with invalid configuration: ${qualifiedName || 'unknown'}`);
             continue;
           }
+          
+          // Track that we've processed this server
+          processedServers.add(qualifiedName);
           
           // Get the API key for this server
           const apiKey = config.apiKey || '';
@@ -112,9 +120,24 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
           }
           
           // Get the server URL
-          const serverUrlStr = typeof serverUrl === 'string' ? serverUrl : '';
-          const configUrlStr = typeof config.url === 'string' ? config.url : '';
-          const baseUrl = serverUrlStr || configUrlStr || `https://server.smithery.ai/${qualifiedName}`;
+          // If connections array exists and has WebSocket type, prefer that URL
+          let baseUrl = '';
+          if (connections && Array.isArray(connections)) {
+            // Find ws connection type and use its deploymentUrl if available
+            const wsConnection = connections.find(conn => conn.type === 'ws');
+            if (wsConnection && wsConnection.deploymentUrl) {
+              baseUrl = wsConnection.deploymentUrl;
+              logger.info(`Using WebSocket URL from connections: ${baseUrl}`);
+            }
+          }
+          
+          // Fall back to other URL sources if WebSocket URL not found in connections
+          if (!baseUrl) {
+            const serverUrlStr = typeof serverUrl === 'string' ? serverUrl : '';
+            const configUrlStr = typeof config.url === 'string' ? config.url : '';
+            baseUrl = serverUrlStr || configUrlStr || `https://server.smithery.ai/${qualifiedName}`;
+            logger.info(`Using fallback URL: ${baseUrl}`);
+          }
           
           // Ensure the URL uses the WebSocket protocol
           const wsUrl = baseUrl.replace(/^https?:\/\//, 'wss://');
@@ -156,43 +179,6 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
       // Continue with any hardcoded fallbacks if needed
     }
     
-    // Fallback to environment variable configuration if no servers were loaded
-    if (Object.keys(transports).length === 0) {
-      logger.warn('No servers loaded from settings, checking environment variables as fallback');
-      
-      // Add the Exa server transport using environment variables
-      const EXA_API_KEY = process.env.EXA_API_KEY || '';
-      const EXA_SERVER_URL = process.env.EXA_SERVER_URL || 'https://server.smithery.ai/exa';
-      
-      if (EXA_API_KEY) {
-        // Ensure the URL uses the WebSocket protocol
-        const wsUrl = EXA_SERVER_URL.replace(/^https?:\/\//, 'wss://');
-        
-        logger.always(`Fallback: Using Exa from environment - ${EXA_SERVER_URL} to WebSocket URL: ${wsUrl}`);
-        
-        const exaTransport = createTransport(wsUrl, {
-          exaApiKey: EXA_API_KEY,
-          apiKey: SMITHERY_API_KEY
-        });
-        
-        transports.exa = exaTransport;
-        logger.info(`Added Exa transport for ${wsUrl}`);
-        
-        // Add to enabled servers list for UI
-        enabledServers.push({
-          qualifiedName: 'exa',
-          name: 'Exa Search',
-          url: EXA_SERVER_URL,
-          enabled: true,
-          isDeployed: true,
-          description: 'Fast, intelligent web search and crawling',
-          config: { apiKey: EXA_API_KEY }
-        });
-      } else {
-        logger.warn('No EXA_API_KEY found in environment, Exa search will not be available');
-      }
-    }
-    
     // Connect to all transports
     if (Object.keys(transports).length > 0) {
       try {
@@ -201,9 +187,8 @@ export async function initializeMCPServers(): Promise<MultiClient | null> {
         await mcpClient.connectAll(transports);
         logger.info('Connected to MCP servers successfully');
         
-        // Initialize adapters
-        openaiAdapter = new OpenAIChatAdapter(mcpClient);
-        anthropicAdapter = new AnthropicChatAdapter(mcpClient);
+        // Note: Adapters are no longer initialized here
+        // They will be initialized only when specifically requested
         
         return mcpClient;
       } catch (connectionError) {
@@ -247,12 +232,33 @@ export async function getEnabledMCPServers(): Promise<MCPServerState[]> {
 }
 
 /**
+ * Reset/clear all adapters - call this when switching providers
+ */
+export async function clearAllAdapters(): Promise<void> {
+  logger.debug('Clearing all MCP adapters');
+  openaiAdapter = null;
+  anthropicAdapter = null;
+  geminiAdapter = null;
+}
+
+/**
  * Get the OpenAI adapter configured with MCP servers
  */
 export async function getOpenAIAdapter(): Promise<OpenAIChatAdapter | null> {
-  // Initialize if needed
-  if (!openaiAdapter) {
+  // Initialize MCP client if needed
+  if (!mcpClient) {
     await initializeMCPServers();
+    
+    if (!mcpClient) {
+      logger.error('Failed to initialize MCP client for OpenAI adapter');
+      return null;
+    }
+  }
+  
+  // Initialize adapter if it doesn't exist
+  if (!openaiAdapter && mcpClient) {
+    logger.debug('Creating new OpenAI adapter');
+    openaiAdapter = new OpenAIChatAdapter(mcpClient);
   }
   
   logger.debug(`getOpenAIAdapter called, adapter ${openaiAdapter ? 'exists' : 'is null'}`);
@@ -263,13 +269,48 @@ export async function getOpenAIAdapter(): Promise<OpenAIChatAdapter | null> {
  * Get the Anthropic adapter configured with MCP servers
  */
 export async function getAnthropicAdapter(): Promise<AnthropicChatAdapter | null> {
-  // Initialize if needed
-  if (!anthropicAdapter) {
+  // Initialize MCP client if needed
+  if (!mcpClient) {
     await initializeMCPServers();
+    
+    if (!mcpClient) {
+      logger.error('Failed to initialize MCP client for Anthropic adapter');
+      return null;
+    }
+  }
+  
+  // Initialize adapter if it doesn't exist
+  if (!anthropicAdapter && mcpClient) {
+    logger.debug('Creating new Anthropic adapter');
+    anthropicAdapter = new AnthropicChatAdapter(mcpClient);
   }
   
   logger.debug(`getAnthropicAdapter called, adapter ${anthropicAdapter ? 'exists' : 'is null'}`);
   return anthropicAdapter;
+}
+
+/**
+ * Get the Gemini adapter configured with MCP servers
+ */
+export async function getGeminiAdapter(): Promise<GeminiAIChatAdapter | null> {
+  // Initialize MCP client if needed
+  if (!mcpClient) {
+    await initializeMCPServers();
+    
+    if (!mcpClient) {
+      logger.error('Failed to initialize MCP client for Gemini adapter');
+      return null;
+    }
+  }
+  
+  // Initialize adapter if it doesn't exist
+  if (!geminiAdapter && mcpClient) {
+    logger.debug('Creating new Gemini adapter');
+    geminiAdapter = new GeminiAIChatAdapter(mcpClient);
+  }
+  
+  logger.debug(`getGeminiAdapter called, adapter ${geminiAdapter ? 'exists' : 'is null'}`);
+  return geminiAdapter;
 }
 
 /**

@@ -7,6 +7,9 @@ const VAULT_DIR = path.join(process.cwd(), 'vault');
 const SYSTEM_DIR = path.join(VAULT_DIR, 'system');
 const SESSIONS_FILE = path.join(SYSTEM_DIR, 'sessions.md');
 
+// Flag to track if sessions have been pre-fetched
+let sessionsPrefetched = false;
+
 // Ensure system directory exists
 const ensureSystemDirectory = () => {
   try {
@@ -52,26 +55,37 @@ export async function GET() {
     const files = fs.readdirSync(SYSTEM_DIR);
     console.log("Files in system directory:", files);
     
-    // Make an internal API call to load sessions
-    try {
-      console.log("Pre-fetching sessions data...");
-      const sessionsResponse = await fetch(new URL('/api/sessions', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').toString());
-      if (sessionsResponse.ok) {
-        const sessions = await sessionsResponse.json();
-        console.log(`Successfully pre-fetched ${sessions.length} sessions`);
-      } else {
-        console.error("Failed to pre-fetch sessions:", sessionsResponse.statusText);
+    // Make an internal API call to load sessions - only once per server instance
+    if (!sessionsPrefetched) {
+      try {
+        console.log("Pre-fetching sessions data...");
+        const sessionsResponse = await fetch(new URL('/api/sessions', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').toString());
+        if (sessionsResponse.ok) {
+          const sessions = await sessionsResponse.json();
+          console.log(`Successfully pre-fetched ${sessions.length} sessions`);
+          sessionsPrefetched = true;
+        } else {
+          console.error("Failed to pre-fetch sessions:", sessionsResponse.statusText);
+        }
+      } catch (error) {
+        console.error("Error pre-fetching sessions:", error);
       }
-    } catch (error) {
-      console.error("Error pre-fetching sessions:", error);
+    } else {
+      console.log("Sessions already pre-fetched, skipping");
     }
     
-    return NextResponse.json({
+    // Create response with cache control headers
+    const response = NextResponse.json({
       success: true,
       message: 'Application initialized successfully',
       systemFiles: files,
       sessionsExist
     });
+    
+    // Add cache-control header to avoid repeated calls
+    response.headers.set('Cache-Control', 'private, max-age=3600');
+    
+    return response;
   } catch (error) {
     console.error('Error initializing application:', error);
     

@@ -322,6 +322,33 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeMessages]);
 
+  // Monitor provider changes to disable MCP when provider changes
+  useEffect(() => {
+    if (useMCPService) {
+      const currentProvider = useLLMStore.getState().config.provider;
+      
+      // Create a selector function
+      const providerSelector = (state: { config: { provider: string } }) => state.config.provider;
+      
+      // Subscribe to changes using the selector
+      const unsubscribe = useLLMStore.subscribe(providerSelector, (newProvider: string) => {
+        // If provider changed while MCP is enabled, disable MCP
+        if (newProvider !== currentProvider && useMCPService) {
+          setUseMCPService(false);
+          toast({
+            title: "MCP Disabled",
+            description: "MCP has been disabled due to provider change."
+          });
+        }
+      });
+      
+      // Clean up subscription
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [useMCPService, toast]);
+  
   // Function to handle form submission
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -374,8 +401,14 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       setLastApiMessages(apiMessages);
       
       // Prepare the request
+      const { provider, model } = useLLMStore.getState().config;
+      
       const chatRequest = {
-        messages: apiMessages,
+        messages: apiMessages.map(msg => ({
+          ...msg,
+          provider,
+          model
+        })),
         contextDocuments: contextDocuments.map(doc => ({
           id: doc.id,
           title: doc.name,
@@ -457,8 +490,14 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       setLastApiMessages(apiMessages);
       
       // Prepare the request
+      const { provider, model } = useLLMStore.getState().config;
+      
       const chatRequest = {
-        messages: apiMessages,
+        messages: apiMessages.map(msg => ({
+          ...msg,
+          provider,
+          model
+        })),
         contextDocuments: contextDocuments.map(doc => ({
           id: doc.id,
           title: doc.name,

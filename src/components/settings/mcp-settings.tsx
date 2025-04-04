@@ -30,8 +30,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { generateMCPChatResponse, Tool, ChatMessage, ChatRequestWithTools, ChatMessageWithTools } from '@/lib/mcp-service';
 import { getMCPClient } from '@/lib/mcp-server-manager';
-import { OpenAIChatAdapter } from "@smithery/sdk/integrations/llm/openai.js";
-import { AnthropicChatAdapter } from "@smithery/sdk/integrations/llm/anthropic.js";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Loader2 } from "lucide-react";
@@ -90,7 +88,7 @@ export function MCPSettings() {
   const [installLoading, setInstallLoading] = useState(false);
   const [serverConfig, setServerConfig] = useState<Record<string, string>>({});
   const [apiKeyField, setApiKeyField] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState<'openai' | 'anthropic' | 'openrouter' | 'featherless' | 'groq'>('openai');
+  const [selectedProvider, setSelectedProvider] = useState<'openai' | 'anthropic' | 'openrouter' | 'featherless' | 'groq' | 'gemini'>('openai');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [availableTools, setAvailableTools] = useState<Tool[]>([]);
   const [selectedTool, setSelectedTool] = useState<string>('');
@@ -413,25 +411,51 @@ export function MCPSettings() {
         return;
       }
       
-      // Create the appropriate adapter based on selected provider
+      // Import adapter getters
+      const { 
+        getOpenAIAdapter, 
+        getAnthropicAdapter, 
+        getGeminiAdapter,
+        clearAllAdapters 
+      } = await import('@/lib/mcp-server-manager');
+      
+      // Clear existing adapters when changing providers
+      clearAllAdapters();
+      
+      // Get the appropriate adapter based on selected provider
       let adapter;
       switch (selectedProvider) {
         case 'openai':
-          adapter = new OpenAIChatAdapter(mcpClient);
+          adapter = await getOpenAIAdapter();
           break;
         case 'anthropic':
-          adapter = new AnthropicChatAdapter(mcpClient);
+          adapter = await getAnthropicAdapter();
+          break;
+        case 'gemini':
+          adapter = await getGeminiAdapter();
           break;
         case 'openrouter':
           // For OpenRouter, we'll use the OpenAI adapter since they share the same API format
-          adapter = new OpenAIChatAdapter(mcpClient);
+          adapter = await getOpenAIAdapter();
           break;
         case 'featherless':
           // For Featherless, we'll use the Anthropic adapter as a base
-          adapter = new AnthropicChatAdapter(mcpClient);
+          adapter = await getAnthropicAdapter();
+          break;
+        case 'groq':
+          // For Groq, we'll use the OpenAI adapter as well
+          adapter = await getOpenAIAdapter();
           break;
         default:
-          adapter = new OpenAIChatAdapter(mcpClient);
+          adapter = await getOpenAIAdapter();
+      }
+      
+      // Check if the adapter was successfully created
+      if (!adapter) {
+        toast.error(`Failed to initialize ${selectedProvider} adapter. Please check your configuration.`);
+        setAvailableTools([]);
+        setToolsLoading(false);
+        return;
       }
       
       // Configure the adapter with the selected model if needed
@@ -464,11 +488,11 @@ export function MCPSettings() {
       }
       
       // Get tools from the adapter
-      const tools = await adapter.listTools();
+      const tools = await adapter.listTools() as unknown as Array<Record<string, unknown>>;
       
       // Convert tools to our format
-      const convertedTools = tools.map(rawTool => {
-        const toolObj = rawTool as unknown as Record<string, unknown>;
+      const convertedTools = tools.map((rawTool: Record<string, unknown>) => {
+        const toolObj = rawTool;
         
         if (
           toolObj && 
@@ -497,7 +521,7 @@ export function MCPSettings() {
         }
         
         return null;
-      }).filter(tool => tool !== null) as Tool[];
+      }).filter((tool: unknown) => tool !== null) as Tool[];
       
       setAvailableTools(convertedTools);
       
@@ -963,7 +987,7 @@ export function MCPSettings() {
                 <Label htmlFor="provider">Provider</Label>
                 <Select 
                   value={selectedProvider} 
-                  onValueChange={(value) => setSelectedProvider(value as 'openai' | 'anthropic' | 'openrouter' | 'featherless' | 'groq')}
+                  onValueChange={(value) => setSelectedProvider(value as 'openai' | 'anthropic' | 'openrouter' | 'featherless' | 'groq' | 'gemini')}
                 >
                   <SelectTrigger id="provider">
                     <SelectValue placeholder="Select provider" />
@@ -974,6 +998,7 @@ export function MCPSettings() {
                     <SelectItem value="openrouter">OpenRouter</SelectItem>
                     <SelectItem value="featherless">Featherless</SelectItem>
                     <SelectItem value="groq">Groq</SelectItem>
+                    <SelectItem value="gemini">Gemini</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -2,6 +2,39 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Document } from './store';
 
+// Throttle function to prevent excessive API calls
+const throttle = <T extends (...args: any[]) => Promise<any>>(
+  fn: T,
+  delay: number
+): T => {
+  let lastCall = 0;
+  let timeoutId: NodeJS.Timeout | null = null;
+  
+  // Cast the returned function to the original type
+  return ((...args: any[]): Promise<any> => {
+    const now = Date.now();
+    
+    // If enough time has passed since last call
+    if (now - lastCall >= delay) {
+      lastCall = now;
+      return fn(...args);
+    }
+    
+    // Otherwise, clear previous timeout and set a new one
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    
+    return new Promise((resolve) => {
+      timeoutId = setTimeout(() => {
+        lastCall = Date.now();
+        resolve(fn(...args));
+        timeoutId = null;
+      }, delay - (now - lastCall));
+    });
+  }) as T;
+};
+
 /**
  * Interface representing a document session
  */
@@ -294,7 +327,7 @@ export const useSessionStore = create<SessionState>()(
         return allDocuments.filter(doc => session.documentIds.includes(doc.id));
       },
       
-      loadSessions: async () => {
+      loadSessions: throttle(async () => {
         try {
           set({ isLoading: true, error: null });
           
@@ -337,7 +370,7 @@ export const useSessionStore = create<SessionState>()(
             isSyncRequired: true
           });
         }
-      },
+      }, 2000),
       
       saveSessions: async () => {
         try {
@@ -376,10 +409,17 @@ export const useSessionStore = create<SessionState>()(
       
       // Check if the server and client are in sync
       checkSync: async () => {
+        // Implement throttling - don't check more than once every 30 seconds 
+        // unless explicitly requested by user action
+        const now = Date.now();
+        const { lastSyncTime } = get();
+        
+        // Skip sync check if we've checked recently
+        if (lastSyncTime && now - lastSyncTime < 30000) {
+          return !get().isSyncRequired;
+        }
+        
         try {
-          // For manual checks, we want to be thorough and always check with the server
-          // regardless of when we last checked
-          
           // Get current sessions from server
           const response = await fetch('/api/sessions');
           
@@ -395,7 +435,7 @@ export const useSessionStore = create<SessionState>()(
             // Different number of sessions, not in sync
             set({ 
               isSyncRequired: true,
-              lastSyncTime: Date.now()
+              lastSyncTime: now
             });
             return false;
           }
@@ -429,7 +469,7 @@ export const useSessionStore = create<SessionState>()(
           // Update sync status
           set({ 
             isSyncRequired: !isSynced,
-            lastSyncTime: Date.now()
+            lastSyncTime: now
           });
           
           return isSynced;

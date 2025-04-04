@@ -23,7 +23,16 @@ export function MCPServersIndicator({ provider, className }: MCPServersIndicator
     const fetchServers = async () => {
       try {
         const enabledServers = await getEnabledMCPServers();
-        setServers(enabledServers);
+        
+        // Make sure we only count each server once by its qualifiedName
+        const uniqueServers = enabledServers.reduce<MCPServerState[]>((acc, server) => {
+          if (!acc.some(s => s.qualifiedName === server.qualifiedName)) {
+            acc.push(server);
+          }
+          return acc;
+        }, []);
+        
+        setServers(uniqueServers);
       } catch (error) {
         console.error('Error fetching MCP servers:', error);
       } finally {
@@ -34,8 +43,8 @@ export function MCPServersIndicator({ provider, className }: MCPServersIndicator
     fetchServers();
   }, []);
 
-  // Only show for OpenAI and Anthropic
-  if (provider !== 'openai' && provider !== 'anthropic') {
+  // Show for OpenAI, Anthropic, and Gemini
+  if (provider !== 'openai' && provider !== 'anthropic' && provider !== 'gemini') {
     return null;
   }
 
@@ -68,8 +77,8 @@ export function MCPServersIndicator({ provider, className }: MCPServersIndicator
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
               </div>
             ) : servers.length > 0 ? (
-              servers.map((server) => (
-                <div key={server.qualifiedName} className="space-y-1">
+              servers.map((server, index) => (
+                <div key={server.qualifiedName || server.name || `server-${index}`} className="space-y-1">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-3 w-3 text-amber-500" />
                     <span className="font-medium text-sm">{server.name}</span>

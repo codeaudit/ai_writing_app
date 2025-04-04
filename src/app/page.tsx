@@ -8,7 +8,7 @@ import AIComposer from "@/components/ai-composer";
 import Compositions from "@/components/compositions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { PanelLeft, PanelRight, Maximize2, Minimize2, FileText, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon, BookOpen, ArrowLeft, ArrowRight, Folder, ListPlus } from "lucide-react";
+import { PanelLeft, PanelRight, Maximize2, Minimize2, FileText, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon, BookOpen, ArrowLeft, ArrowRight, Folder, ListPlus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useRouter } from "next/navigation";
@@ -714,6 +714,15 @@ const Home = () => {
               title="About"
             >
               <Info className="h-5 w-5" />
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => router.push('/settings')}
+              title="Settings"
+            >
+              <Settings className="h-5 w-5" />
             </Button>
             
             <Button 

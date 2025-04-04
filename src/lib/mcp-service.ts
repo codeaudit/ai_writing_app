@@ -2,9 +2,19 @@
 
 import { OpenAI } from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import { 
+  GoogleGenerativeAI, 
+  Content, 
+  Part, 
+  GenerativeModel, 
+  GenerateContentResult,
+  FunctionDeclaration,
+  FunctionCall
+} from '@google/generative-ai';
 
 import { AnthropicChatAdapter } from "@smithery/sdk/integrations/llm/anthropic.js"
 import { OpenAIChatAdapter } from "@smithery/sdk/integrations/llm/openai.js"
+import { GeminiAIChatAdapter } from './gemini-adapter';
 
 import { kv } from '@/lib/kv-provider';
 import { cookies } from 'next/headers';
@@ -22,6 +32,7 @@ import type { MessageCreateParams } from '@anthropic-ai/sdk/resources/messages';
 // Import environment variables
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || '';
 
 // Create API clients
 const openaiClient = new OpenAI({
@@ -31,6 +42,9 @@ const openaiClient = new OpenAI({
 const anthropicClient = new Anthropic({
   apiKey: ANTHROPIC_API_KEY
 });
+
+// Create Google Generative AI client
+const geminiClient = new GoogleGenerativeAI(GOOGLE_API_KEY);
 
 // Re-export types from llm-service to be compatible
 export interface ChatMessage {
@@ -169,14 +183,46 @@ function convertToAnthropicMessages(messages: ChatMessage[]): MessageParam[] {
 }
 
 /**
+ * Convert ChatMessage array to Content array for Gemini
+ */
+function convertToGeminiMessages(messages: ChatMessage[]): Content[] {
+  return messages.map(msg => {
+    const role = msg.role === 'system' || msg.role === 'user' ? 'user' : 'model';
+    
+    return {
+      role: role,
+      parts: [{ text: msg.role === 'system' ? `System Instructions: ${msg.content}` : msg.content }] as Part[]
+    };
+  });
+}
+
+/**
+ * Convert Tool array to Gemini Function Declarations
+ */
+function convertToolsToGeminiFunctionDeclarations(tools: Tool[]): FunctionDeclaration[] {
+  return tools.map(tool => {
+    if (tool.type !== 'function') return null;
+    
+    return {
+      name: tool.function.name,
+      description: tool.function.description,
+      parameters: {
+        ...tool.function.parameters,
+        type: tool.function.parameters.type || 'OBJECT'
+      }
+    };
+  }).filter(Boolean) as FunctionDeclaration[];
+}
+
+/**
  * Get MCP tools from a specific adapter
  */
-async function getMCPServerTools(adapter: OpenAIChatAdapter | AnthropicChatAdapter): Promise<Tool[]> {
+async function getMCPServerTools(adapter: OpenAIChatAdapter | AnthropicChatAdapter | GeminiAIChatAdapter): Promise<Tool[]> {
   try {
     const rawTools = await adapter.listTools();
     
     // Convert the raw tools to our Tool interface
-    const convertedTools = rawTools.map(rawTool => {
+    const convertedTools = (Array.isArray(rawTools) ? rawTools : []).map((rawTool: Record<string, unknown>) => {
       const toolObj: Record<string, unknown> = rawTool as unknown as Record<string, unknown>;
       
       // Check if this has the expected structure
@@ -222,7 +268,7 @@ async function getMCPServerTools(adapter: OpenAIChatAdapter | AnthropicChatAdapt
 }
 
 // Helper function to safely call adapter tools with proper error handling
-async function safeCallAdapterTool<T>(adapter: OpenAIChatAdapter | AnthropicChatAdapter, response: T): Promise<Record<string, unknown>[]> {
+async function safeCallAdapterTool<T>(adapter: OpenAIChatAdapter | AnthropicChatAdapter | GeminiAIChatAdapter, response: T): Promise<Record<string, unknown>[]> {
   try {
     // Cast to any to deal with SDK version mismatches
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -245,58 +291,61 @@ function cleanToolResponse(toolResponseText: string): string {
       const parsed = JSON.parse(toolResponseText);
       
       // Handle search results specifically
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type === 'text') {
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed?.[0]?.type === 'text') {
         // This looks like a search result from Exa or similar tool
         try {
-          // Try to parse the inner text content which is often JSON
-          const innerContent = JSON.parse(parsed[0].text);
-          
-          // Format search results in a more readable way
-          if (innerContent.results && Array.isArray(innerContent.results)) {
-            let formattedResults = `Found ${innerContent.results.length} results:\n\n`;
-            
-            // Use proper interface for search results
-            interface SearchResult {
-              title: string;
-              url: string;
-              text?: string;
-              score?: number;
-              publishedDate?: string;
-              [key: string]: unknown;
-            }
-            
-            innerContent.results.forEach((result: SearchResult, index: number) => {
-              formattedResults += `${index + 1}. ${result.title}\n`;
-              formattedResults += `   URL: ${result.url}\n`;
-              
-              // Add a short snippet of text if available
-              if (result.text) {
-                const snippet = result.text.substring(0, 200).replace(/\n\s+\n/g, '\n').trim();
-                formattedResults += `   Snippet: ${snippet}${result.text.length > 200 ? '...' : ''}\n`;
-              }
-              
-              formattedResults += '\n';
-            });
-            
-            // Add query information if available
-            if (innerContent.autopromptString) {
-              formattedResults = `Search query: "${innerContent.autopromptString}"\n\n${formattedResults}`;
-            }
-            
-            return formattedResults;
+          // Extract search results if they exist
+          interface SearchResult {
+            title: string;
+            url: string;
+            text?: string;
+            score?: number;
+            publishedDate?: string;
+            [key: string]: unknown;
           }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (_error) {
-          // If inner parsing fails, just use the text directly
-          return parsed[0].text;
+          
+          const searchResults = parsed
+            .filter(item => 
+              typeof item === 'object' && 
+              item !== null && 
+              typeof item.type === 'string' && 
+              item.type === 'text' && 
+              typeof item.text === 'string' && 
+              typeof item.metadata === 'object' && 
+              item.metadata !== null &&
+              typeof item.metadata.title === 'string' &&
+              typeof item.metadata.url === 'string'
+            )
+            .map((item): SearchResult => ({
+              title: item.metadata.title,
+              url: item.metadata.url,
+              text: item.text,
+              score: typeof item.metadata.score === 'number' ? item.metadata.score : undefined,
+              publishedDate: typeof item.metadata.published_date === 'string' ? 
+                item.metadata.published_date : undefined
+            }));
+          
+          if (searchResults.length > 0) {
+            // Format search results
+            const formatted = searchResults.map((result, i) => {
+              const snippetText = result.text ? 
+                `\n   Snippet: ${result.text.substring(0, 200)}${result.text.length > 200 ? '...' : ''}` : '';
+                
+              return `${i + 1}. [${result.title}](${result.url})${snippetText}`;
+            }).join('\n\n');
+            
+            return `Search Results:\n\n${formatted}`;
+          }
+        } catch (formatError) {
+          logger.debug('Error formatting search results:', formatError);
         }
       }
       
-      // For other JSON, just pretty print it
+      // For other JSON responses, pretty-print them
       return JSON.stringify(parsed, null, 2);
     }
     
-    // Not JSON, return as is
+    // If not JSON, return the original text
     return toolResponseText;
   } catch (error) {
     // If JSON parsing fails, return original text
@@ -312,10 +361,18 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
   logger.debug("Starting MCP chat response generation");
   
   const { config } = await getServerConfig();
-  const { provider, enableCache, temperature: configTemperature, maxTokens: configMaxTokens, aiRole = 'assistant' } = config;
+  const { enableCache, temperature: configTemperature, maxTokens: configMaxTokens, aiRole = 'assistant' } = config;
   
-  // Use the model from config
-  const modelName = config.model;
+  // Get the last message to check for provider information
+  const lastMessage = request.messages && request.messages.length > 0 
+    ? request.messages[request.messages.length - 1]
+    : null;
+    
+  // Check if the message has provider information, otherwise use the config provider
+  const provider = lastMessage?.provider?.replace('mcp-', '') || config.provider;
+  
+  // Use the model from config or from the last message
+  const modelName = lastMessage?.model || config.model;
   
   logger.debug(`Using provider: ${provider}, model: ${modelName}`);
   
@@ -337,8 +394,8 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
   }
   
   // Get the last user message
-  const lastMessage = messages[messages.length - 1];
-  if (!lastMessage || !lastMessage.content) {
+  const lastUserMessage = messages[messages.length - 1];
+  if (!lastUserMessage || !lastUserMessage.content) {
     logger.error("The last message is invalid or missing content");
     throw new Error("The last message is invalid or missing content");
   }
@@ -369,26 +426,29 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
     return cachedResponse;
   }
   
+  let responseText = '';
+  
   try {
-    // Initialize the MCP client
-    logger.debug("Initializing MCP client");
+    // Get Multi Client instance
     const mcpClient = await getMCPClient();
     
     if (!mcpClient) {
-      logger.error("Failed to initialize MCP client");
       throw new Error("Failed to initialize MCP client");
     }
     
     logger.info("MCP client initialized successfully");
     
-    let responseText = '';
     let toolCalls: ToolCall[] | undefined;
     
-    // Use different approach based on provider
     if (provider === 'openai') {
       logger.debug("Using OpenAI provider with MCP");
-      // OpenAI approach with MCP
-      const adapter = new OpenAIChatAdapter(mcpClient);
+      // Get the singleton adapter instead of creating a new one
+      const { getOpenAIAdapter } = await import('./mcp-server-manager');
+      const adapter = await getOpenAIAdapter();
+      
+      if (!adapter) {
+        throw new Error("Failed to initialize OpenAI adapter");
+      }
       
       // Get tools if custom tools aren't provided
       let mcpTools: Tool[] = [];
@@ -444,138 +504,77 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
         
         // Process tool calls if available
         if (toolCalls && toolCalls.length > 0) {
-          // Implement multiple rounds of tool calls
+          // Initial messages for the tool calling loop
+          const loopMessages = [...openaiMessages];
+          
+          // Add initial assistant response to messages
+          loopMessages.push({
+            role: 'assistant',
+            content: response.choices[0].message.content || '',
+            tool_calls: response.choices[0].message.tool_calls
+          } as ChatCompletionMessageParam);
+          
+          // Loop until no more tool calls
+          let isDone = false;
           let currentResponse = response;
-          const currentMessages = [...openaiMessages];
-          const allToolResponsesText: string[] = [];
-          let hasMoreToolCalls = true;
-          let iterations = 0;
-          const MAX_ITERATIONS = 5; // Safety limit to prevent infinite loops
           
-          logger.debug("Starting multiple rounds of tool calls");
-          
-          while (hasMoreToolCalls && iterations < MAX_ITERATIONS) {
-            iterations++;
-            logger.debug(`Tool call iteration ${iterations}`);
+          while (!isDone) {
+            // Use the singleton adapter instead of creating a new one
+            const adapter = await getOpenAIAdapter();
             
-            // Get current tool calls from the response
-            const currentToolCalls = currentResponse.choices[0].message.tool_calls;
-            if (!currentToolCalls || currentToolCalls.length === 0) {
-              logger.debug("No more tool calls, ending loop");
-              hasMoreToolCalls = false;
-              break;
+            if (!adapter) {
+              throw new Error("Failed to get OpenAI adapter for tool calling");
             }
             
-            // Execute tool calls and get responses
-            let toolMessages: Record<string, unknown>[] = [];
-            try {
-              // Call tool with specific typing instead of unknown any
-              toolMessages = await safeCallAdapterTool(
-                adapter, 
-                currentResponse
-              );
-              logger.debug(`Got ${toolMessages.length} tool messages from iteration ${iterations}`);
-            } catch (error) {
-              logger.error(`Error calling tools in iteration ${iterations}:`, error);
-              hasMoreToolCalls = false;
-              break;
-            }
+            // Get tool messages
+            const toolMessages = await adapter.callTool(currentResponse);
             
+            // If no tool messages, we're done
             if (!toolMessages || toolMessages.length === 0) {
-              logger.debug("No tool messages returned, ending loop");
-              hasMoreToolCalls = false;
-              break;
+              isDone = true;
+              continue;
             }
             
-            // Extract tool response text
-            const toolResponseText = toolMessages
-              .filter(msg => typeof msg.role === 'string' && ['tool', 'function'].includes(msg.role as string))
-              .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
-              .join('\n');
+            // Add all tool messages to the conversation directly
+            loopMessages.push(...toolMessages as ChatCompletionMessageParam[]);
             
-            if (toolResponseText) {
-              // Clean and format the tool response for better readability
-              const cleanedResponse = cleanToolResponse(toolResponseText);
-              allToolResponsesText.push(cleanedResponse);
-            }
+            // Get next response
+            const nextResponse = await openaiClient.chat.completions.create({
+              ...openaiOptions,
+              messages: loopMessages
+            });
             
-            // Add tool messages to conversation for next round
-            for (const toolMsg of toolMessages) {
-              if (
-                typeof toolMsg.role === 'string' && 
-                typeof toolMsg.content !== 'undefined'
-              ) {
-                // For OpenAI, we must use 'tool' role and include tool_call_id that matches
-                // a specific tool call from the preceding assistant message
-                
-                // Extract tool_call_id if available
-                const toolCallId = typeof toolMsg.tool_call_id === 'string' 
-                  ? toolMsg.tool_call_id 
-                  : typeof toolMsg.id === 'string' 
-                    ? toolMsg.id
-                    : undefined;
-                
-                if (!toolCallId) {
-                  logger.warn('Tool message missing tool_call_id, may cause API errors:', toolMsg);
-                }
-                
-                // Always use 'tool' role for OpenAI to avoid API errors
-                currentMessages.push({
-                  role: 'tool', // Must be 'tool' for OpenAI
-                  content: typeof toolMsg.content === 'string' ? 
-                    toolMsg.content : 
-                    JSON.stringify(toolMsg.content),
-                  tool_call_id: toolCallId // Required for proper message flow in OpenAI
-                } as ChatCompletionMessageParam);
-                
-                logger.debug(`Added tool message with tool_call_id: ${toolCallId}`);
-              }
-            }
+            // Update current response for next iteration
+            currentResponse = nextResponse;
             
-            // Get next response to see if more tool calls are needed
-            try {
-              const nextResponse = await openaiClient.chat.completions.create({
-                ...openaiOptions,
-                messages: currentMessages
-              });
-              
-              // Add assistant response to conversation
-              currentMessages.push({
-                role: 'assistant',
-                content: nextResponse.choices[0].message.content || '',
-                tool_calls: nextResponse.choices[0].message.tool_calls
-              } as ChatCompletionMessageParam);
-              
-              // Update current response for next iteration
-              currentResponse = nextResponse;
-              
-              // Check if new response has tool calls
-              hasMoreToolCalls = !!nextResponse.choices[0].message.tool_calls && 
-                nextResponse.choices[0].message.tool_calls.length > 0;
-              
-            } catch (error) {
-              logger.error(`Error getting next response in iteration ${iterations}:`, error);
-              hasMoreToolCalls = false;
-              break;
-            }
+            // Add the new assistant response to messages
+            loopMessages.push({
+              role: 'assistant',
+              content: nextResponse.choices[0].message.content || '',
+              tool_calls: nextResponse.choices[0].message.tool_calls
+            } as ChatCompletionMessageParam);
+            
+            // Update isDone based on whether there are tool calls
+            isDone = !nextResponse.choices[0].message.tool_calls || 
+                    nextResponse.choices[0].message.tool_calls.length === 0;
           }
           
           // Get final response content from the last assistant message
-          responseText = currentResponse.choices[0].message.content || '';
-          
-          // Add all tool responses to the final response
-          if (allToolResponsesText.length > 0) {
-            responseText += '\n\n' + allToolResponsesText.join('\n\n');
-          }
-          
-          // Log completion
-          logger.debug(`Completed ${iterations} tool call iterations`);
+          responseText = loopMessages
+            .filter(msg => msg.role === 'assistant')
+            .map(msg => typeof msg.content === 'string' ? msg.content : '')
+            .pop() || '';
         }
       }
-    } else {
+    } else if (provider === 'anthropic') {
       logger.debug("Using Anthropic provider with MCP");
-      // Anthropic approach with MCP
-      const adapter = new AnthropicChatAdapter(mcpClient);
+      // Get the singleton adapter instead of creating a new one
+      const { getAnthropicAdapter } = await import('./mcp-server-manager');
+      const adapter = await getAnthropicAdapter();
+      
+      if (!adapter) {
+        throw new Error("Failed to initialize Anthropic adapter");
+      }
       
       // Get tools if custom tools aren't provided
       let mcpTools: Tool[] = [];
@@ -620,151 +619,482 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
       // Process tool calls if available
       let hasPendingAnthropicToolCalls = false;
       try {
-        // Check if response has tool calls (Anthropic's format is different)
-        // Use type assertion to access tool_calls which may not be in the interface
-        const anthropicResponse = response as unknown as { tool_calls?: Array<unknown> };
-        hasPendingAnthropicToolCalls = !!anthropicResponse.tool_calls && anthropicResponse.tool_calls.length > 0;
+        // Check for tool calls in Anthropic's format
+        hasPendingAnthropicToolCalls = Array.isArray(response.content) && 
+          response.content.some(item => item.type === 'tool_use');
       } catch (error) {
-        // Ignore errors checking for tool calls
         logger.debug('Error checking for Anthropic tool calls:', error);
       }
       
       if (hasPendingAnthropicToolCalls) {
-        // Implement multiple rounds of tool calls for Anthropic
-        let currentResponse = response;
-        const currentMessages = [...anthropicMessages];
-        const allToolResponsesText: string[] = [];
-        let hasMoreToolCalls = true;
-        let iterations = 0;
-        const MAX_ITERATIONS = 5; // Safety limit to prevent infinite loops
-        
-        logger.debug("Starting multiple rounds of Anthropic tool calls");
-        
-        while (hasMoreToolCalls && iterations < MAX_ITERATIONS) {
-          iterations++;
-          logger.debug(`Anthropic tool call iteration ${iterations}`);
+        try {
+          // Create a copy of the client to use the adapter without type conflicts
+          // We'll use our own loop implementation that matches the sample pattern
+          // but works around the type issues
           
-          // Check if current response has tool calls
-          const anthropicResponse = currentResponse as unknown as { tool_calls?: Array<unknown> };
-          const hasPendingTools = !!anthropicResponse.tool_calls && anthropicResponse.tool_calls.length > 0;
-          if (!hasPendingTools) {
-            logger.debug("No more Anthropic tool calls, ending loop");
-            hasMoreToolCalls = false;
-            break;
+          // Get the MCP client
+          const mcpClient = await getMCPClient();
+          if (!mcpClient) {
+            throw new Error("MCP client not available");
           }
           
-          // Execute tool calls and get responses
-          const toolMessages: Record<string, unknown>[] = await safeCallAdapterTool(adapter, currentResponse);
-          logger.debug(`Got ${toolMessages.length} tool messages from Anthropic iteration ${iterations}`);
+          // Track messages in a format Anthropic can work with
+          const loopMessages = [...anthropicMessages];
           
-          if (!toolMessages || toolMessages.length === 0) {
-            logger.debug("No Anthropic tool messages returned, ending loop");
-            hasMoreToolCalls = false;
-            break;
+          // Track if we're done with tool calling
+          let isDone = false;
+          let currentResponse = response;
+          let responseText = '';
+          
+          // Extract text from the initial response
+          if (Array.isArray(currentResponse.content)) {
+            responseText = currentResponse.content
+              .filter(c => c.type === 'text')
+              .map(c => (c.type === 'text' ? c.text : ''))
+              .join('\n');
+          } else {
+            responseText = String(currentResponse.content || '');
           }
           
-          // Extract tool response text
-          const toolResponseText = toolMessages
-            .filter(msg => typeof msg.role === 'string' && ['tool', 'assistant', 'function'].includes(msg.role as string))
-            .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
-            .join('\n');
+          // Add initial response text to messages
+          loopMessages.push({
+            role: 'assistant',
+            content: responseText
+          });
+          
+          // Start the tool calling loop, similar to the sample
+          while (!isDone) {
+            // Use the singleton adapter instead of creating a new one
+            const adapter = await getAnthropicAdapter();
             
-          if (toolResponseText) {
-            // Clean and format the tool response for better readability
-            const cleanedResponse = cleanToolResponse(toolResponseText);
-            allToolResponsesText.push(cleanedResponse);
-          }
-          
-          // Add tool messages to conversation for next round
-          for (const toolMsg of toolMessages) {
-            if (
-              typeof toolMsg.role === 'string' && 
-              typeof toolMsg.content !== 'undefined'
-            ) {
-              // For Anthropic, we need to use the appropriate role format
-              // Anthropic only supports 'assistant' and 'user' roles
-              
-              // Extract tool_call_id if available (for debugging)
-              const toolCallId = typeof toolMsg.tool_call_id === 'string' 
-                ? toolMsg.tool_call_id 
-                : typeof toolMsg.id === 'string' 
-                  ? toolMsg.id
-                  : undefined;
-              
-              if (toolCallId) {
-                logger.debug(`Processing Anthropic tool message with ID: ${toolCallId}`);
-              }
-              
-              // Anthropic only supports 'assistant' and 'user' roles in messages
-              currentMessages.push({
-                role: toolMsg.role === 'system' || toolMsg.role === 'tool' || toolMsg.role === 'function' 
-                  ? 'user' 
-                  : (toolMsg.role as 'user' | 'assistant'),
-                content: typeof toolMsg.content === 'string' 
-                  ? toolMsg.content 
-                  : JSON.stringify(toolMsg.content)
-              });
+            if (!adapter) {
+              throw new Error("Failed to get Anthropic adapter for tool calling");
             }
-          }
-          
-          // Get next response to see if more tool calls are needed
-          try {
-            const nextResponse = await anthropicClient.messages.create({
-              ...anthropicOptions,
-              messages: currentMessages
+            
+            // Call the adapter to process tool calls
+            // This is the key part of the pattern in the sample
+            // Use type assertion to work around SDK version compatibility issues
+            const toolMessages = await adapter.callTool(currentResponse as unknown as {
+              content: Array<{type: string; text?: string; id?: string; input?: Record<string, unknown>; name?: string}>;
             });
             
-            // Update current response for next iteration
-            currentResponse = nextResponse;
+            // Check if we should stop
+            if (!toolMessages || toolMessages.length === 0) {
+              logger.debug("No tool messages returned, ending loop");
+              isDone = true;
+              continue;
+            }
             
-            // Parse text content from next response
+            // Add tool messages as user messages
+            // This avoids the type conflict by manually creating compatible messages
+            for (const msg of toolMessages) {
+              if (msg && typeof msg === 'object') {
+                // Safely extract content
+                const content = typeof msg.content === 'string' 
+                  ? msg.content 
+                  : JSON.stringify(msg.content);
+                
+                // Add as user message (Anthropic accepts this role)
+                loopMessages.push({
+                  role: 'user',
+                  content: content
+                });
+              }
+            }
+            
+            // Get next Anthropic response
+            currentResponse = await anthropicClient.messages.create({
+              model: modelName,
+              messages: loopMessages,
+              system: enhancedSystemMessage,
+              max_tokens: configMaxTokens,
+              temperature: configTemperature
+            });
+            
+            // Extract text from response
             let nextResponseText = '';
-            if (Array.isArray(nextResponse.content)) {
-              nextResponseText = nextResponse.content
+            if (Array.isArray(currentResponse.content)) {
+              nextResponseText = currentResponse.content
                 .filter(c => c.type === 'text')
                 .map(c => (c.type === 'text' ? c.text : ''))
                 .join('\n');
             } else {
-              nextResponseText = nextResponse.content || '';
+              nextResponseText = String(currentResponse.content || '');
             }
             
-            // Add assistant response to conversation
-            currentMessages.push({
+            // Add assistant response text to messages
+            loopMessages.push({
               role: 'assistant',
               content: nextResponseText
             });
             
-            // Check if new response has tool calls
-            const nextAnthropicResponse = nextResponse as unknown as { tool_calls?: Array<unknown> };
-            hasMoreToolCalls = !!nextAnthropicResponse.tool_calls && nextAnthropicResponse.tool_calls.length > 0;
-          } catch (error) {
-            logger.error(`Error getting next Anthropic response in iteration ${iterations}:`, error);
-            hasMoreToolCalls = false;
-            break;
+            // Check if there are tool calls in the response
+            const hasMoreToolCalls = Array.isArray(currentResponse.content) && 
+              currentResponse.content.some(item => item.type === 'tool_use');
+            
+            // Update isDone based on toolMessages in next iteration
+            isDone = !hasMoreToolCalls;
+          }
+          
+          // Get the final text from the last response
+          if (Array.isArray(currentResponse.content)) {
+            responseText = currentResponse.content
+              .filter(c => c.type === 'text')
+              .map(c => (c.type === 'text' ? c.text : ''))
+              .join('\n');
+          } else {
+            responseText = String(currentResponse.content || '');
+          }
+        } catch (error) {
+          logger.error("Error during Anthropic tool calling loop:", error);
+          if (error instanceof Error) {
+            logger.error(error.message);
+          }
+          
+          // Get whatever text we have from the initial response
+          if (Array.isArray(response.content)) {
+            responseText = response.content
+              .filter(c => c.type === 'text')
+              .map(c => (c.type === 'text' ? c.text : ''))
+              .join('\n');
+          } else {
+            responseText = String(response.content || '');
           }
         }
-        
-        // Get final response content from the last assistant message
-        if (Array.isArray(currentResponse.content)) {
-          responseText = currentResponse.content
-            .filter(c => c.type === 'text')
-            .map(c => (c.type === 'text' ? c.text : ''))
-            .join('\n');
-        } else {
-          responseText = currentResponse.content || '';
-        }
-        
-        // Add all tool responses to the final response
-        if (allToolResponsesText.length > 0) {
-          responseText += '\n\n' + allToolResponsesText.join('\n\n');
-        }
-        
-        // Log completion
-        logger.debug(`Completed ${iterations} Anthropic tool call iterations`);
-      } else {
-        // No tool calls to process
-        logger.debug("No Anthropic tool calls detected");
       }
+    } else if (provider === 'gemini') {
+      logger.debug("Using Gemini provider with MCP");
+      // Get the singleton adapter instead of creating a new one
+      const { getGeminiAdapter } = await import('./mcp-server-manager');
+      const adapter = await getGeminiAdapter();
+      
+      if (!adapter) {
+        throw new Error("Failed to initialize Gemini adapter");
+      }
+      
+      // Verify Google API Key
+      if (!GOOGLE_API_KEY) {
+        throw new Error("Google API key is not set");
+      }
+      
+      // Get tools if custom tools aren't provided
+      let mcpTools: Tool[] = [];
+      if (customTools.length === 0 && mcpClient) {
+        // For Gemini, we'll use the Gemini adapter instead of OpenAI adapter
+        mcpTools = await getMCPServerTools(adapter);
+      }
+      
+      // Prepare messages for Gemini
+      const systemMessage = { role: 'user', content: enhancedSystemMessage } as ChatMessage;
+      const geminiMessages = convertToGeminiMessages([systemMessage, ...messages]);
+      
+      // Get the Gemini model
+      const model: GenerativeModel = geminiClient.getGenerativeModel({ model: modelName });
+      
+      // Get tools to use
+      const tools = customTools.length > 0 ? customTools : mcpTools;
+      
+      // Create options for the API call
+      const geminiConfig: {
+        temperature?: number;
+        maxOutputTokens?: number;
+        tools?: Array<{functionDeclarations: FunctionDeclaration[]}>
+      } = {
+        temperature: configTemperature,
+        maxOutputTokens: configMaxTokens,
+      };
+      
+      // Add tools if available
+      if (tools.length > 0) {
+        const functionDeclarations = convertToolsToGeminiFunctionDeclarations(tools);
+        if (functionDeclarations.length > 0) {
+          geminiConfig.tools = [{
+            functionDeclarations
+          }];
+        }
+      }
+      
+      try {
+        // Make API call
+        const response: GenerateContentResult = await model.generateContent({
+          contents: geminiMessages,
+          generationConfig: geminiConfig
+        });
+        
+        // Process tool calls if present
+        // Access function calls from response
+        const functionCalls: FunctionCall[] = [];
+        
+        // Attempt to extract function calls
+        try {
+          // Use type assertion to access functionCalls which may not be in the interface
+          const responseAny = response as unknown as { 
+            functionCalls?: FunctionCall[]
+          };
+          
+          if (responseAny.functionCalls && Array.isArray(responseAny.functionCalls)) {
+            functionCalls.push(...responseAny.functionCalls);
+          }
+        } catch (extractError) {
+          logger.debug('Error extracting function calls from Gemini response:', extractError);
+        }
+        
+        if (functionCalls.length > 0) {
+          // Convert function calls to our standardized format
+          const extractedToolCalls: ToolCall[] = functionCalls.map((fc, idx) => ({
+            id: `call-${Date.now()}-${idx}`,
+            type: 'function',
+            function: {
+              name: fc.name,
+              arguments: typeof fc.args === 'string' ? fc.args : JSON.stringify(fc.args)
+            }
+          }));
+          
+          toolCalls = extractedToolCalls;
+            
+          // Implement function calling with MCP if we have an mcpClient
+          if (mcpClient && extractedToolCalls.length > 0) {
+            const adapter = new GeminiAIChatAdapter(mcpClient);
+            const allToolResponsesText: string[] = [];
+            
+            // Get response text
+            let responseText = '';
+            try {
+              // Cast response to a common type used in the Google Generative AI SDK
+              // The structure may vary depending on SDK version, so we need to handle different formats
+              const responseWithText = response as unknown as { 
+                text: () => string;
+                candidates?: Array<{content: {parts: Array<{text: string}>}}>
+              };
+              
+              if (typeof responseWithText.text === 'function') {
+                responseText = responseWithText.text();
+              } else if (responseWithText.candidates && 
+                        responseWithText.candidates[0] && 
+                        responseWithText.candidates[0].content && 
+                        responseWithText.candidates[0].content.parts) {
+                responseText = responseWithText.candidates[0].content.parts
+                  .filter(part => typeof part.text === 'string')
+                  .map(part => part.text)
+                  .join('');
+              }
+            } catch (textError) {
+              logger.warn('Error extracting text from Gemini response:', textError);
+            }
+            
+            // Implement multiple rounds of tool calls for Gemini
+            const currentGeminiMessages = [...geminiMessages];
+            let hasMoreGeminiToolCalls = true;
+            let iterations = 0;
+            const MAX_ITERATIONS = 5; // Safety limit to prevent infinite loops
+            
+            logger.debug("Starting multiple rounds of Gemini tool calls");
+            
+            // Add the initial assistant response
+            currentGeminiMessages.push({
+              role: 'model',
+              parts: [{text: responseText}]
+            });
+            
+            // Generate a compatible OpenAI-like format for the adapter
+            let currentResponse = {
+              choices: [{
+                message: {
+                  content: responseText,
+                  tool_calls: extractedToolCalls.map(tc => ({
+                    id: tc.id,
+                    function: {
+                      name: tc.function.name,
+                      arguments: tc.function.arguments
+                    }
+                  }))
+                }
+              }]
+            };
+              
+            while (hasMoreGeminiToolCalls && iterations < MAX_ITERATIONS) {
+              iterations++;
+              logger.debug(`Gemini tool call iteration ${iterations}`);
+              
+              // Use the singleton adapter instead of creating a new one
+              const adapter = await getGeminiAdapter();
+              
+              if (!adapter) {
+                throw new Error("Failed to get Gemini adapter for tool calling");
+                break;
+              }
+              
+              // Execute tool calls and get responses
+              let toolMessages: Record<string, unknown>[] = [];
+              try {
+                // Use the adapter already retrieved earlier instead of getting a new one
+                toolMessages = await safeCallAdapterTool(adapter, currentResponse);
+                logger.debug(`Got ${toolMessages.length} tool messages from Gemini iteration ${iterations}`);
+              } catch (error) {
+                logger.error(`Error calling tools in Gemini iteration ${iterations}:`, error);
+                hasMoreGeminiToolCalls = false;
+                break;
+              }
+              
+              if (!toolMessages || toolMessages.length === 0) {
+                logger.debug("No Gemini tool messages returned, ending loop");
+                hasMoreGeminiToolCalls = false;
+                break;
+              }
+              
+              // Extract tool response text
+              const toolResponseText = toolMessages
+                .filter(msg => typeof msg.role === 'string' && ['tool', 'function'].includes(msg.role as string))
+                .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
+                .join('\n');
+                
+              if (toolResponseText) {
+                // Clean and format the tool response
+                const cleanedResponse = cleanToolResponse(toolResponseText);
+                allToolResponsesText.push(cleanedResponse);
+              }
+              
+              // Add tool messages to conversation for next round
+              for (const toolMsg of toolMessages) {
+                if (typeof toolMsg.role === 'string' && typeof toolMsg.content !== 'undefined') {
+                  // For Gemini we need to adapt the message format
+                  currentGeminiMessages.push({
+                    role: 'user',
+                    parts: [{
+                      text: `Function result: ${typeof toolMsg.content === 'string' ? 
+                        toolMsg.content : JSON.stringify(toolMsg.content)}`
+                    }]
+                  });
+                }
+              }
+              
+              // Get next response to see if more tool calls are needed
+              try {
+                const nextResponse: GenerateContentResult = await model.generateContent({
+                  contents: currentGeminiMessages,
+                  generationConfig: geminiConfig
+                });
+                
+                // Extract next response text
+                let nextResponseText = '';
+                try {
+                  const responseWithText = nextResponse as unknown as { 
+                    text: () => string;
+                    candidates?: Array<{content: {parts: Array<{text: string}>}}>
+                  };
+                  
+                  if (typeof responseWithText.text === 'function') {
+                    nextResponseText = responseWithText.text();
+                  } else if (responseWithText.candidates && 
+                            responseWithText.candidates[0] && 
+                            responseWithText.candidates[0].content && 
+                            responseWithText.candidates[0].content.parts) {
+                    nextResponseText = responseWithText.candidates[0].content.parts
+                      .filter(part => typeof part.text === 'string')
+                      .map(part => part.text)
+                      .join('');
+                  }
+                } catch (textError) {
+                  logger.warn('Error extracting text from next Gemini response:', textError);
+                }
+                
+                // Add the assistant response to the conversation
+                currentGeminiMessages.push({
+                  role: 'model',
+                  parts: [{text: nextResponseText}]
+                });
+                
+                // Extract any new function calls
+                const nextFunctionCalls: FunctionCall[] = [];
+                try {
+                  const nextResponseAny = nextResponse as unknown as { 
+                    functionCalls?: FunctionCall[]
+                  };
+                  
+                  if (nextResponseAny.functionCalls && Array.isArray(nextResponseAny.functionCalls)) {
+                    nextFunctionCalls.push(...nextResponseAny.functionCalls);
+                  }
+                } catch (extractError) {
+                  logger.debug('Error extracting function calls from next Gemini response:', extractError);
+                }
+                
+                // Check if we have more tool calls
+                hasMoreGeminiToolCalls = nextFunctionCalls.length > 0;
+                
+                if (hasMoreGeminiToolCalls) {
+                  // Update tool calls for the next iteration
+                  const nextExtractedToolCalls: ToolCall[] = nextFunctionCalls.map((fc, idx) => ({
+                    id: `call-${Date.now()}-${idx}-iter-${iterations}`,
+                    type: 'function',
+                    function: {
+                      name: fc.name,
+                      arguments: typeof fc.args === 'string' ? fc.args : JSON.stringify(fc.args)
+                    }
+                  }));
+                  
+                  // Update the current response for the next iteration
+                  currentResponse = {
+                    choices: [{
+                      message: {
+                        content: nextResponseText,
+                        tool_calls: nextExtractedToolCalls.map(tc => ({
+                          id: tc.id,
+                          function: {
+                            name: tc.function.name,
+                            arguments: tc.function.arguments
+                          }
+                        }))
+                      }
+                    }]
+                  };
+                  
+                  // Update the toolCalls array with all tool calls
+                  toolCalls = [...toolCalls, ...nextExtractedToolCalls];
+                } else {
+                  // No more tool calls, use the final response
+                  responseText = nextResponseText;
+                }
+              } catch (error) {
+                logger.error(`Error getting next Gemini response in iteration ${iterations}:`, error);
+                hasMoreGeminiToolCalls = false;
+                // Use the last known response text
+                break;
+              }
+            }
+            
+            // Add all tool responses to final response
+            if (allToolResponsesText.length > 0) {
+              responseText += '\n\n' + allToolResponsesText.join('\n\n');
+            }
+            
+            // Log completion
+            logger.debug(`Completed ${iterations} Gemini tool call iterations`);
+          } else {
+            // Just extract the text content if no MCP client
+            try {
+              const responseWithText = response as unknown as { text: () => string };
+              responseText = typeof responseWithText.text === 'function' ? responseWithText.text() : '';
+            } catch (error) {
+              logger.warn('Error extracting text from Gemini response:', error);
+              responseText = '';
+            }
+          }
+        } else {
+          // No tool calls, just extract the text
+          try {
+            const responseWithText = response as unknown as { text: () => string };
+            responseText = typeof responseWithText.text === 'function' ? responseWithText.text() : '';
+          } catch (error) {
+            logger.warn('Error extracting text from Gemini response:', error);
+            responseText = '';
+          }
+        }
+      } catch (error) {
+        logger.error('Error with Gemini API call:', error);
+        throw error;
+      }
+    } else {
+      throw new Error(`Unsupported provider: ${provider}`);
     }
     
     // Prepare the final response
@@ -785,7 +1115,7 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
       message: responseMessage,
       model: modelName,
       provider: `mcp-${provider}`,
-      debugPrompt: formatDebugPrompt(enhancedSystemMessage, lastMessage.content, provider, modelName)
+      debugPrompt: formatDebugPrompt(enhancedSystemMessage, lastUserMessage.content, provider, modelName)
     };
     
     // Log debug information
@@ -796,7 +1126,7 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
         provider: `mcp-${provider}`,
         model: modelName,
         systemMessage: enhancedSystemMessage,
-        userPrompt: lastMessage.content,
+        userPrompt: lastUserMessage.content,
         responseLength: responseText.length,
         responsePreview: responseText.substring(0, 100) + (responseText.length > 100 ? '...' : ''),
         contextDocumentsCount: contextDocuments.length,

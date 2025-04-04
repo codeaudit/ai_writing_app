@@ -174,7 +174,7 @@ export async function GET() {
     
     // Check if the sessions file exists
     if (fs.existsSync(SESSIONS_FILE)) {
-      console.log('Sessions file exists, loading content');
+      // Don't log every time to reduce noise
       const content = fs.readFileSync(SESSIONS_FILE, 'utf8');
       
       // Parse sessions from markdown

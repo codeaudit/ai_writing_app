@@ -3,9 +3,6 @@
  * This provides in-memory storage that mimics the Vercel KV API
  */
 
-import { isCachingEnabled } from './middleware-safe-config';
-import { isCacheKey } from './middleware-safe-cache';
-
 // In-memory storage with properly typed values
 const store = new Map<string, unknown>();
 
@@ -13,7 +10,11 @@ const store = new Map<string, unknown>();
 const expirations = new Map<string, NodeJS.Timeout>();
 
 // Helper function to determine if an operation should be logged
-const shouldLog = (key: string): boolean => {
+const shouldLog = async (key: string): Promise<boolean> => {
+  // Import these lazily to avoid circular dependencies
+  const { isCacheKey } = await import('./middleware-safe-cache');
+  const { isCachingEnabled } = await import('./middleware-safe-config');
+  
   // Always log non-cache operations
   if (!isCacheKey(key)) return true;
   
@@ -22,7 +23,11 @@ const shouldLog = (key: string): boolean => {
 };
 
 // Helper function to determine if a cache operation should be performed
-const shouldPerformCacheOperation = (key: string): boolean => {
+const shouldPerformCacheOperation = async (key: string): Promise<boolean> => {
+  // Import these lazily to avoid circular dependencies
+  const { isCacheKey } = await import('./middleware-safe-cache');
+  const { isCachingEnabled } = await import('./middleware-safe-config');
+  
   // Always perform non-cache operations
   if (!isCacheKey(key)) return true;
   
@@ -30,15 +35,22 @@ const shouldPerformCacheOperation = (key: string): boolean => {
   return isCachingEnabled();
 };
 
+// Function to check if key is a cache key (without importing)
+const isLikelyCacheKey = (key: string): boolean => {
+  return key.startsWith('ai-cache:') || 
+         key.startsWith('ai-stream-cache:') || 
+         key.startsWith('ai-response:');
+};
+
 export const mockKV = {
   // Basic operations
   get: async (key: string) => {
-    if (shouldLog(key)) {
+    if (await shouldLog(key)) {
       console.log(`[Mock KV] GET: ${key}`);
     }
     
     // Skip cache lookups if caching is disabled
-    if (!shouldPerformCacheOperation(key)) {
+    if (!await shouldPerformCacheOperation(key)) {
       return null;
     }
     
@@ -46,12 +58,12 @@ export const mockKV = {
   },
   
   set: async (key: string, value: unknown, options?: { ex?: number }) => {
-    if (shouldLog(key)) {
+    if (await shouldLog(key)) {
       console.log(`[Mock KV] SET: ${key}`);
     }
     
     // Skip cache storage if caching is disabled
-    if (!shouldPerformCacheOperation(key)) {
+    if (!await shouldPerformCacheOperation(key)) {
       return 'OK';
     }
     
@@ -68,9 +80,11 @@ export const mockKV = {
       const timeout = setTimeout(() => {
         store.delete(key);
         expirations.delete(key);
-        if (shouldLog(key)) {
-          console.log(`[Mock KV] EXPIRED: ${key}`);
-        }
+        shouldLog(key).then(shouldLogResult => {
+          if (shouldLogResult) {
+            console.log(`[Mock KV] EXPIRED: ${key}`);
+          }
+        });
       }, options.ex * 1000);
       
       expirations.set(key, timeout);
@@ -80,7 +94,7 @@ export const mockKV = {
   },
   
   delete: async (key: string) => {
-    if (shouldLog(key)) {
+    if (await shouldLog(key)) {
       console.log(`[Mock KV] DELETE: ${key}`);
     }
     
@@ -98,7 +112,7 @@ export const mockKV = {
   
   // Add del method as an alias to delete for Vercel KV compatibility
   del: async (key: string) => {
-    if (shouldLog(key)) {
+    if (await shouldLog(key)) {
       console.log(`[Mock KV] DEL: ${key}`);
     }
     
@@ -116,6 +130,9 @@ export const mockKV = {
   
   // Additional methods to match Vercel KV API
   exists: async (key: string) => {
+    const { isCacheKey } = await import('./middleware-safe-cache');
+    const { isCachingEnabled } = await import('./middleware-safe-config');
+    
     // Skip cache checks if caching is disabled
     if (isCacheKey(key) && !isCachingEnabled()) {
       return 0;
@@ -125,6 +142,9 @@ export const mockKV = {
   },
   
   expire: async (key: string, seconds: number) => {
+    const { isCacheKey } = await import('./middleware-safe-cache');
+    const { isCachingEnabled } = await import('./middleware-safe-config');
+    
     // Skip cache operations if caching is disabled
     if (isCacheKey(key) && !isCachingEnabled()) {
       return 0;
@@ -138,10 +158,10 @@ export const mockKV = {
     }
     
     // Set new expiration
-    const timeout = setTimeout(() => {
+    const timeout = setTimeout(async () => {
       store.delete(key);
       expirations.delete(key);
-      if (shouldLog(key)) {
+      if (await shouldLog(key)) {
         console.log(`[Mock KV] EXPIRED: ${key}`);
       }
     }, seconds * 1000);
@@ -152,12 +172,14 @@ export const mockKV = {
   
   // Get all keys matching a pattern
   keys: async (pattern: string) => {
-    if (shouldLog(pattern)) {
+    if (await shouldLog(pattern)) {
       console.log(`[Mock KV] KEYS: ${pattern}`);
     }
     
+    const { isCachingEnabled } = await import('./middleware-safe-config');
+    
     // Skip cache pattern matching if caching is disabled and pattern is cache-related
-    if (isCacheKey(pattern) && !isCachingEnabled()) {
+    if (isLikelyCacheKey(pattern) && !isCachingEnabled()) {
       return [];
     }
     
@@ -179,7 +201,7 @@ export const mockKV = {
     
     // If caching is disabled, filter out cache-related keys
     if (!isCachingEnabled()) {
-      matchingKeys = matchingKeys.filter(key => !isCacheKey(key));
+      matchingKeys = matchingKeys.filter(key => !isLikelyCacheKey(key));
     }
     
     return matchingKeys;
@@ -193,7 +215,7 @@ export const mockKV = {
     const allKeys = Array.from(store.keys());
     
     // Filter for cache-related keys
-    const cacheKeys = allKeys.filter(key => isCacheKey(key));
+    const cacheKeys = allKeys.filter(key => isLikelyCacheKey(key));
     
     // Delete each cache key
     let deletedCount = 0;

@@ -4,14 +4,19 @@
  * because they don't depend on any modules that use eval() like gray-matter.
  */
 
-import { kv } from './kv-provider';
 import { isCachingEnabled } from './middleware-safe-config';
 
-// Define an extended KV type that includes the 'del' method
+// Helper to lazily get the KV instance to avoid circular dependencies
+const getKV = async () => {
+  const { kv } = await import('./kv-provider');
+  return kv;
+};
+
+// Define an extended KV type
 interface ExtendedKV {
-  get: typeof kv.get;
-  set: typeof kv.set;
-  keys: typeof kv.keys;
+  get: (key: string) => Promise<unknown>;
+  set: (key: string, value: unknown, options?: { ex?: number }) => Promise<unknown>;
+  keys: (pattern: string) => Promise<string[]>;
   del: (key: string) => Promise<number>;
 }
 
@@ -33,6 +38,7 @@ export async function getCachedValue<T>(key: string): Promise<T | null> {
   }
   
   try {
+    const kv = await getKV();
     return await kv.get(key) as T | null;
   } catch (error) {
     console.error(`[Cache] Failed to get cached value for ${key}:`, error);
@@ -53,6 +59,7 @@ export async function setCachedValue<T>(
   }
   
   try {
+    const kv = await getKV();
     if (expirationSeconds) {
       return await kv.set(key, value, { ex: expirationSeconds }) as string;
     } else {
@@ -69,8 +76,9 @@ export async function setCachedValue<T>(
  */
 export async function deleteCachedValue(key: string): Promise<number> {
   try {
+    const kv = await getKV() as ExtendedKV;
     // Use del method which is supported by both Vercel KV and our mock implementation
-    return await (kv as ExtendedKV).del(key);
+    return await kv.del(key);
   } catch (error) {
     console.error(`[Cache] Failed to delete cached value for ${key}:`, error);
     return 0;
@@ -82,6 +90,8 @@ export async function deleteCachedValue(key: string): Promise<number> {
  */
 export async function flushAllCache(): Promise<number> {
   try {
+    const kv = await getKV() as ExtendedKV;
+    
     // Get all cache keys
     const cacheKeys = await kv.keys('ai-*');
     
@@ -89,7 +99,7 @@ export async function flushAllCache(): Promise<number> {
     let deletedCount = 0;
     for (const key of cacheKeys) {
       // Delete using the extended type
-      const result = await (kv as ExtendedKV).del(key);
+      const result = await kv.del(key);
       deletedCount += result;
     }
     

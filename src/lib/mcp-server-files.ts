@@ -25,6 +25,7 @@ export interface StoredMCPServer {
   connections?: Array<{
     type: string;
     url?: string;
+    deploymentUrl?: string;
     configSchema?: Record<string, unknown>;
   }>;
   // Allow storing any additional fields

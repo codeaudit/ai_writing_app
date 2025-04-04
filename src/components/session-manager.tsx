@@ -49,9 +49,13 @@ export default function SessionManager() {
   
   // Load the sessions when the component mounts
   useEffect(() => {
+    // Create a ref to track if sessions have been loaded
     const loadSessionsOnce = async () => {
       try {
-        await loadSessions();
+        // Check if we already have sessions loaded to avoid unnecessary calls
+        if (sessions.length === 0 && !isLoading) {
+          await loadSessions();
+        }
       } catch (error) {
         console.error('Error loading sessions:', error);
       }

@@ -31,6 +31,7 @@ export interface SmitheryServerDetail {
   connections: Array<{
     type: string;
     url?: string;
+    deploymentUrl?: string;
     configSchema: ConfigSchema;
   }>;
 }

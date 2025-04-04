@@ -112,3 +112,215 @@ what's chapter 10 about?
 ### 2025-04-04 06:40:57
 
 test
+
+### 2025-04-04 13:39:01
+
+What are events in singapore this week?
+
+### 2025-04-04 13:39:17
+
+What are the events in singapore this week?
+
+### 2025-04-04 13:40:37
+
+format the previous response so it's readable
+
+### 2025-04-04 13:41:00
+
+No.. format the response 
+
+### 2025-04-04 14:03:01
+
+What are some AI events happening in Singapore and how many days until the next one?
+
+### 2025-04-04 14:03:19
+
+[EDITED] Original: "What are some AI events happening in Singapore and how many days until the next one?" → New: "What are some AI events happening in Singapore and how many days until the next one?"
+
+### 2025-04-04 14:03:47
+
+What are some AI events happening in Singapore and how many days until the next one?
+
+### 2025-04-04 14:08:42
+
+What are the events in singapore and how many days will there be to the event?
+
+### 2025-04-04 14:13:01
+
+What are the events in singapore and how many days will there be to the event?
+
+### 2025-04-04 14:29:38
+
+What are the events about AI in the UK and how many days before that event?
+
+### 2025-04-04 14:29:51
+
+What are the events about AI in the UK and how many days before that event?
+
+### 2025-04-04 14:30:21
+
+What are the events about AI in the UK and how many days before that event?
+
+### 2025-04-04 14:31:11
+
+What are the events about AI in the UK and how many days before that event?
+
+### 2025-04-04 14:35:49
+
+What are the events about AI in the UK and how many days before that event?
+
+
+
+
+
+### 2025-04-04 14:36:18
+
+What are the events about AI in the UK and how many days before that event?
+
+
+
+
+
+### 2025-04-04 14:36:48
+
+What are the events about AI in the UK and how many days before that event?
+
+
+
+
+
+### 2025-04-04 14:40:24
+
+What are the events about AI in the UK and how many days before that event?
+
+
+
+
+
+### 2025-04-04 14:41:29
+
+What are the events about AI in the UK and how many days before that event?
+
+
+
+
+
+### 2025-04-04 14:53:29
+
+What are the events about AI in the UK and how many days before that event?
+
+
+
+
+
+### 2025-04-04 14:54:46
+
+[EDITED] Original: "What are the events about AI in the UK and how many days before that event?
+
+
+
+" → New: "What are the events about AI in the UK and how many days before that event? Today is April 4th. 
+
+
+
+"
+
+### 2025-04-04 14:55:08
+
+[EDITED] Original: "What are the events about AI in the UK and how many days before that event? Today is April 4th. 
+
+
+
+" → New: "What are the events about AI in the UK and how many days before that event? Today is April 4th. 
+
+
+
+"
+
+### 2025-04-04 14:55:26
+
+What are the events about AI in the UK and how many days before that event? Today is April 4th.
+
+
+
+
+
+### 2025-04-04 14:55:54
+
+[EDITED] Original: "What are the events about AI in the UK and how many days before that event? Today is April 4th.
+
+
+
+" → New: "What are the events about AI in the UK and how many days before that event? "
+
+### 2025-04-04 14:56:01
+
+What are the events about AI in the UK and how many days before that event? 
+
+### 2025-04-04 15:03:56
+
+What are the events about AI in the UK and how many days before that event?
+
+
+
+
+
+### 2025-04-04 15:04:34
+
+What are the events about AI in the UK and how many days before that event?
+
+
+
+
+
+### 2025-04-04 15:04:43
+
+What are the events about AI in the UK and how many days before that event?
+
+
+
+
+
+### 2025-04-04 15:05:41
+
+What are the events about AI in the UK and how many days before that event?
+
+
+
+
+
+### 2025-04-04 15:10:16
+
+what language model are you?
+
+### 2025-04-04 15:10:58
+
+what language model are you?
+
+### 2025-04-04 15:13:51
+
+what language model are you?
+
+### 2025-04-04 15:18:36
+
+what language model are you?
+
+
+
+
+
+### 2025-04-04 15:18:47
+
+what language model are you?
+
+
+
+
+
+### 2025-04-04 15:19:19
+
+what are the AI events in singapore in the next few months?
+
+### 2025-04-04 15:19:57
+
+what are the events in singapore in the next few months?
