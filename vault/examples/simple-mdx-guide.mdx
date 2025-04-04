@@ -1,0 +1,155 @@
+---
+title: Getting Started with MDX
+created: 2023-08-15
+tags: [beginner, tutorial, mdx]
+---
+
+# Getting Started with MDX
+
+This guide will help you understand the basics of MDX and how to use it in your documents.
+
+## What is MDX?
+
+MDX is simply **Markdown + JSX**. It lets you use React components right inside your Markdown documents.
+
+Think of it this way:
+- **Markdown**: Great for writing text content
+- **JSX**: Great for interactive components
+- **MDX**: Combines both so you can have the best of both worlds!
+
+## Basic Examples
+
+### Standard Markdown
+
+MDX supports all the standard markdown syntax you're already familiar with:
+
+#### Text Formatting
+
+You can use **bold text**, *italic text*, or ~~strikethrough~~.
+
+#### Lists
+
+Unordered lists:
+- Item one
+- Item two
+- Item three
+
+Ordered lists:
+1. First step
+2. Second step
+3. Third step
+
+#### Links and Images
+
+[Visit the MDX website](https://mdxjs.com/)
+
+![Example image](https://via.placeholder.com/600x300)
+
+### Simple JSX Components
+
+Now let's add some simple JSX components:
+
+<SimpleButton>Click Me</SimpleButton>
+
+<Highlight color="yellow">
+  This text is highlighted in yellow
+</Highlight>
+
+## How JSX Looks in MDX
+
+JSX uses a tag-based syntax that looks similar to HTML:
+
+```jsx
+<ComponentName propName={value}>
+  Content goes here
+</ComponentName>
+```
+
+The key parts are:
+1. Component name (always starts with a capital letter)
+2. Props (attributes that customize the component)
+3. Content (what goes between the opening and closing tags)
+
+## Using JavaScript Expressions
+
+You can use JavaScript expressions inside curly braces:
+
+The current year is: {new Date().getFullYear()}
+
+A simple calculation: 5 + 10 = {5 + 10}
+
+## Mixing Markdown and JSX
+
+You can mix markdown and JSX freely:
+
+<Box padding={20} background="#f0f0f0">
+  ## This is a markdown heading inside a Box component
+  
+  - You can use **bold text** and *italic text*
+  - And regular markdown lists
+</Box>
+
+## Example with Props
+
+Components can be customized with props:
+
+<Card 
+  title="My Card Title" 
+  image="https://via.placeholder.com/300x200"
+  bordered={true}
+>
+  This is the card content. You can write anything here.
+</Card>
+
+## Importing Components
+
+At the top of your MDX file, you can import custom components:
+
+```jsx
+import { SpecialComponent } from './components/SpecialComponent'
+import { MyChart } from './components/MyChart'
+```
+
+Then use them in your document.
+
+## A Note on Component Availability
+
+Not all components may be available by default in your MDX environment. The writing app needs to provide the components that you can use. Check the documentation for a list of available components.
+
+## Simple Example: Tabs Component
+
+Here's a practical example of using a tabs component:
+
+<Tabs>
+  <Tab label="First Tab">
+    This is the content of the first tab.
+  </Tab>
+  <Tab label="Second Tab">
+    This is the content of the second tab.
+  </Tab>
+</Tabs>
+
+## Creating Your First MDX Document
+
+1. Create a new file with the `.mdx` extension
+2. Start with some basic markdown content
+3. Add a simple component like `<Highlight>Some text</Highlight>`
+4. Save and preview your document
+
+## When to Use MDX
+
+MDX is great for:
+- Documents that need interactive elements
+- Content with custom formatting needs
+- Creating reusable document patterns
+- Educational content with interactive exercises
+
+## Conclusion
+
+That's the basics of MDX! It's a powerful way to enhance your documents with interactive components while keeping the simplicity of markdown for your content.
+
+As you get more comfortable, you can explore more complex components and even create your own custom components for your specific needs.
+
+<CallToAction>
+  Try creating your own MDX document now!
+</CallToAction> 

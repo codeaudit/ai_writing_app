@@ -1,0 +1,66 @@
+---
+title: "Testing the Fixed MDX Renderer"
+description: "A simple test file to verify our MDX rendering is working correctly"
+---
+
+# MDX Rendering Test
+
+This is a simple MDX test file to check if our renderer is working properly after the fixes.
+
+## Markdown Features
+
+- **Bold text** and *italic text*
+- Lists and nested lists:
+  - Subitem 1
+  - Subitem 2
+- [Links to external sites](https://example.com)
+
+## Code Block Test
+
+Here's a JavaScript code block:
+
+```js
+function sayHello(name) {
+  return `Hello, ${name}!`;
+}
+
+console.log(sayHello('World'));
+```
+
+And a JSX code block:
+
+```jsx
+function Welcome({ name }) {
+  return <h1>Hello, {name}!</h1>;
+}
+
+export default function App() {
+  return <Welcome name="World" />;
+}
+```
+
+## Component Test
+
+Let's try using our custom components:
+
+<Alert type="info">
+  This is an informational alert that should display correctly.
+</Alert>
+
+<Box className="bg-blue-50 dark:bg-blue-900">
+  This is a custom box component with custom styling.
+</Box>
+
+## Math Test with KaTeX
+
+Inline math: $e = mc^2$
+
+Block math:
+
+$$
+\frac{1}{n} \sum_{i=1}^{n} x_i = \bar{x}
+$$
+
+## Done!
+
+If this content renders correctly, our MDX renderer is working properly! 

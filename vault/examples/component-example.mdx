@@ -1,0 +1,70 @@
+---
+title: "Interactive Components in MDX"
+description: "Learn how to create and use React components in your MDX files"
+date: "2023-08-25"
+---
+
+# Interactive Components in MDX
+
+MDX allows you to embed React components directly within your markdown content. This creates opportunities for interactive documentation, tutorials, and blog posts.
+
+## Basic Component Example
+
+Here's a simple alert component:
+
+```jsx
+export function Alert({ type, children }) {
+  return (
+    <div className={`alert alert-${type}`} role="alert">
+      {children}
+    </div>
+  );
+}
+```
+
+And now we can use it right in our MDX:
+
+<Alert type="info">
+  This is an informational alert message!
+</Alert>
+
+## Dynamic Content with Variables
+
+MDX also lets you use JavaScript expressions:
+
+Current date: {new Date().toLocaleDateString()}
+
+## Counter Component Example
+
+Here's a more interactive example:
+
+```jsx
+import { useState } from 'react';
+
+export function Counter() {
+  const [count, setCount] = useState(0);
+  
+  return (
+    <div className="counter">
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>
+        Increment
+      </button>
+      <button onClick={() => setCount(count - 1)}>
+        Decrement
+      </button>
+    </div>
+  );
+}
+```
+
+You would use it like this:
+
+<Counter />
+
+## Benefits of MDX
+
+1. **Rich content** - Mix markdown and components
+2. **Interactive documentation** - Add live demos
+3. **Consistent styling** - Use your app's component library
+4. **Developer experience** - Write in familiar markdown syntax 

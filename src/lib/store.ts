@@ -11,7 +11,9 @@ import {
   moveDocumentOnServer,
   renameFolderOnServer,
   moveFolderOnServer,
-  getBacklinksFromServer
+  getBacklinksFromServer,
+  loadFilterFromServer,
+  copyFolderOnServer,
 } from './api-service';
 import { 
   DEFAULT_LLM_PROVIDER, 
@@ -72,6 +74,7 @@ export interface Document {
   folderId: string | null; // Add folder reference
   annotations: Annotation[]; // Add annotations array
   contextDocuments?: Array<{id: string; name: string; content?: string}>; // Add contextDocuments for compositions
+  extension?: string; // Add extension property to track .md or .mdx
 }
 
 export interface Folder {
@@ -90,7 +93,11 @@ interface DocumentStore {
   comparisonDocumentIds: string[];
   selectedFolderIds: string[]; // Add selected folder IDs
   isLoading: boolean;
-  error: string | null;
+  error: string | null | {
+    message: string;
+    canRecurse?: boolean;
+    folderId?: string;
+  };
   backlinks: { id: string, name: string }[];
   
   // Document operations
@@ -106,6 +113,7 @@ interface DocumentStore {
   addFolder: (name: string, parentId?: string | null) => Promise<void>;
   updateFolder: (id: string, name: string, parentId?: string | null) => Promise<void>;
   deleteFolder: (id: string) => Promise<void>;
+  deleteRecursively: (id: string) => Promise<void>; // Add method for recursive deletion
   renameFolder: (folderId: string, newName: string) => Promise<void>;
   moveFolder: (folderId: string, parentId: string | null) => Promise<void>;
   selectFolder: (id: string | null) => void;
@@ -247,6 +255,13 @@ export const useDocumentStore = create<DocumentStore>()(
         set({ error: null });
         const timestamp = new Date();
         
+        // Check if name contains file extension
+        const hasExtension = name.endsWith('.md') || name.endsWith('.mdx');
+        // Determine the file extension - default to .md if none specified
+        const extension = hasExtension ? `.${name.split('.').pop()}` : '.md';
+        // Remove extension from name if present for consistency
+        const baseName = hasExtension ? name.slice(0, name.lastIndexOf('.')) : name;
+        
         // Check if the content has frontmatter with contextDocuments
         let contextDocuments;
         const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -264,7 +279,7 @@ export const useDocumentStore = create<DocumentStore>()(
         
         const newDocument: Document = {
           id: `doc-${timestamp.getTime()}`,
-          name,
+          name: baseName,
           content,
           createdAt: timestamp,
           updatedAt: timestamp,
@@ -272,6 +287,7 @@ export const useDocumentStore = create<DocumentStore>()(
           folderId,
           annotations: [],
           ...(contextDocuments && { contextDocuments }),
+          extension
         };
         
         // Create an initial version
@@ -298,7 +314,6 @@ export const useDocumentStore = create<DocumentStore>()(
           set({ error: 'Failed to save document to server. Changes may not persist.' });
         }
         
-        // Return the new document ID
         return newDocument.id;
       },
       
@@ -338,12 +353,26 @@ export const useDocumentStore = create<DocumentStore>()(
           }
         }
         
+        // Check if the name is being updated with an extension
+        let extension = documentToUpdate.extension;
+        let newName = data.name;
+        
+        if (newName) {
+          const hasExtension = newName.endsWith('.md') || newName.endsWith('.mdx');
+          if (hasExtension) {
+            extension = `.${newName.split('.').pop()}`;
+            newName = newName.slice(0, newName.lastIndexOf('.'));
+          }
+        }
+        
         const updatedDoc = { 
           ...documentToUpdate, 
-          ...data, 
+          ...data,
+          name: newName || documentToUpdate.name,
           updatedAt: new Date(),
           versions: versions,
           ...(contextDocuments && { contextDocuments }),
+          extension,
         };
         
         // Update local state immediately
@@ -493,41 +522,62 @@ export const useDocumentStore = create<DocumentStore>()(
       
       deleteFolder: async (id) => {
         set({ error: null });
-        const state = get();
         
-        // Move documents in the deleted folder to root in local state
-        const documentsToUpdate = state.documents.filter(doc => doc.folderId === id);
-        
-        for (const doc of documentsToUpdate) {
-          // Update local state immediately
-          set((state) => ({
-            documents: state.documents.map((d) =>
-              d.id === doc.id
-                ? { ...d, folderId: null }
-                : d
-            ),
-          }));
+        try {
+          // First try non-recursive delete
+          await deleteFolderFromServer(id, false);
           
-          // Then save to server
-          try {
-            await saveDocumentToServer({ ...doc, folderId: null });
-          } catch (error) {
-            console.error('Error updating document on server:', error);
+          // If successful, update local state
+          set(state => ({
+            folders: state.folders.filter(folder => folder.id !== id),
+            selectedFolderId: state.selectedFolderId === id ? null : state.selectedFolderId
+          }));
+        } catch (error) {
+          // Check if error is due to non-empty folder
+          if (error instanceof Error) {
+            if (error.message.includes("subfolders") || error.message.includes("contains documents")) {
+              // The folder has contents - notify the user via the error state
+              // This will allow the UI to prompt the user about recursive deletion
+              set({ 
+                error: {
+                  message: error.message,
+                  canRecurse: true,
+                  folderId: id
+                } 
+              });
+            } else {
+              // Some other error occurred
+              console.error('Error deleting folder:', error);
+              set({ error: error.message || 'Failed to delete folder.' });
+            }
+          } else {
+            console.error('Unknown error deleting folder:', error);
+            set({ error: 'Failed to delete folder.' });
           }
         }
+      },
+      
+      // Add a new method to handle recursive deletion
+      deleteRecursively: async (id) => {
+        set({ error: null });
         
-        // Update local state immediately
-        set((state) => ({
-          folders: state.folders.filter((folder) => folder.id !== id),
-          selectedFolderId: state.selectedFolderId === id ? null : state.selectedFolderId,
-        }));
-        
-        // Then delete from server
         try {
-          await deleteFolderFromServer(id);
+          // Call server with recursive=true
+          await deleteFolderFromServer(id, true);
+          
+          // If successful, update local state
+          set(state => ({
+            folders: state.folders.filter(folder => folder.id !== id),
+            selectedFolderId: state.selectedFolderId === id ? null : state.selectedFolderId
+          }));
+          
+          // Refresh the document list since documents in subfolders have been deleted
+          const documents = await fetchDocuments();
+          set({ documents: fixDates(documents) });
+          
         } catch (error) {
-          console.error('Error deleting folder from server:', error);
-          set({ error: 'Failed to delete folder from server.' });
+          console.error('Error deleting folder recursively:', error);
+          set({ error: error instanceof Error ? error.message : 'Failed to delete folder and its contents.' });
         }
       },
       
@@ -1142,113 +1192,23 @@ ${updatedComposition.content}`;
         set({ error: null });
         
         try {
-          const state = get();
-          const folder = state.folders.find(f => f.id === folderId);
-          if (!folder) {
-            throw new Error('Folder not found');
-          }
+          // Call the server-side copy function directly
+          const result = await copyFolderOnServer(folderId, null);
           
-          // Create a map to track original folder IDs to their new copies
-          const folderIdMap = new Map<string, string>();
+          // Refresh folders and documents from the server to get the copied items
+          const [folders, documents] = await Promise.all([
+            fetchFolders(),
+            fetchDocuments()
+          ]);
           
-          // Create a copy of the main folder with "(Copy)" appended to the name
-          const newFolderId = generateUniqueId('folder');
-          folderIdMap.set(folderId, newFolderId);
+          // Update the local state with the latest data
+          set({ 
+            folders: fixDates(folders),
+            documents: fixDates(documents)
+          });
           
-          const newFolder: Folder = {
-            id: newFolderId,
-            name: `${folder.name} (Copy)`,
-            createdAt: new Date(),
-            parentId: folder.parentId, // Create as a sibling of the original
-          };
-          
-          // Update local state with the new main folder
-          set((state) => ({
-            folders: [...state.folders, newFolder],
-          }));
-          
-          // Save the new folder to the server
-          await saveFolderToServer(newFolder);
-          
-          // Recursively copy subfolders
-          const copySubfolders = async (originalParentId: string, newParentId: string) => {
-            // Find all child folders of the original folder
-            const childFolders = state.folders.filter(f => f.parentId === originalParentId);
-            
-            for (const childFolder of childFolders) {
-              const newChildId = generateUniqueId('folder');
-              folderIdMap.set(childFolder.id, newChildId);
-              
-              const newChildFolder: Folder = {
-                id: newChildId,
-                name: childFolder.name,
-                createdAt: new Date(),
-                parentId: newParentId,
-              };
-              
-              // Update local state with the new subfolder
-              set((state) => ({
-                folders: [...state.folders, newChildFolder],
-              }));
-              
-              // Save the new subfolder to the server
-              await saveFolderToServer(newChildFolder);
-              
-              // Recursively copy child folders
-              await copySubfolders(childFolder.id, newChildId);
-            }
-          };
-          
-          // Start the recursive copy of subfolders
-          await copySubfolders(folderId, newFolderId);
-          
-          // Copy all documents in all folders we've copied
-          // Process by mapping over all documents and copying those that belong to copied folders
-          const allDocsToCopy = state.documents.filter(doc => 
-            doc.folderId && folderIdMap.has(doc.folderId)
-          );
-          
-          const newDocuments: Document[] = [];
-          
-          for (const doc of allDocsToCopy) {
-            const timestamp = new Date();
-            const newDocId = generateUniqueId('doc');
-            
-            // Get the new parent folder ID from our mapping
-            const newParentId = doc.folderId ? folderIdMap.get(doc.folderId) : null;
-            
-            const newDoc: Document = {
-              id: newDocId,
-              name: doc.name,
-              content: doc.content,
-              createdAt: timestamp,
-              updatedAt: timestamp,
-              folderId: newParentId,
-              versions: [{
-                id: generateUniqueId('ver'),
-                content: doc.content,
-                createdAt: timestamp,
-                message: "Initial version"
-              }],
-              annotations: [], // Start with empty annotations
-              ...(doc.contextDocuments && { contextDocuments: doc.contextDocuments }),
-            };
-            
-            // Save to local array for bulk update
-            newDocuments.push(newDoc);
-            
-            // Save to server
-            await saveDocumentToServer(newDoc);
-          }
-          
-          // Update local state with all new documents at once
-          if (newDocuments.length > 0) {
-            set((state) => ({
-              documents: [...state.documents, ...newDocuments],
-            }));
-          }
-          
-          return newFolderId;
+          // Return the new folder ID
+          return result.newFolderId;
         } catch (error) {
           console.error('Error copying folder:', error);
           set({ error: error instanceof Error ? error.message : 'Failed to copy folder' });

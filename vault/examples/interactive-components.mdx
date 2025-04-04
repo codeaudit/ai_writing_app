@@ -1,0 +1,95 @@
+---
+title: "Interactive Components in MDX"
+description: "Demonstration of interactive components that can be used directly in your content"
+created: "2023-09-10"
+tags: "components, interactive, demo"
+---
+
+# Interactive Components in MDX
+
+One of the most powerful features of MDX is the ability to include interactive components directly in your content. This example demonstrates several interactive components you can use in your documents.
+
+## Counter Component
+
+The Counter component allows you to maintain state directly in your document:
+
+<Counter startValue={5} />
+
+Try clicking the buttons above to change the counter value.
+
+## Color Picker
+
+The ColorPicker component provides a simple way to select and display colors:
+
+<ColorPicker defaultColor="#3B82F6" />
+
+## Simple Button
+
+Buttons can be used to trigger actions:
+
+<SimpleButton>
+  Click Me!
+</SimpleButton>
+
+## Code Editor
+
+The CodeEditor component allows you to display editable code snippets:
+
+<CodeEditor 
+  code="function greet(name) {\n  return `Hello, ${name}`;\n}\n\nconsole.log(greet('Developer'));" 
+  language="javascript"
+/>
+
+## Card Component
+
+Cards can be used to display content in an attractive format:
+
+<Card title="Sample Card" image="https://source.unsplash.com/random/800x400/?nature">
+  This is a card component with an image and some content. Cards are great for 
+  displaying information in a visually appealing way.
+  
+  You can hover over the card to see effects.
+</Card>
+
+## Tabs Component
+
+Tabs are useful for organizing content into discrete sections:
+
+<Tabs>
+  <TabPanel label="First Tab">
+    This is the content for the first tab.
+    
+    * List item 1
+    * List item 2
+  </TabPanel>
+  
+  <TabPanel label="Second Tab">
+    Content for the second tab goes here.
+    
+    ```js
+    // Some code in the second tab
+    const message = "Hello from tab 2!";
+    console.log(message);
+    ```
+  </TabPanel>
+  
+  <TabPanel label="Third Tab">
+    And here's the content for the third tab.
+    
+    <Alert type="warning">
+      You can even include other components inside tabs!
+    </Alert>
+  </TabPanel>
+</Tabs>
+
+## Call to Action
+
+Use the CallToAction component to draw attention to important actions:
+
+<CallToAction>
+  Subscribe to our newsletter!
+</CallToAction>
+
+## Bringing It All Together
+
+These interactive components allow you to create rich, engaging content that goes beyond static text. Experiment with combining these components to create powerful documents! 

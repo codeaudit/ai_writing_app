@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { mkdir } from 'fs/promises';
+import matter from 'gray-matter';
 
 // Define the templates directory
 const TEMPLATES_DIR = path.join(process.cwd(), 'vault', 'templates');
@@ -29,30 +30,33 @@ export async function GET() {
     
     // Get all markdown files in the templates directory
     const files = fs.readdirSync(TEMPLATES_DIR)
-      .filter(file => file.endsWith('.md'));
+      .filter(file => file.endsWith('.md') || file.endsWith('.mdx'));
     
     // Map files to template objects
     const templates = files.map(file => {
       const filePath = path.join(TEMPLATES_DIR, file);
-      const content = fs.readFileSync(filePath, 'utf8');
+      const extension = file.endsWith('.mdx') ? '.mdx' : '.md';
+      const name = file.replace(new RegExp(`${extension}$`), '');
       
-      // Extract metadata from frontmatter
-      const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
-      const frontmatter = frontmatterMatch ? frontmatterMatch[1] : '';
-      
-      // Parse metadata
-      const name = frontmatter.match(/name:\s*(.*)/)?.[1]?.trim() || file.replace(/\.md$/, '');
-      const category = frontmatter.match(/category:\s*(.*)/)?.[1]?.trim() || 'General';
-      const createdAt = frontmatter.match(/createdAt:\s*(.*)/)?.[1]?.trim() || new Date().toISOString();
-      const updatedAt = frontmatter.match(/updatedAt:\s*(.*)/)?.[1]?.trim() || new Date().toISOString();
-      
-      return {
-        name,
-        category,
-        createdAt,
-        updatedAt,
-        path: filePath
-      };
+      try {
+        // Try to get frontmatter for additional metadata
+        const content = fs.readFileSync(filePath, 'utf8');
+        const { data } = matter(content);
+        
+        return {
+          id: name,
+          name: data.name || name,
+          description: data.description || '',
+          ...data
+        };
+      } catch (error) {
+        // Fallback if reading fails
+        return {
+          id: name,
+          name,
+          description: ''
+        };
+      }
     });
     
     return NextResponse.json(templates);

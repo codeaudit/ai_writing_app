@@ -1,20 +1,21 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle, Dispatch, SetStateAction, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
 import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo, BookmarkIcon, Search, Sparkles, Hash, ArrowRight, Play, FileJson } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDocumentStore, Annotation, Document } from "@/lib/store";
-import { OnMount, useMonaco, type Monaco, type EditorProps } from "@monaco-editor/react";
+import { OnMount, useMonaco } from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 import { VersionHistory } from "./version-history";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { LLMDialog } from "./llm-dialog";
 import React from "react";
-import { MarkdownRenderer } from "./markdown-renderer";
+import { MDXRenderer } from "./mdx-renderer";
+import { MDXBundlerRenderer } from "./mdx-bundler-renderer";
 import { AnnotationDialog } from "./annotation-dialog";
 import { TokenCounterDialog } from "./token-counter-dialog";
 import { CompositionComposer } from "./composition-composer";
@@ -23,12 +24,17 @@ import { TerminalView } from "./terminal-view";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import type * as Monaco from 'monaco-editor';
+import { registerMDXLanguage } from "@/lib/mdx-language";
 
 // Dynamically import components that might cause hydration issues
 const Editor = dynamic(() => import('@monaco-editor/react').then(mod => mod.default), { ssr: false });
 const DiffEditor = dynamic(() => import('@monaco-editor/react').then(mod => mod.DiffEditor), { ssr: false });
 
-interface MarkdownEditorProps {}
+interface MarkdownEditorProps {
+  initialDocument?: Document;
+}
 
 // Export the component with forwardRef to expose methods to the parent
 const MarkdownEditor = forwardRef<
@@ -43,7 +49,9 @@ const MarkdownEditor = forwardRef<
   const [activeTab, setActiveTab] = useState("edit");
   const [isSaving, setIsSaving] = useState(false);
   const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [scrollSync, setScrollSync] = useState(true);
   const monaco = useMonaco();
   const { theme, systemTheme } = useTheme();
   const [editorTheme, setEditorTheme] = useState<string>(() => {
@@ -69,7 +77,7 @@ const MarkdownEditor = forwardRef<
   const [showLLMDialog, setShowLLMDialog] = useState(false);
   const [selectedText, setSelectedText] = useState("");
   const [dialogPosition, setDialogPosition] = useState<{ x: number; y: number } | null>(null);
-  const [currentSelection, setCurrentSelection] = useState<any>(null);
+  const [currentSelection, setCurrentSelection] = useState<Monaco.Selection | null>(null);
 
   // Client-side only code
   const [isClient, setIsClient] = useState(false);
@@ -179,10 +187,13 @@ const MarkdownEditor = forwardRef<
     }
   }, [theme, systemTheme]);
 
-  // Configure Monaco Editor
+  // Configure Monaco Editor for MDX
   useEffect(() => {
     if (monaco) {
-      // Set editor options
+      // Register MDX language
+      registerMDXLanguage(monaco);
+      
+      // Set editor themes
       monaco.editor.defineTheme('lightTheme', {
         base: 'vs',
         inherit: true,
@@ -324,6 +335,7 @@ const MarkdownEditor = forwardRef<
   }, [content, isAutoSaveEnabled, selectedDocumentId, selectedDocument, updateDocument]);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
+    // Store the editor reference
     editorRef.current = editor;
     
     // Add a custom gutter as a decoration
@@ -434,6 +446,21 @@ const MarkdownEditor = forwardRef<
 
     // Configure editor options for better undo/redo experience
     editor.getModel()?.setEOL(monaco.editor.EndOfLineSequence.LF);
+
+    // Set up scroll synchronization
+    editor.onDidScrollChange((e) => {
+      if (!scrollSync || activeTab !== "edit" || !previewRef.current) return;
+      
+      // Calculate relative scroll position in the editor
+      const editorScrollTop = e.scrollTop;
+      const editorScrollHeight = editor.getScrollHeight();
+      const scrollPercentage = editorScrollTop / editorScrollHeight;
+      
+      // Apply the same percentage scroll to the preview
+      const previewElement = previewRef.current;
+      const previewScrollHeight = previewElement.scrollHeight - previewElement.clientHeight;
+      previewElement.scrollTop = scrollPercentage * previewScrollHeight;
+    });
   };
 
   const handleEditorChange = (value: string | undefined) => {
@@ -1189,7 +1216,7 @@ const MarkdownEditor = forwardRef<
           {isClient && (
             <DiffEditor
               height="100%"
-              language="markdown"
+              language="mdx"
               original={diffOriginal}
               modified={diffModified}
               theme={editorTheme}
@@ -1337,6 +1364,16 @@ const MarkdownEditor = forwardRef<
           >
             <FileJson className="h-4 w-4" />
           </Button>
+          
+          <div className="flex items-center ml-2 space-x-2">
+            <Label htmlFor="scroll-sync" className="text-xs">Sync Scroll</Label>
+            <Switch
+              id="scroll-sync"
+              checked={scrollSync}
+              onCheckedChange={setScrollSync}
+              className="scale-75"
+            />
+          </div>
         </div>
         
         <div className="flex items-center gap-2">
@@ -1365,67 +1402,88 @@ const MarkdownEditor = forwardRef<
           <TabsTrigger value="preview">Preview</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="edit" className="flex-1 flex">
-          <div className="w-full h-full border rounded-md overflow-hidden">
-            {isClient && (
-              <Editor
-                height="100%"
-                defaultLanguage="markdown"
-                value={content}
-                onChange={handleEditorChange}
-                onMount={handleEditorDidMount}
-                options={{
-                  minimap: { enabled: false },
-                  wordWrap: "on",
-                  lineNumbers: "on",
-                  fontSize: 14,
-                  fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  tabSize: 2,
-                  renderLineHighlight: "all",
-                  scrollbar: {
-                    useShadows: false,
-                    verticalScrollbarSize: 10,
-                    horizontalScrollbarSize: 10,
-                    verticalHasArrows: false,
-                    horizontalHasArrows: false,
-                    vertical: "visible",
-                    horizontal: "visible",
-                  },
-                  quickSuggestions: {
-                    other: true,
-                    comments: true,
-                    strings: true
-                  },
-                  suggestOnTriggerCharacters: true,
-                  acceptSuggestionOnEnter: "on",
-                  folding: true,
-                  foldingStrategy: "indentation",
-                  formatOnPaste: true,
-                  formatOnType: true,
-                  padding: {
-                    top: 12,
-                    bottom: 12
-                  },
-                  cursorBlinking: "smooth",
-                  cursorSmoothCaretAnimation: "on",
-                  smoothScrolling: true,
-                  renderWhitespace: "none",
-                  colorDecorators: true,
-                }}
-                theme={editorTheme}
-                className="editor-container"
-              />
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="preview" className="flex-1 overflow-auto">
-          <div className="p-4">
-            <MarkdownRenderer content={content} />
-          </div>
-        </TabsContent>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <TabsContent value="edit" className="h-full flex flex-col overflow-hidden">
+            <div className="w-full h-full border rounded-md overflow-hidden">
+              {isClient && (
+                <Editor
+                  height="100%"
+                  language="mdx"
+                  value={content}
+                  onChange={handleEditorChange}
+                  onMount={handleEditorDidMount}
+                  options={{
+                    minimap: { enabled: false },
+                    wordWrap: "on",
+                    lineNumbers: "on",
+                    fontSize: 14,
+                    fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    tabSize: 2,
+                    renderLineHighlight: "all",
+                    scrollbar: {
+                      useShadows: false,
+                      verticalScrollbarSize: 10,
+                      horizontalScrollbarSize: 10,
+                      verticalHasArrows: false,
+                      horizontalHasArrows: false,
+                      vertical: "visible",
+                      horizontal: "visible",
+                    },
+                    quickSuggestions: {
+                      other: true,
+                      comments: true,
+                      strings: true
+                    },
+                    suggestOnTriggerCharacters: true,
+                    acceptSuggestionOnEnter: "on",
+                    folding: true,
+                    foldingStrategy: "indentation",
+                    formatOnPaste: true,
+                    formatOnType: true,
+                    padding: {
+                      top: 12,
+                      bottom: 12
+                    },
+                    cursorBlinking: "smooth",
+                    cursorSmoothCaretAnimation: "on",
+                    smoothScrolling: true,
+                    renderWhitespace: "none",
+                    colorDecorators: true,
+                  }}
+                  theme={editorTheme}
+                  className="editor-container"
+                />
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="preview" className="h-full flex flex-col overflow-hidden">
+            <div 
+              ref={previewRef}
+              className="w-full h-full border rounded-md overflow-auto p-4"
+              onScroll={(e) => {
+                if (!scrollSync || activeTab !== "preview" || !editorRef.current) return;
+                
+                // Calculate the relative scroll position in the preview
+                const previewElement = e.currentTarget;
+                const scrollTop = previewElement.scrollTop;
+                const scrollHeight = previewElement.scrollHeight - previewElement.clientHeight;
+                const scrollPercentage = scrollTop / scrollHeight;
+                
+                // Apply the same percentage scroll to the editor
+                const editor = editorRef.current;
+                const editorScrollHeight = editor.getScrollHeight();
+                editor.setScrollTop(scrollPercentage * editorScrollHeight);
+              }}
+            >
+              {content && (
+                <MDXBundlerRenderer content={content} className="prose-lg" />
+              )}
+            </div>
+          </TabsContent>
+        </div>
       </Tabs>
       
       {/* Version History Dialog */}
@@ -1465,11 +1523,19 @@ const MarkdownEditor = forwardRef<
 
       {/* Terminal View */}
       {showTerminal && (
-        <TerminalView 
-          onClose={() => setShowTerminal(false)} 
-          initialDirectory="/"
-          height="200px"
-        />
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background shadow-lg">
+          <div className="flex justify-between items-center p-2 border-b">
+            <h3 className="text-sm font-medium">Terminal</h3>
+            <Button variant="ghost" size="sm" onClick={() => setShowTerminal(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <TerminalView 
+            onClose={() => setShowTerminal(false)} 
+            initialDirectory="/"
+            height="200px"
+          />
+        </div>
       )}
 
       {/* Add Frontmatter Dialog */}

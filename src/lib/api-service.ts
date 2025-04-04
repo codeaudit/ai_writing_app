@@ -169,9 +169,9 @@ export const saveFolderToServer = async (folder: Folder): Promise<Folder> => {
   }
 };
 
-export const deleteFolderFromServer = async (id: string): Promise<void> => {
+export const deleteFolderFromServer = async (id: string, recursive: boolean = false): Promise<void> => {
   try {
-    const response = await fetch(`/api/folders?id=${encodeURIComponent(id)}`, {
+    const response = await fetch(`/api/folders?id=${encodeURIComponent(id)}&recursive=${recursive}`, {
       method: 'DELETE',
     });
     
@@ -225,6 +225,32 @@ export const moveFolderOnServer = async (id: string, targetParentId: string | nu
     return await response.json();
   } catch (error) {
     console.error('Error moving folder:', error);
+    throw error;
+  }
+};
+
+export const copyFolderOnServer = async (
+  sourceId: string, 
+  targetParentId: string | null,
+  newName?: string
+): Promise<{ newFolderId: string }> => {
+  try {
+    const response = await fetch('/api/folders/copy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ sourceId, targetParentId, newName }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to copy folder: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error copying folder:', error);
     throw error;
   }
 };

@@ -80,11 +80,15 @@ This composition brings together various elements to create a comprehensive docu
     
     // Get templates from the specified directory
     const templateFiles = fs.readdirSync(templatesDir)
-      .filter(file => file.endsWith('.md'))
-      .map(file => ({
-        name: file.replace(/\.md$/, ''),
-        path: path.join(templatesDir, file)
-      }));
+      .filter(file => file.endsWith('.md') || file.endsWith('.mdx'))
+      .map(file => {
+        // Get extension
+        const extension = file.endsWith('.mdx') ? '.mdx' : '.md';
+        return {
+          name: file.replace(new RegExp(`${extension}$`), ''),
+          path: path.join(templatesDir, file)
+        };
+      });
     
     return NextResponse.json({ templates: templateFiles });
   } catch (error) {

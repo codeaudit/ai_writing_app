@@ -111,7 +111,7 @@ function getTemplates() {
     ensureTemplatesDirectory();
     
     const templateFiles = fs.readdirSync(TEMPLATES_DIR)
-      .filter(file => file.endsWith('.md'))
+      .filter(file => file.endsWith('.md') || file.endsWith('.mdx'))
       .map(file => {
         const filePath = path.join(TEMPLATES_DIR, file);
         
@@ -119,15 +119,17 @@ function getTemplates() {
           // Try to parse frontmatter for the name
           const content = fs.readFileSync(filePath, 'utf8');
           const { data } = matter(content);
+          const extension = file.endsWith('.mdx') ? '.mdx' : '.md';
           
           return {
-            name: data.name || path.basename(file, '.md'),
+            name: data.name || path.basename(file, extension),
             path: filePath
           };
         } catch (error) {
           // Fallback to just the filename if parsing fails
+          const extension = file.endsWith('.mdx') ? '.mdx' : '.md';
           return {
-            name: path.basename(file, '.md'),
+            name: path.basename(file, extension),
             path: filePath
           };
         }
@@ -143,7 +145,13 @@ function getTemplates() {
 // Get the content of a specific template
 function getTemplateContent(templateName) {
   try {
-    const templatePath = path.join(TEMPLATES_DIR, `${templateName}.md`);
+    // Try with .md extension first
+    let templatePath = path.join(TEMPLATES_DIR, `${templateName}.md`);
+    
+    // If .md template doesn't exist, try .mdx
+    if (!fs.existsSync(templatePath)) {
+      templatePath = path.join(TEMPLATES_DIR, `${templateName}.mdx`);
+    }
     
     if (!fs.existsSync(templatePath)) {
       throw new Error(`Template not found: ${templateName}`);
@@ -456,7 +464,7 @@ ipcMain.handle('open-folder-dialog', async () => {
       // Read all markdown files in the folder
       const files = await Promise.all(
         (await fs.readdir(folderPath))
-          .filter(file => file.endsWith('.md') || file.endsWith('.markdown'))
+          .filter(file => file.endsWith('.md') || file.endsWith('.mdx'))
           .map(async (file) => {
             const filePath = path.join(folderPath, file);
             const content = await fs.readFile(filePath, 'utf8');

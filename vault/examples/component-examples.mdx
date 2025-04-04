@@ -1,0 +1,216 @@
+---
+title: Practical MDX Component Examples
+created: 2023-08-12
+tags: [components, examples, practical]
+---
+
+# Practical MDX Component Examples
+
+This document provides practical examples of MDX components that you could actually use in your writing workflow.
+
+## Callouts and Admonitions
+
+Callouts help highlight important information:
+
+<Callout type="note">
+  **Note:** This is important information that supplements the main content.
+</Callout>
+
+<Callout type="warning">
+  **Warning!** Be careful about this potential issue.
+</Callout>
+
+<Callout type="tip">
+  **Pro tip:** Here's a better way to accomplish this task.
+</Callout>
+
+## Table of Contents
+
+Auto-generated table of contents:
+
+<TableOfContents />
+
+## Expandable Sections
+
+Expandable sections help organize lengthy content:
+
+<Expandable title="Click to see additional details">
+  This content is initially hidden but can be expanded by clicking the header.
+  
+  You can include any markdown content here:
+  
+  - Lists
+  - **Bold text**
+  - Even code blocks
+  
+  ```js
+  const expandable = true;
+  ```
+</Expandable>
+
+## Citations and References
+
+Academic citations with hover previews:
+
+This is a statement that needs a citation<Citation id="smith2019" />.
+
+<References>
+  <Reference id="smith2019" type="article">
+    Smith, J. (2019). An amazing discovery. *Journal of Important Things*, 12(3), 45-67.
+  </Reference>
+  <Reference id="johnson2020" type="book">
+    Johnson, R. (2020). *The Definitive Guide to Everything*. Academic Press.
+  </Reference>
+</References>
+
+## Sidenotes and Marginalia
+
+Add notes without interrupting the main flow:
+
+This is a paragraph with a sidenote<Sidenote>This additional information appears in the margin without interrupting the main text flow.</Sidenote> that provides additional context without breaking the flow of the main content.
+
+## Image Galleries
+
+Display multiple images in a gallery:
+
+<ImageGallery>
+  <Image src="https://via.placeholder.com/300x200" alt="Example image 1" caption="First image" />
+  <Image src="https://via.placeholder.com/300x200" alt="Example image 2" caption="Second image" />
+  <Image src="https://via.placeholder.com/300x200" alt="Example image 3" caption="Third image" />
+</ImageGallery>
+
+## Tabs
+
+Organize content into tabbed sections:
+
+<Tabs>
+  <Tab label="Introduction">
+    This is the introduction section that provides an overview.
+  </Tab>
+  <Tab label="Details">
+    This section contains the detailed explanation.
+  </Tab>
+  <Tab label="Examples">
+    Here are some concrete examples to illustrate the concepts.
+  </Tab>
+</Tabs>
+
+## Definition Tooltips
+
+<Definitions>
+  <Define term="MDX">Markdown with JSX - allows you to use React components in your markdown.</Define>
+  <Define term="JSX">JavaScript XML - a syntax extension for JavaScript that looks similar to HTML.</Define>
+  <Define term="Component">Reusable pieces of code that return React elements describing what should appear on the screen.</Define>
+</Definitions>
+
+This document uses <Tooltip term="MDX" /> to embed <Tooltip term="Component">components</Tooltip> using <Tooltip term="JSX" />.
+
+## Math Equations
+
+MDX works great with mathematical equations:
+
+<Equation>
+  E = mc^2
+</Equation>
+
+<Equation display={true}>
+  \int_{a}^{b} f(x) \, dx = F(b) - F(a)
+</Equation>
+
+## Syntax Highlighting
+
+Code with enhanced syntax highlighting:
+
+<CodeBlock language="javascript" filename="example.js" lineNumbers={true} highlight="2">
+function greeting(name) {
+  // This is a simple greeting function
+  return "Hello, " + name;
+}
+</CodeBlock>
+
+## Charts and Diagrams
+
+Embed charts directly in your documents:
+
+<Chart type="bar" />
+
+<FlowChart>
+  Simple flow chart example
+</FlowChart>
+
+## Interactive Exercises
+
+Add interactive elements for educational content:
+
+<Quiz>
+  <Question prompt="What does MDX stand for?">
+    <Option correct>Markdown with JSX</Option>
+    <Option>Markup Data XML</Option>
+    <Option>Modern Document Experience</Option>
+  </Question>
+</Quiz>
+
+## Embedded Spreadsheets
+
+Work with tabular data:
+
+<Spreadsheet editable={true} />
+
+## Audio Player
+
+Embed audio content with a player:
+
+<AudioPlayer 
+  src="path/to/audio.mp3" 
+  title="Podcast Episode: Introduction to MDX" 
+  showControls={true}
+/>
+
+## Timeline
+
+Display chronological information:
+
+<Timeline>
+  <TimelineEvent date="2019-01-01" title="Project Started">
+    Initial research and planning phase.
+  </TimelineEvent>
+  <TimelineEvent date="2019-03-15" title="Prototype Completed">
+    First working prototype demonstrated to stakeholders.
+  </TimelineEvent>
+  <TimelineEvent date="2019-06-30" title="Beta Release">
+    Limited beta release to test with early users.
+  </TimelineEvent>
+  <TimelineEvent date="2019-12-01" title="Version 1.0">
+    Official release of version 1.0 with all core features.
+  </TimelineEvent>
+</Timeline>
+
+## Kanban Board
+
+Visualize tasks and workflows:
+
+<KanbanBoard>
+  <Column title="To Do">
+    <KanbanCard>Research content</KanbanCard>
+    <KanbanCard>Create outline</KanbanCard>
+  </Column>
+  <Column title="In Progress">
+    <KanbanCard>Draft introduction</KanbanCard>
+  </Column>
+  <Column title="Done">
+    <KanbanCard>Project setup</KanbanCard>
+    <KanbanCard>Research competitors</KanbanCard>
+  </Column>
+</KanbanBoard>
+
+## Implementing Your Own Components
+
+Remember that you'll need to implement these components or import them from libraries before they can be used in your MDX documents. The great thing about MDX is that you can create exactly the components you need for your specific workflow.
+
+To use a custom component:
+
+1. Create the component in your application
+2. Make it available to the MDX renderer
+3. Use it in your MDX documents
+
+With this approach, you can extend your writing environment with exactly the tools you need. 

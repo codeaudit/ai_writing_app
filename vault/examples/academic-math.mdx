@@ -1,0 +1,143 @@
+---
+title: "Academic and Mathematical Writing with MDX"
+description: "Using MDX for academic papers, research notes, and mathematical formulas"
+created: "2023-09-15"
+tags: "academic, math, katex, research"
+---
+
+# Academic and Mathematical Writing with MDX
+
+MDX is an excellent format for academic writing, especially when you need to include mathematical formulas, citations, and interactive elements.
+
+## Mathematical Formulas
+
+MDX supports LaTeX-style math via KaTeX, making it perfect for scientific writing.
+
+### Inline Math
+
+Einstein's famous equation: $E = mc^2$ relates energy and mass.
+
+The Pythagorean theorem states that $a^2 + b^2 = c^2$ for right triangles.
+
+### Block Math
+
+The quadratic formula provides solutions to $ax^2 + bx + c = 0$:
+
+$$
+x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+$$
+
+Maxwell's equations in differential form:
+
+$$
+\begin{align}
+\nabla \cdot \vec{E} &= \frac{\rho}{\varepsilon_0} \\
+\nabla \cdot \vec{B} &= 0 \\
+\nabla \times \vec{E} &= -\frac{\partial \vec{B}}{\partial t} \\
+\nabla \times \vec{B} &= \mu_0\vec{J} + \mu_0\varepsilon_0\frac{\partial \vec{E}}{\partial t}
+\end{align}
+$$
+
+## Research Notes with Callouts
+
+<Callout type="note">
+  **Note:** This experimental setup requires calibration before each use.
+</Callout>
+
+<Callout type="warning">
+  **Caution:** The solution becomes unstable at temperatures above 50°C.
+</Callout>
+
+<Callout type="tip">
+  **Tip:** Record measurements at 5-minute intervals for optimal data collection.
+</Callout>
+
+## Highlighting Important Concepts
+
+Use the Highlight component to emphasize key concepts:
+
+The experiment showed that <Highlight>temperature is directly proportional to pressure</Highlight> under the tested conditions.
+
+<Highlight color="blue">Statistical significance</Highlight> was observed with p < 0.05.
+
+## Interactive Data Exploration
+
+Integrate interactive components to explain concepts:
+
+<Box className="bg-gray-50 dark:bg-gray-800 p-4">
+  <h3 className="text-lg font-bold mb-2">Interactive Wave Function</h3>
+  <p className="mb-4">Adjust the parameters to see how they affect the wave function.</p>
+  
+  <div className="mb-4">
+    <label className="block mb-1">Amplitude:</label>
+    <input 
+      type="range" 
+      min="0" 
+      max="100" 
+      defaultValue="50" 
+      className="w-full"
+    />
+  </div>
+  
+  <div className="h-32 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 flex items-center justify-center">
+    Wave visualization would appear here
+  </div>
+</Box>
+
+## Sample Statistical Analysis
+
+The following data represents growth measurements over time:
+
+| Time (days) | Group A (mm) | Group B (mm) | p-value |
+|-------------|--------------|--------------|---------|
+| 0           | 5.2 ± 0.3    | 5.3 ± 0.2    | 0.42    |
+| 7           | 8.4 ± 0.7    | 10.1 ± 0.8   | 0.03*   |
+| 14          | 12.3 ± 1.1   | 15.7 ± 1.2   | 0.01*   |
+| 21          | 15.8 ± 1.5   | 20.2 ± 1.4   | 0.005** |
+
+*p < 0.05, **p < 0.01
+
+## Code for Data Analysis
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+
+# Sample data
+group_a = np.array([5.2, 8.4, 12.3, 15.8])
+group_b = np.array([5.3, 10.1, 15.7, 20.2])
+time = np.array([0, 7, 14, 21])
+
+# Calculate growth rate (linear regression)
+slope_a, intercept_a, r_a, p_a, std_err_a = stats.linregress(time, group_a)
+slope_b, intercept_b, r_b, p_b, std_err_b = stats.linregress(time, group_b)
+
+print(f"Growth rate Group A: {slope_a:.2f} mm/day")
+print(f"Growth rate Group B: {slope_b:.2f} mm/day")
+
+# Plot the data and regression lines
+plt.figure(figsize=(10, 6))
+plt.scatter(time, group_a, label='Group A')
+plt.scatter(time, group_b, label='Group B')
+plt.plot(time, intercept_a + slope_a*time, 'b--')
+plt.plot(time, intercept_b + slope_b*time, 'r--')
+plt.xlabel('Time (days)')
+plt.ylabel('Size (mm)')
+plt.legend()
+plt.title('Growth Comparison Between Groups')
+plt.grid(True, alpha=0.3)
+plt.show()
+```
+
+## Citations and References
+
+MDX can be extended to support academic citations. For example:
+
+According to Smith et al. (2023)[^1], the method shows promising results for large-scale applications.
+
+[^1]: Smith, J., Johnson, M., & Williams, R. (2023). Novel approaches to scientific writing with MDX. *Journal of Digital Documentation*, 42(3), 256-270.
+
+---
+
+This example demonstrates how MDX can be used effectively for academic and scientific writing, combining the power of Markdown with mathematical expressions and interactive elements. 

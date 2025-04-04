@@ -14,6 +14,7 @@
       }
     ],
     "folderId": null,
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -32,17 +33,19 @@
       }
     ],
     "folderId": null,
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590328-kg0qbrg",
+    "id": "doc-1743764802506-tlivgha",
     "name": "Test_Session_Doc",
     "content": "# Test Document for Session\n",
-    "createdAt": "2025-04-04T00:13:10.328Z",
-    "updatedAt": "2025-04-04T00:13:10.328Z",
+    "createdAt": "2025-04-04T11:06:42.506Z",
+    "updatedAt": "2025-04-04T11:06:42.506Z",
     "versions": [],
     "folderId": null,
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -61,11 +64,12 @@
       }
     ],
     "folderId": "folder-1743691244633",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590329-r0ey7in",
+    "id": "doc-1743586002717",
     "name": "1-Formatting-Test|Formatting Examples",
     "content": "\n# 1-Formatting-Test|Formatting Examples\n\n",
     "createdAt": "2025-04-02T09:26:42.717Z",
@@ -79,6 +83,7 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -97,6 +102,7 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -115,6 +121,7 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -133,6 +140,7 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -151,6 +159,7 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -169,11 +178,12 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590330-cjyfue7",
+    "id": "doc-1743585665037",
     "name": "3-Long-Document-Test|Document with lots of content",
     "content": "Test\n",
     "createdAt": "2025-04-02T09:21:05.037Z",
@@ -193,6 +203,7 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -211,6 +222,7 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -229,6 +241,7 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -247,11 +260,12 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590332-agade92",
+    "id": "doc-1743586519615",
     "name": "Non-existent Document|This link should show as broken",
     "content": "\n# Non-existent Document|This link should show as broken\n\n",
     "createdAt": "2025-04-02T09:35:19.615Z",
@@ -265,11 +279,12 @@
       }
     ],
     "folderId": "folder-1742346055866-k6ddp67",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590332-p9epu16",
+    "id": "doc-1743552777051",
     "name": "new stuff",
     "content": "1.  Laying Plans\n2.  Waging War\n3.  Attack by Stratagem\n4.  Tactical Dispositions\n5.  Energy\n6.  Weak Points and Strong\n7.  Maneuvering\n8.  Variation in Tactics\n9.  The Army on the March\n10. Terrain\n11. The Nine Situations\n12. Attacking with Fire\n13. The Use of Spies\n\n\n\nChapter 1 of Sun Tzu's *Art of War* is titled **Laying Plans** (or sometimes \"Detailed Assessment\" or \"Initial Estimations,\" depending on the translation). It sets the stage for the entire book by emphasizing the critical importance of careful planning and preparation before engaging in any military action. Sun Tzu argues that victory is determined *before* the battle even begins, based on a thorough understanding of the relevant factors.\n\nHere's a detailed breakdown of the key elements discussed in Chapter 1:\n\n*   **The Five Constant Factors:** Sun Tzu introduces five fundamental factors that must be considered when assessing a situation and planning a military campaign. These factors are the basis of all military calculations and the bedrock of successful strategy:\n\n    1.  **The Moral Law (or the Way):** This refers to the alignment of the people with their ruler, so that they will follow him regardless of their own safety. It's about unity of purpose and the population's willingness to support the war effort. Essentially, is the cause just and are the people behind it?\n\n    2.  **Heaven:** This encompasses environmental factors like weather, climate, seasons, and terrain. It's about understanding how these natural elements can impact your forces and the enemy. Are there seasonal advantages to be gained? How will weather affect supply lines?\n\n    3.  **Earth:** This refers to the terrain – distances, strategic points, and the nature of the ground (e.g., mountains, rivers, plains). Understanding the terrain provides advantages for maneuverability, defense, and offense. Can you use the terrain to your advantage?\n\n    4.  **The Commander:** This is about the general's qualities: wisdom, sincerity, benevolence, courage, and strictness. A capable commander is essential for leading troops effectively and making sound decisions. Does the commander possess the necessary leadership qualities?\n\n    5.  **Method and Discipline:** This refers to the organization, regulations, ranking of officers, and logistics of the army. It's about ensuring a well-structured and efficient military force. Is the army well-organized and disciplined?\n\n*   **The Seven Considerations (or Estimations):** Building upon the Five Constant Factors, Sun Tzu presents seven questions that must be answered in order to thoroughly assess the relative strengths and weaknesses of both sides:\n\n    1.  Which of the two sovereigns is imbued with the Moral Law?\n    2.  Which of the two generals has the most ability?\n    3.  With whom lie the advantages derived from Heaven and Earth?\n    4.  On which side is discipline most rigorously enforced?\n    5.  Which army is stronger?\n    6.  On which side are officers and men more highly trained?\n    7.  In which army is there the greater constancy both in reward and punishment?\n\n    By answering these questions, a commander can gain a clear understanding of the likelihood of success. The side with more positive answers has a distinct advantage.\n\n*   **Deception and the Art of War:** Sun Tzu emphasizes the importance of deception as a crucial element of warfare. He famously states, \"All warfare is based on deception.\" This includes making your enemy believe you are near when you are far, and vice versa. Deception is used to confuse the enemy, lure them into traps, and exploit their weaknesses.\n\n*   **Importance of Calculation and Planning:** The chapter stresses that victory comes from careful calculation and planning. A commander should not engage in battle without first thoroughly assessing the situation and formulating a winning strategy. He who calculates and plans beforehand will win; he who does not will lose.\n\n*   **The Temple Analogy:** Sun Tzu uses the analogy of a temple to illustrate the importance of careful planning. He says that a victorious general calculates in his temple before battle and has already won before even engaging. A defeated general, on the other hand, fights first and then seeks victory.\n\nIn summary, Chapter 1 of *The Art of War* lays the foundation for Sun Tzu's entire philosophy. It emphasizes the importance of meticulous planning, thorough assessment, and the use of deception as essential components of successful warfare. By understanding and applying the principles outlined in this chapter, a commander can significantly increase their chances of achieving victory before a single battle is fought.\nOkay, I can provide a detailed description of Chapter 2 of *The Art of War*.\n\n### **Chapter 2: Waging War**\n\nThis chapter delves into the practical considerations and economic realities of conducting military campaigns. Sun Tzu emphasizes the critical importance of speed and efficiency in warfare, arguing that prolonged conflicts drain a nation's resources and morale, ultimately leading to defeat. Here's a breakdown of the key themes and concepts:\n\n*   **The Cost of War:** Sun Tzu stresses that war is an expensive undertaking. He details the costs associated with raising an army, maintaining supplies, and supporting troops in the field. He highlights the need to be mindful of these expenses and to avoid protracted campaigns that can bankrupt a nation.\n\n*   **Importance of Speed:** Sun Tzu repeatedly emphasizes the need for swift action. He argues that delaying a campaign allows the enemy to prepare, strengthens their defenses, and depletes one's own resources. Speed is essential for achieving a quick victory and minimizing losses.\n\n*   **Living off the Enemy:** A key strategy Sun Tzu advocates is to \"live off the enemy.\" Rather than relying solely on long and vulnerable supply lines from home, he advises commanders to seize resources from the local population and enemy stores. This reduces the burden on one's own logistics and weakens the enemy's capacity to resist.\n\n*   **Economic Considerations:** Sun Tzu recognizes that war is not just a military endeavor but also an economic one. He urges rulers and generals to carefully consider the economic impact of war and to make decisions that minimize costs and maximize efficiency. This includes rewarding soldiers for capturing enemy supplies and encouraging them to be frugal with resources.\n\n*   **Dangers of Delay:** Sun Tzu warns against the dangers of prolonging a campaign. He argues that extended wars lead to:\n\n    *   **Blunted Swords:** Soldiers lose their sharpness and enthusiasm.\n    *   **Damped Ardor:** Morale declines.\n    *   **Strained Resources:** The state's treasury is depleted.\n    *   **Discontent at Home:** The population becomes resentful due to the burden of war.\n    *   **Other Chieftains Taking Advantage:** Neighboring states may exploit the weakened condition of the warring nation.\n\n*   **The Wise Ruler and General:** Sun Tzu concludes by emphasizing that only a wise ruler and a capable general can truly understand the complexities of waging war and make the necessary decisions to ensure victory while minimizing costs. They understand the importance of speed, resourcefulness, and the economic implications of their actions.\n\nIn essence, Chapter 2 is a pragmatic discussion of the economics of war. It moves beyond the strategic considerations of Chapter 1 and focuses on the practical realities of sustaining a military campaign. Sun Tzu's emphasis on speed, efficiency, and resourcefulness reflects his understanding that war is a costly and complex undertaking that must be approached with careful planning and a keen awareness of its economic consequences.\nChapter 3 of Sun Tzu's *Art of War*, often translated as \"Attack by Stratagem\" or \"Planning the Attack,\" delves into the strategic importance of careful planning and preparation before engaging in direct conflict. It emphasizes the value of intelligence gathering, deception, and minimizing losses. Here's a detailed breakdown of the key concepts covered in this chapter:\n\n**1. The Importance of Victory Without Fighting:**\n\n*   **Core Idea:** Sun Tzu argues that the ultimate goal is to win without actually fighting. This is achieved by crippling the enemy's plans, disrupting their alliances, and attacking their weaknesses before they can mobilize for war.\n*   **\"Supreme excellence consists of breaking the enemy's resistance without fighting.\"** This famous quote encapsulates the chapter's central theme.\n\n**2. The Order of Attack:**\n\nSun Tzu outlines a hierarchy of attack methods, prioritizing strategies that minimize risk and maximize efficiency:\n\n*   **1st: Attack the enemy's plans (谋 *mó*):** Disrupt their strategies and prevent them from forming effective battle plans. This involves espionage, spreading misinformation, and sowing discord among the enemy's ranks.\n*   **2nd: Attack the enemy's alliances (交 *jiāo*):** Isolate the enemy by breaking their alliances and preventing them from receiving support. Diplomacy, bribery, and threats can be used to achieve this.\n*   **3rd: Attack the enemy's army (兵 *bīng*):** Only when the previous two options are unavailable should you resort to direct military engagement.\n*   **4th: Attack the enemy's fortified cities (城 *chéng*):** Siege warfare is the least desirable option, as it is costly, time-consuming, and results in heavy losses on both sides. \"To capture an enemy's city is only done when there is no alternative.\"\n\n**3. The Ideal General:**\n\n*   **Qualities:** Sun Tzu describes the ideal general as one who is patient, calculating, and able to see the bigger picture. They understand the importance of planning and are not easily provoked into rash actions.\n*   **\"Thus the skillful leader subdues the enemy's troops without any fighting; he captures their cities without laying siege to them; he overthrows their kingdom without lengthy operations in the field.\"** This highlights the general's role in achieving victory through strategic maneuvering rather than brute force.\n\n**4. The Importance of Knowing Yourself and Your Enemy:**\n\n*   **\"If you know the enemy and know yourself, you need not fear the result of a hundred battles. If you know yourself but not the enemy, for every victory gained you will also suffer a defeat. If you know neither the enemy nor yourself, you will succumb in every battle.\"** This crucial passage emphasizes the necessity of thorough intelligence gathering and self-assessment. Understanding your own strengths and weaknesses, as well as those of your enemy, is essential for making informed decisions and avoiding costly mistakes.\n\n**5. The Economic Cost of War:**\n\n*   Sun Tzu stresses the importance of minimizing the economic strain of war. Prolonged campaigns drain resources and weaken the state. Therefore, swift and decisive victories are crucial.\n*   He advocates for capturing enemy resources (supplies, equipment) to sustain the army, rather than relying solely on domestic supplies. \"Let your great object be victory, not lengthy campaigns.\"\n\n**6. Skillful Planning and Assessment:**\n\n*   **\"It is only one who knows the disaster of actual warfare that can appreciate the vital importance of rapidly finishing a war.\"** This underscores the need for experienced leaders who understand the consequences of prolonged conflict.\n*   Sun Tzu highlights the importance of carefully assessing the situation before engaging in battle, considering factors such as terrain, weather, and the enemy's strength.\n\n**In essence, Chapter 3 is a treatise on strategic thinking and the importance of avoiding direct conflict whenever possible. It emphasizes the value of intelligence, deception, diplomacy, and careful planning as tools for achieving victory with minimal losses. It also sets the stage for later chapters by establishing the principles of deception, maneuver, and the importance of adapting to changing circumstances.**\n\n### Chapter 3 of Sun Tzu's *Art of War*, \noften translated as \"Attack by Stratagem\" or \"Planning the Attack,\" delves into the strategic importance of careful planning and preparation before engaging in direct conflict. It emphasizes the value of intelligence gathering, deception, and minimizing losses. Here's a detailed breakdown of the key concepts covered in this chapter:\n\n**1. The Importance of Victory Without Fighting:**\n\n*   **Core Idea:** Sun Tzu argues that the ultimate goal is to win without actually fighting. This is achieved by crippling the enemy's plans, disrupting their alliances, and attacking their weaknesses before they can mobilize for war.\n*   **\"Supreme excellence consists of breaking the enemy's resistance without fighting.\"** This famous quote encapsulates the chapter's central theme.\n\n**2. The Order of Attack:**\n\nSun Tzu outlines a hierarchy of attack methods, prioritizing strategies that minimize risk and maximize efficiency:\n\n*   **1st: Attack the enemy's plans (谋 *mó*):** Disrupt their strategies and prevent them from forming effective battle plans. This involves espionage, spreading misinformation, and sowing discord among the enemy's ranks.\n*   **2nd: Attack the enemy's alliances (交 *jiāo*):** Isolate the enemy by breaking their alliances and preventing them from receiving support. Diplomacy, bribery, and threats can be used to achieve this.\n*   **3rd: Attack the enemy's army (兵 *bīng*):** Only when the previous two options are unavailable should you resort to direct military engagement.\n*   **4th: Attack the enemy's fortified cities (城 *chéng*):** Siege warfare is the least desirable option, as it is costly, time-consuming, and results in heavy losses on both sides. \"To capture an enemy's city is only done when there is no alternative.\"\n\n**3. The Ideal General:**\n\n*   **Qualities:** Sun Tzu describes the ideal general as one who is patient, calculating, and able to see the bigger picture. They understand the importance of planning and are not easily provoked into rash actions.\n*   **\"Thus the skillful leader subdues the enemy's troops without any fighting; he captures their cities without laying siege to them; he overthrows their kingdom without lengthy operations in the field.\"** This highlights the general's role in achieving victory through strategic maneuvering rather than brute force.\n\n**4. The Importance of Knowing Yourself and Your Enemy:**\n\n*   **\"If you know the enemy and know yourself, you need not fear the result of a hundred battles. If you know yourself but not the enemy, for every victory gained you will also suffer a defeat. If you know neither the enemy nor yourself, you will succumb in every battle.\"** This crucial passage emphasizes the necessity of thorough intelligence gathering and self-assessment. Understanding your own strengths and weaknesses, as well as those of your enemy, is essential for making informed decisions and avoiding costly mistakes.\n\n**5. The Economic Cost of War:**\n\n*   Sun Tzu stresses the importance of minimizing the economic strain of war. Prolonged campaigns drain resources and weaken the state. Therefore, swift and decisive victories are crucial.\n*   He advocates for capturing enemy resources (supplies, equipment) to sustain the army, rather than relying solely on domestic supplies. \"Let your great object be victory, not lengthy campaigns.\"\n\n**6. Skillful Planning and Assessment:**\n\n*   **\"It is only one who knows the disaster of actual warfare that can appreciate the vital importance of rapidly finishing a war.\"** This underscores the need for experienced leaders who understand the consequences of prolonged conflict.\n*   Sun Tzu highlights the importance of carefully assessing the situation before engaging in battle, considering factors such as terrain, weather, and the enemy's strength.\n\n**In essence, Chapter 3 is a treatise on strategic thinking and the importance of avoiding direct conflict whenever possible. It emphasizes the value of intelligence, deception, diplomacy, and careful planning as tools for achieving victory with minimal losses. It also sets the stage for later chapters by establishing the principles of deception, maneuver, and the importance of adapting to changing circumstances.**\n",
     "createdAt": "2025-04-02T00:12:57.051Z",
@@ -283,6 +298,7 @@
       }
     ],
     "folderId": "folder-1743680060696",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -301,6 +317,7 @@
       }
     ],
     "folderId": null,
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -319,6 +336,7 @@
       }
     ],
     "folderId": null,
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -337,6 +355,7 @@
       }
     ],
     "folderId": null,
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -355,6 +374,7 @@
       }
     ],
     "folderId": null,
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -373,6 +393,7 @@
       }
     ],
     "folderId": "folder-1742376758616",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -391,6 +412,7 @@
       }
     ],
     "folderId": "folder-1742376758616",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -409,6 +431,7 @@
       }
     ],
     "folderId": "folder-1742376758616",
+    "extension": ".md",
     "annotations": [
       {
         "id": "anno-1742376816706",
@@ -436,7 +459,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590334-m6br0j2",
+    "id": "doc-1743764802521-kjdomws",
     "name": "art-of-peace",
     "content": "The Art of Peace, as conceived by Morihei Ueshiba, the founder of Aikido, is more than just a martial art technique; it's a philosophy, a way of life, and a path towards self-cultivation and harmonious existence. It's about resolving conflict peacefully, both within oneself and in the world around us. Here's a detailed look into the art of peace:\n\n**Core Principles and Philosophy:**\n\n*   **Non-Violence and Harmony:** At its heart, the Art of Peace emphasizes non-violence as the ultimate goal. It's about finding solutions that avoid direct confrontation and harm. This doesn't mean passivity, but rather a proactive search for harmony and reconciliation. The ideal is to resolve conflict before it escalates into violence.\n*   **Love and Compassion:** Ueshiba believed that love and compassion are the foundations of peace. Understanding, empathy, and a genuine concern for the well-being of others are essential for creating a peaceful world. This extends even to adversaries, recognizing their shared humanity.\n*   **Self-Mastery and Self-Cultivation:** The Art of Peace begins with oneself. One must strive for self-mastery, controlling one's emotions, thoughts, and actions. This involves continuous self-reflection, discipline, and ethical conduct. By cultivating inner peace, one becomes a beacon of peace in the world.\n*   **Connection to Nature and the Universe:** Ueshiba saw a deep connection between humanity and the natural world. He believed that by understanding and living in harmony with the principles of nature, we can find peace and balance. This involves respecting all living things and recognizing our interconnectedness.\n*   **The Importance of Training (Physical and Spiritual):** The Art of Peace requires rigorous training, both physical and spiritual. Physical training in Aikido develops strength, flexibility, and coordination. Spiritual training cultivates awareness, mindfulness, and a sense of inner peace.\n*   **Positive Mindset and Intention:** The Art of Peace emphasizes the importance of having a positive mindset and pure intentions. By focusing on solutions and acting with kindness and compassion, we can create positive outcomes.\n*   **Constant Learning and Growth:** The path to peace is a lifelong journey of learning and growth. One must remain open to new ideas, perspectives, and experiences, and continuously strive to improve oneself.\n\n**Practical Applications and Techniques:**\n\n*   **Aikido Techniques as Metaphors:** While Aikido is a martial art with specific techniques, Ueshiba saw these techniques as metaphors for resolving conflict in everyday life. The principles of blending with an opponent's energy, redirecting their force, and neutralizing their attack can be applied to interpersonal conflicts, business negotiations, and political disputes.\n*   **Meditation and Mindfulness:** Meditation and mindfulness practices are often incorporated into the Art of Peace to cultivate inner peace and awareness. These practices help to quiet the mind, reduce stress, and increase one's ability to respond to situations calmly and effectively.\n*   **Communication Skills:** Effective communication is essential for resolving conflicts peacefully. This involves active listening, empathy, and the ability to express oneself clearly and respectfully.\n*   **Conflict Resolution Strategies:** The Art of Peace provides a framework for approaching conflict in a constructive manner. This involves identifying the root causes of the conflict, finding common ground, and seeking solutions that benefit all parties involved.\n*   **Embracing Change and Uncertainty:** The Art of Peace teaches us to embrace change and uncertainty. By adapting to new situations and remaining flexible in our thinking, we can navigate life's challenges with greater ease and resilience.\n*   **Leadership by Example:** The Art of Peace also emphasizes the importance of leadership by example. By living a life of peace, compassion, and integrity, we can inspire others to do the same.\n\n**The Art of Peace in Practice:**\n\nThe Art of Peace is not just a theoretical concept; it's a way of life that can be applied to all aspects of our lives. Here are some examples:\n\n*   **Personal Relationships:** In our relationships with family and friends, we can practice the Art of Peace by communicating openly, resolving conflicts peacefully, and treating others with kindness and respect.\n*   **Workplace:** In the workplace, we can promote a culture of peace and collaboration by fostering teamwork, resolving disputes constructively, and leading by example.\n*   **Community:** In our communities, we can work to build bridges between different groups, address social injustices, and promote peace and understanding.\n*   **Global Issues:** On a global scale, the Art of Peace can inspire efforts to resolve international conflicts, promote human rights, and protect the environment.\n\n**In summary, the Art of Peace is a comprehensive philosophy and practice that offers a path towards personal transformation and a more peaceful world. It's a lifelong journey that requires dedication, discipline, and a genuine desire to live in harmony with oneself, others, and the universe.**\n",
     "createdAt": "2025-04-03T10:19:36.212Z",
@@ -450,11 +473,12 @@
       }
     ],
     "folderId": "folder-1743675988209-uj7y9ns",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590334-ddx24e6",
+    "id": "doc-1743764802522-2anivnu",
     "name": "art-of-war",
     "content": "Sun Tzu's *The Art of War* is a foundational text on military strategy and tactics, offering timeless wisdom applicable to conflict and competition far beyond the battlefield. It's less about brute force and more about strategic thinking, planning, and understanding your opponent and yourself. Here's a breakdown of its key concepts:\n\n**Core Principles:**\n\n*   **Deception and Information:** Sun Tzu emphasizes the importance of deception to mislead the enemy. \"All warfare is based on deception.\" This includes feigning weakness when strong, and vice versa, to confuse the enemy about your intentions and capabilities. Gathering accurate intelligence about the enemy's strengths, weaknesses, and terrain is also crucial. Knowing yourself and knowing your enemy is paramount to victory.\n*   **Planning and Preparation:** Victory is won before the battle is fought. Meticulous planning, considering all possible scenarios, and understanding the terrain are essential. Sun Tzu advocates for careful assessment of resources, logistics, and the political climate before engaging in conflict.\n*   **Avoiding Prolonged Warfare:** War is costly in terms of resources, manpower, and morale. Sun Tzu advises seeking swift victories and avoiding prolonged campaigns. The goal is to achieve your objectives with minimal losses and disruption.\n*   **Strategic Positioning and Terrain:** Choosing the right battlefield and exploiting the terrain to your advantage is critical. This involves understanding the geographical features, climate, and other factors that can influence the outcome of a battle.\n*   **Discipline and Leadership:** A well-disciplined army, led by a capable and respected commander, is essential for success. Sun Tzu stresses the importance of clear communication, consistent training, and fair treatment of soldiers.\n*   **Adaptability and Flexibility:** Rigidity leads to defeat. Sun Tzu emphasizes the need to adapt to changing circumstances and be flexible in your approach. This includes adjusting your tactics based on the enemy's movements and exploiting unforeseen opportunities.\n*   **Moral Influence:** While not always explicitly stated, Sun Tzu implies the importance of having a just cause or at least maintaining the morale of your troops. A demoralized army is more likely to be defeated.\n\n**Key Concepts in More Detail:**\n\n*   **The Importance of Knowing Yourself and Your Enemy:** \"If you know the enemy and know yourself, you need not fear the result of a hundred battles. If you know yourself but not the enemy, for every victory gained you will also suffer a defeat. If you know neither the enemy nor yourself, you will succumb in every battle.\" This quote encapsulates the core of Sun Tzu's philosophy: understanding your own strengths and weaknesses, as well as those of your opponent, is crucial for making informed decisions and achieving victory.\n*   **The Use of Spies and Intelligence:** Sun Tzu dedicates an entire chapter to the use of spies and intelligence gathering. He argues that knowing the enemy's plans, dispositions, and weaknesses is essential for effective strategy. Spies can provide valuable information about the enemy's morale, supplies, and terrain.\n*   **The Importance of Speed and Surprise:** Sun Tzu emphasizes the importance of moving quickly and striking when the enemy is least expecting it. Surprise attacks can disrupt the enemy's plans and create opportunities for decisive victories.\n*   **The Avoidance of Unnecessary Conflict:** Sun Tzu advocates for resolving conflicts through diplomacy and negotiation whenever possible. War should be a last resort, only undertaken when all other options have been exhausted.\n*   **The Role of the Commander:** The commander plays a critical role in determining the outcome of a battle. A good commander is decisive, strategic, and able to inspire his troops. He must also be adaptable and able to make difficult decisions under pressure.\n\n**Relevance Beyond Warfare:**\n\nWhile *The Art of War* focuses on military strategy, its principles can be applied to a wide range of situations, including:\n\n*   **Business Negotiations:** Understanding your competitors, planning your strategy, and being adaptable are all essential for success in business negotiations.\n*   **Project Management:** Planning, resource allocation, and risk assessment are all key elements of project management that align with Sun Tzu's principles.\n*   **Personal Relationships:** Understanding your own strengths and weaknesses, as well as those of your partner, can help you build stronger and more fulfilling relationships.\n*   **Political Campaigns:** Strategy, messaging, and understanding your opponent are all crucial for success in political campaigns.\n\nIn conclusion, *The Art of War* is a timeless classic that offers valuable insights into strategy, planning, and leadership. Its principles can be applied to a wide range of situations, making it a relevant and insightful read for anyone seeking to achieve their goals. It's about winning without fighting, about achieving your objectives with the least amount of conflict and disruption.\n\n\n\nThe Art of War is divided into 13 chapters. They are:\n\n1.  Laying Plans\n2.  Waging War\n3.  Attack by Stratagem\n4.  Tactical Dispositions\n5.  Energy\n6.  Weak Points and Strong\n7.  Maneuvering\n8.  Variation in Tactics\n9.  The Army on the March\n10. Terrain\n11. The Nine Situations\n12. Attack by Fire\n13. Use of Spies\n\n",
     "createdAt": "2025-04-03T10:19:36.480Z",
@@ -468,6 +492,7 @@
       }
     ],
     "folderId": "folder-1743675988209-uj7y9ns",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -486,6 +511,7 @@
       }
     ],
     "folderId": "folder-1743675988209-uj7y9ns",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -504,11 +530,12 @@
       }
     ],
     "folderId": "folder-1743675988209-h2e0hed",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590335-18def1y",
+    "id": "doc-1743764802524-5nw562w",
     "name": "comparison",
     "content": "*The Art of War* and *The Art of Peace* present contrasting philosophies for navigating conflict and achieving desired outcomes. While both offer strategies for success, they differ significantly in their approach and ultimate goals.\n\n*The Art of War*, by Sun Tzu, is a strategic guide focused on winning conflicts, primarily through military means. It emphasizes deception, planning, and the importance of understanding the enemy to achieve victory, ideally with minimal losses. War is seen as a necessary evil, a last resort to be undertaken with careful calculation and a focus on swift resolution. The core principles revolve around strategic positioning, exploiting weaknesses, and adapting to changing circumstances to gain a competitive advantage.\n\n*The Art of Peace*, as taught by Morihei Ueshiba, is a philosophy centered on non-violence, harmony, and self-cultivation. It seeks to resolve conflicts peacefully, both internally and externally, through love, compassion, and understanding. Instead of focusing on defeating an opponent, the goal is to find solutions that benefit all parties involved, fostering reconciliation and cooperation. This approach emphasizes self-mastery, connection with nature, and the continuous pursuit of inner peace as the foundation for a harmonious world.\n\nHere's a table summarizing the key differences:\n\n| Feature            | *The Art of War*                        | *The Art of Peace*                           |\n|---------------------|-----------------------------------------|----------------------------------------------|\n| **Core Goal**       | Victory in conflict                     | Harmony and resolution of conflict         |\n| **Primary Means**   | Strategy, deception, planning          | Non-violence, compassion, self-cultivation |\n| **View of Conflict**| Necessary evil, last resort             | Opportunity for reconciliation and growth   |\n| **Focus**           | External: defeating the enemy          | Internal: self-mastery and inner peace       |\n| **Approach**        | Competitive, strategic                  | Cooperative, empathetic                      |\n| **Emphasis**        | Exploiting weaknesses, gaining advantage | Finding common ground, benefiting all parties |\n| **Ultimate Aim**    | Achieving strategic objectives           | Creating a peaceful and harmonious world    |\n\nIn essence, *The Art of War* is about winning the battle, while *The Art of Peace* is about avoiding the battle altogether by fostering understanding and goodwill. One seeks to dominate, the other to harmonize. While seemingly opposed, both philosophies offer valuable insights into human interaction and can be applied, depending on the context and desired outcome, to various aspects of life, from business negotiations to personal relationships.\n",
     "createdAt": "2025-04-03T10:19:38.628Z",
@@ -522,6 +549,7 @@
       }
     ],
     "folderId": null,
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -540,6 +568,7 @@
       }
     ],
     "folderId": "folder-1742346055866-xwcn75p",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -558,6 +587,7 @@
       }
     ],
     "folderId": "folder-1742346055866-xwcn75p",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -576,6 +606,7 @@
       }
     ],
     "folderId": "folder-1742346055866-pkn7w42",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -594,6 +625,7 @@
       }
     ],
     "folderId": "folder-1742346055866-pkn7w42",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": [
       {
@@ -617,6 +649,7 @@
       }
     ],
     "folderId": null,
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -635,6 +668,7 @@
       }
     ],
     "folderId": "folder-1743688027121",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -653,6 +687,7 @@
       }
     ],
     "folderId": "folder-1743688027121",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -671,6 +706,7 @@
       }
     ],
     "folderId": "folder-1743724763595-kd60zxe",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -689,6 +725,7 @@
       }
     ],
     "folderId": "folder-1743724763595-kd60zxe",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -707,6 +744,7 @@
       }
     ],
     "folderId": "folder-1743724763595-kd60zxe",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -724,7 +762,8 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1743724825191-1jnl0oa",
+    "folderId": "folder-1743730569986-caftvp5",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -742,7 +781,8 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1743724825191-1jnl0oa",
+    "folderId": "folder-1743730569986-caftvp5",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -760,7 +800,8 @@
         "message": "Initial version"
       }
     ],
-    "folderId": "folder-1743724825191-1jnl0oa",
+    "folderId": "folder-1743730569986-caftvp5",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -779,6 +820,7 @@
       }
     ],
     "folderId": "folder-1743689338571-6tczhjx",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -797,6 +839,7 @@
       }
     ],
     "folderId": "folder-1743689338571-6tczhjx",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -815,78 +858,127 @@
       }
     ],
     "folderId": "folder-1743725394621-y1ggc7y",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743689338952-dacl0t8",
-    "name": "analysis",
-    "content": "Building **AI-native** applications that enable an LLM to *discover* and *leverage* existing code capabilities requires a fundamentally different approach than just bolting AI on top of traditional software. The goal is to create an environment where the **Large Language Model (LLM)** can:\n\n1. **Explore** what is already in the codebase—APIs, functions, classes, templates, etc.  \n2. **Recognize** meaningful patterns or frameworks for solving particular tasks.  \n3. **Synthesize** new solutions by combining existing components with the knowledge embedded in the model.  \n\nBelow is a deep dive into how you might achieve *self-discovery* in an AI-native system, along with how *pattern languages* can help structure this process.\n\n---\n\n## 1. Self-Discovery: Why It Matters\n\n### 1.1 Avoid Reinventing the Wheel\nIn many teams, repeated solutions to common tasks proliferate throughout the codebase, often creating redundancy. An AI system that is *aware* of these existing pieces can recommend or *auto-assemble* them into new features or fix existing workflows instead of rewriting from scratch.\n\n### 1.2 Enhanced Collaboration\nDevelopers spend a lot of time looking for “How do I call this method?” or “Which library does X?” If the LLM can introspect the code (and accompanying docs/test cases), it can guide developers to precisely what they need—fast.\n\n### 1.3 Continuous Adaptation\nAs the codebase evolves, an AI-native system with self-discovery dynamically *updates its understanding*. This fosters an environment where the LLM’s knowledge tracks the code’s evolution, continually offering relevant solutions.\n\n---\n\n## 2. Architecting for Code Self-Discovery\n\n### 2.1 Semantic Code Indexing\nInstead of storing your entire codebase as raw text, you can build a **semantic index** (or “vector index”) of the code:\n\n1. **Token-Level & AST Parsing**  \n   - Parse the code into an **Abstract Syntax Tree (AST)** or an intermediate representation.  \n   - Tag or label classes, functions, parameters, docstrings, etc.  \n\n2. **Embedding & Vector Representation**  \n   - Use code-specific transformers (e.g., CodeBERT, CodeT5) to generate embeddings.  \n   - Store embeddings in a vector database to enable semantic search—so the LLM can retrieve relevant code snippets or patterns when needed.\n\n3. **Metadata & Documentation Linkage**  \n   - Attach docstrings, test cases, usage examples, design docs, and code reviews to the same index entries.  \n   - This ensures the LLM doesn’t just “know” the code but also the rationale, typical use-cases, and constraints.\n\n### 2.2 Dynamic Discovery & Retrieval\nAt inference time, the LLM:\n\n1. **Analyzes Developer Queries**  \n   - A developer or user might ask, “How do I implement a payment gateway interface for X?”  \n2. **Contextual Search**  \n   - The LLM queries the semantic index for relevant modules or patterns—e.g., existing payment APIs.  \n3. **Prompt Composition**  \n   - The system assembles the relevant code snippets and doc references into a prompt chunk so the LLM has “eyes” on existing solutions.  \n4. **Solution Synthesis**  \n   - The LLM generates new code *guided by* the discovered resources, ensuring maximum reuse and alignment.\n\n### 2.3 A “Knowledge Graph” for Code\nBeyond vector indexing, you can store code relationships in a **knowledge graph**:\n\n- **Nodes** represent modules, classes, or even domain concepts.  \n- **Edges** represent “imports,” “extends,” “calls,” “depends on,” or “implements a pattern.”  \n- **Inference**: The LLM can navigate these edges to see how everything ties together, helping it propose well-integrated solutions that respect existing system architecture.\n\n---\n\n## 3. Pattern Languages: The Glue for Self-Discovery\n\nA **pattern language** is a structured way of describing recurring solutions to common problems. In AI-native systems, it’s particularly useful for two reasons:\n\n1. **Codifies Common Solutions**  \n   - Pattern languages define *how* to solve typical design challenges. For example, “Builder Pattern” for constructing objects, or domain-specific patterns like “Microservice Choreography” for distributed systems.\n\n2. **Guides the LLM’s Reasoning**  \n   - With a well-defined pattern language, the LLM can *recognize* that a certain problem is best served by a known pattern and then adapt the existing pattern to the specifics of your codebase.\n\n### 3.1 Embedding Patterns into the System\n\n1. **Pattern Documentation**  \n   - Maintain a repository of recognized design and architectural patterns relevant to your domain—each with context, example code, and typical usage scenarios.  \n2. **Link Patterns to Code**  \n   - Annotate code sections that implement certain patterns. For instance, tag a class or method with `@FactoryPattern` or link them to a pattern ID in your knowledge graph.  \n3. **Prompt Engineering with Patterns**  \n   - When the LLM is generating code, prompt it with references to known patterns. Example: “Use the ‘Observer Pattern’ from the knowledge base to handle event notifications,” then retrieve relevant snippet sets.\n\n### 3.2 Pattern Recognition & Recommendation\n- **Automated Pattern Detection**  \n  - Tools can scan the codebase to identify probable uses of known patterns. This metadata is then available to the LLM.  \n- **Contextual Pattern Recommendation**  \n  - If a developer is adding a feature for state synchronization, the LLM might suggest the “Publisher-Subscriber” pattern after discovering prior usage in the code.\n\n---\n\n## 4. AI-First Workflow: Putting It All Together\n\n### 4.1 Code + LLM Co-evolution\n1. **Frequent Codebase Snapshots**  \n   - As devs merge code, new “snapshots” are embedded/parsed.  \n   - The LLM’s knowledge representation is updated automatically.  \n2. **AI-Assisted Code Generation**  \n   - When developers initiate new tasks, the LLM retrieves relevant patterns & code.  \n   - The user can refine the suggestions, feeding the final version back into the codebase.  \n3. **Continuous Feedback Loop**  \n   - Developer feedback on suggestions is captured (like “This was helpful,” or “Needs a different approach”).  \n   - The system learns which patterns or code references truly help, refining subsequent suggestions.\n\n### 4.2 Governance & Trust\n- **Version Control & Audit Trails**  \n  - Keep track of how the LLM was prompted and which code snippets it used. This is crucial for auditing the reasoning behind critical solutions.  \n- **Safety Mechanisms**  \n  - The LLM should understand constraints (e.g., data privacy, performance requirements) and avoid suggestions that violate these constraints. Pattern languages can embed such constraints directly into pattern definitions.\n\n---\n\n## 5. Human Factors & Developer Experience\n\n### 5.1 Transparent Suggestions\n- **“Why This Code?” Explanations**  \n  - Show the developer *why* the LLM suggested a specific snippet or pattern, referencing the code relationships or docstrings.  \n- **Natural Integration**  \n  - Provide suggestions in the IDE or code review tool. Make it frictionless for developers to accept, reject, or refine.\n\n### 5.2 Knowledge Sharing & Collective Wisdom\n- **Democratize Patterns**  \n  - Let developers add new patterns, tag existing ones, and refine usage examples.  \n- **Shared Vocabulary**  \n  - A robust pattern language helps developers communicate complex design intentions more easily, aligning both *human* and *AI* understanding.\n\n---\n\n## 6. Key Takeaways\n\n1. **Code as Discoverable Knowledge**  \n   - Storing code in a semantic or knowledge-graph form transforms it from opaque text into a richly interconnected resource the LLM can traverse.\n\n2. **Pattern Languages Guide the LLM**  \n   - Instead of randomly generating solutions, the LLM uses pattern languages to match the right recurring solution to the problem at hand.\n\n3. **AI-Native == Continuous Co-evolution**  \n   - The codebase is continuously re-indexed, and the LLM’s “awareness” evolves alongside the code—creating a living, adaptive ecosystem.\n\n4. **Human-in-the-Loop for Quality & Trust**  \n   - Developers remain essential for validating suggestions, injecting domain expertise, and refining or extending pattern definitions.\n\nBy combining **self-discovery** of existing capabilities, robust **pattern languages**, and an **AI-native** architecture for code and documentation, you create a system where the LLM not only solves problems but does so *intelligently*, *efficiently*, and in concert with the best practices already embedded in your organization’s software. This is the essence of building an environment where *the LLM sees and understands everything*—leading to solutions that truly maximize what’s already available.\n",
-    "createdAt": "2025-04-03T14:08:58.952Z",
-    "updatedAt": "2025-04-03T14:08:58.952Z",
-    "versions": [
-      {
-        "id": "ver-1743689338952-0990t4t",
-        "content": "",
-        "createdAt": "2025-04-03T14:08:58.952Z",
-        "message": "Initial version"
-      }
-    ],
-    "folderId": "folder-1743725441640-2aere2y",
+    "id": "doc-1743764802535-btkkr5r",
+    "name": "example-test",
+    "content": "\n# MDX Rendering Test\n\nThis is a simple MDX test file to check if our renderer is working properly after the fixes.\n\n## Markdown Features\n\n- **Bold text** and *italic text*\n- Lists and nested lists:\n  - Subitem 1\n  - Subitem 2\n- [Links to external sites](https://example.com)\n\n## Code Block Test\n\nHere's a JavaScript code block:\n\n```js\nfunction sayHello(name) {\n  return `Hello, ${name}!`;\n}\n\nconsole.log(sayHello('World'));\n```\n\nAnd a JSX code block:\n\n```jsx\nfunction Welcome({ name }) {\n  return <h1>Hello, {name}!</h1>;\n}\n\nexport default function App() {\n  return <Welcome name=\"World\" />;\n}\n```\n\n## Component Test\n\nLet's try using our custom components:\n\n<Alert type=\"info\">\n  This is an informational alert that should display correctly.\n</Alert>\n\n<Box className=\"bg-blue-50 dark:bg-blue-900\">\n  This is a custom box component with custom styling.\n</Box>\n\n## Math Test with KaTeX\n\nInline math: $e = mc^2$\n\nBlock math:\n\n$$\n\\frac{1}{n} \\sum_{i=1}^{n} x_i = \\bar{x}\n$$\n\n## Done!\n\nIf this content renders correctly, our MDX renderer is working properly! ",
+    "createdAt": "2025-04-04T11:06:42.535Z",
+    "updatedAt": "2025-04-04T11:06:42.535Z",
+    "versions": [],
+    "folderId": null,
+    "extension": ".mdx",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743689339070-n1ywl54",
-    "name": "design",
-    "content": "# design\n\nExplore in detail what needs to be addressed to build an AI native application from the ground up.  Focus  on LLM in-context learning, prompting design, information hygiene and human factors.\n\n# Explore\n\nBuilding an **AI-native application** goes well beyond merely integrating a pre-trained Large Language Model (LLM) into existing software. It requires a holistic re-think of the application’s data pipelines, user experience, development workflows, and operational practices so that AI is a *core* design principle rather than an afterthought. Below is a detailed exploration of what to address, with a particular focus on:\n\n1. **LLM In-Context Learning**  \n2. **Prompting Design**  \n3. **Information Hygiene**  \n4. **Human Factors**  \n\n---\n\n## 1. LLM In-Context Learning\n\n### 1.1 What Is In-Context Learning?\n\n- **Definition**: In-context learning allows Large Language Models (like GPT-4, PaLM, etc.) to “learn” or adapt behavior based on the *prompt* or “context” provided at inference time, without requiring fine-tuning or model parameter updates.  \n- **Importance**: This technique leverages the model’s internal reasoning capabilities to interpret and respond to tasks by examining examples, instructions, or data included directly in the prompt.\n\n### 1.2 Architectural Considerations\n\n- **Context Assembly**: You need a robust pipeline to dynamically collect and assemble the right context (data, instructions, examples) for each user request. This can involve:  \n  - **Knowledge Retrieval**: Searching knowledge bases, vector databases, or specialized data stores to retrieve relevant text or structured data.  \n  - **Metadata Handling**: Incorporating additional signals (e.g., user profile, session data, or historical interactions) to tailor the prompt.\n- **Dynamic Context Sizing**: Most LLMs have a context window limit. Architectures must gracefully manage how to prioritize or summarize context if it exceeds the maximum token limit.\n- **Latency and Scalability**: In-context learning is typically heavier on compute than standard inference because the entire context must be tokenized and processed. The system must be optimized (e.g., using caching, efficient retrieval, or partial context updates) to serve requests at scale.\n\n### 1.3 Pattern-Based Prompting\n\n- **Example Prompts**: Provide the model with carefully crafted examples (mini-datasets of instructions and outputs) within the prompt so it can “see” the pattern and follow it.\n- **Instruction Priming**: Write explicit instructions or guidelines in the prompt to steer the model toward the desired style, format, or solution approach.\n\n---\n\n## 2. Prompting Design\n\n### 2.1 Why Prompting Design Matters\n\n- **Bridge Between User Intent & Model Output**: The prompt is how we communicate *context* and *intent* to the model. Poorly designed prompts lead to incorrect or undesired outputs, while well-structured prompts can elicit more reliable, accurate answers.\n- **Consistent Experience**: Standardizing prompt patterns across the application ensures consistent behavior and fosters user trust.\n\n### 2.2 Best Practices for Prompt Construction\n\n1. **Clear Instructions**  \n   - Use direct, specific language.  \n   - Include desired output format (e.g., “Provide a JSON object containing…”).  \n2. **Contextual Cues**  \n   - If referencing previous messages or knowledge, explicitly restate important details.  \n   - Summarize user queries or relevant data to reduce ambiguity.  \n3. **Role-based / Persona-based Prompts**  \n   - Specify the model’s intended role, e.g., “You are a helpful assistant,” or “You are a legal expert,” to set context for style and domain.  \n   - For multi-step flows, define each role in the chain of thought, e.g., “Step 1: Summarize facts. Step 2: Provide legal analysis.”  \n4. **Guardrails & Constraints**  \n   - Incorporate disclaimers, safety checks, and boundaries (e.g., “Avoid referencing personal details,” or “Do not generate harmful content.”)  \n   - Use negative examples: “If the user requests disallowed content, respond with a refusal message.”\n\n### 2.3 Iterative Refinement\n\n- **Prompt Tuning**: Continuously iterate and refine prompts based on user feedback, system logs, and performance metrics.  \n- **Test Prompts**: Automated and manual testing of prompts ensures they handle various edge cases, user queries, and domain scenarios gracefully.\n\n---\n\n## 3. Information Hygiene\n\n### 3.1 Definition & Importance\n\n- **Information Hygiene** involves curating, validating, securing, and organizing data so that the LLM receives *accurate* and *relevant* context—crucial for producing reliable outputs. \n- **Risk of Garbage-In-Garbage-Out**: An LLM, no matter how advanced, can only generate useful answers if it’s fed precise, correct, and well-structured information.\n\n### 3.2 Data Curation and Validation\n\n- **Structured vs. Unstructured Data**  \n  - Use consistent schemas for data retrieval (e.g., JSON, knowledge graphs) whenever possible.  \n  - For unstructured text, employ standard cleaning steps (e.g., removing HTML tags, normalizing whitespace).\n- **Verification & Source Tracking**  \n  - Where feasible, store and pass metadata about data sources (e.g., origin, publication date, author) to the model.  \n  - Consider using retrieval-augmented techniques: retrieve validated text snippets and pass them into the prompt, so the model can cite or reference them directly.\n\n### 3.3 Data Governance & Security\n\n- **Privacy & Compliance**:  \n  - Comply with regulations (GDPR, HIPAA, etc.) by anonymizing or encrypting personal data.  \n  - Implement role-based access control for sensitive data.  \n- **Version Control**:  \n  - Maintain versioned datasets to ensure reproducibility in case you need to track down errors or refine the context for historical interactions.  \n- **Bias & Fairness**:  \n  - Develop processes to detect and mitigate biases in training data or retrieved content.  \n  - Continuously monitor for discriminatory outputs and employ adjustments or guardrails as needed.\n\n### 3.4 Keeping Context Fresh\n\n- **Real-Time Updates**:  \n  - If your application relies on data that changes frequently (e.g., product inventory, market prices), ensure the retrieval layer is kept current.  \n- **Expiring Outdated Context**:  \n  - Build mechanisms to expire or supersede old data so the model doesn’t rely on stale or misleading context.\n\n---\n\n## 4. Human Factors\n\n### 4.1 User Experience (UX) Design for AI-Driven Applications\n\n- **Explainability & Transparency**  \n  - Provide insights into how the model arrived at a particular answer.  \n  - Show relevant sources or references when possible to build trust and clarify the chain of thought.\n- **Feedback Channels**  \n  - Users should have straightforward ways to flag incorrect or incomplete responses (e.g., “Was this helpful?” thumbs up/down).  \n  - Incorporate these signals into your continuous improvement pipeline—e.g., re-ranking retrieved documents or refining prompt templates.\n\n### 4.2 Trust & Reliability\n\n- **Expectation Management**  \n  - Clearly communicate the model’s capabilities and limitations.  \n  - Avoid over-promising on AI’s accuracy; disclaim that the model may produce errors or confabulations.\n- **Human-in-the-Loop (HITL)**  \n  - For critical applications (e.g., medical, legal, financial), integrate expert reviews or validations in the workflow.  \n  - A feedback loop that allows domain experts to quickly correct or override outputs ensures safety and reliability.\n\n### 4.3 Accessibility & Inclusivity\n\n- **Language and Tone**  \n  - Ensure the application can interact with diverse user backgrounds and abilities.  \n- **Localization**  \n  - Incorporate localized data and prompts for different cultures or languages.  \n  - Respect cultural nuances to prevent misunderstandings or unintended biases.\n\n---\n\n## Putting It All Together\n\n1. **Start with a Modern, Scalable Architecture**  \n   - Cloud-native services, container orchestration, GPU/TPU capabilities, and a robust data pipeline.  \n   - Real-time or near-real-time data sync for continuous context updates.\n\n2. **Design for In-Context Learning from the Ground Up**  \n   - Build retrieval pipelines (e.g., vector stores) to dynamically feed relevant context to LLM prompts.  \n   - Manage prompt size carefully and consider summarization techniques if context grows too large.\n\n3. **Develop a Comprehensive Prompt Strategy**  \n   - Standardize prompt formats for various tasks (e.g., summarization, Q&A, classification).  \n   - Maintain a library of tested prompts and incorporate best practices for clarity, constraints, and structure.\n\n4. **Establish Rigorous Information Hygiene**  \n   - Curate and validate data through automated or semi-automated pipelines.  \n   - Integrate versioning, source tracking, and privacy measures for compliance and security.\n\n5. **Focus on Human Factors Throughout**  \n   - Provide meaningful explanations, references, and feedback mechanisms.  \n   - Maintain trust through transparent disclosures and user-centric design.\n\n6. **Iterate & Improve Continuously**  \n   - Use analytics on user interactions, feedback, and error cases to refine prompts, context retrieval, and data management.  \n   - Keep monitoring for bias, drift, or changes in user requirements.\n\n**Bottom Line**: An AI-native approach for LLM-based applications requires deep integration of AI capabilities at every layer of the stack—from how you collect and store data, to how you design prompts, to how you engage users in feedback loops. By embracing robust **in-context learning**, carefully **crafting prompts**, maintaining **information hygiene**, and centering **human factors**, you can build applications that are both powerful and trustworthy.\n",
-    "createdAt": "2025-04-03T14:08:59.069Z",
-    "updatedAt": "2025-04-03T14:08:59.069Z",
-    "versions": [
-      {
-        "id": "ver-1743689339070-umq0dlf",
-        "content": "",
-        "createdAt": "2025-04-03T14:08:59.069Z",
-        "message": "Initial version"
-      }
-    ],
-    "folderId": "folder-1743725441640-2aere2y",
+    "id": "doc-1743764802536-efv6xa8",
+    "name": "academic-math",
+    "content": "\n# Academic and Mathematical Writing with MDX\n\nMDX is an excellent format for academic writing, especially when you need to include mathematical formulas, citations, and interactive elements.\n\n## Mathematical Formulas\n\nMDX supports LaTeX-style math via KaTeX, making it perfect for scientific writing.\n\n### Inline Math\n\nEinstein's famous equation: $E = mc^2$ relates energy and mass.\n\nThe Pythagorean theorem states that $a^2 + b^2 = c^2$ for right triangles.\n\n### Block Math\n\nThe quadratic formula provides solutions to $ax^2 + bx + c = 0$:\n\n$$\nx = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\n$$\n\nMaxwell's equations in differential form:\n\n$$\n\\begin{align}\n\\nabla \\cdot \\vec{E} &= \\frac{\\rho}{\\varepsilon_0} \\\\\n\\nabla \\cdot \\vec{B} &= 0 \\\\\n\\nabla \\times \\vec{E} &= -\\frac{\\partial \\vec{B}}{\\partial t} \\\\\n\\nabla \\times \\vec{B} &= \\mu_0\\vec{J} + \\mu_0\\varepsilon_0\\frac{\\partial \\vec{E}}{\\partial t}\n\\end{align}\n$$\n\n## Research Notes with Callouts\n\n<Callout type=\"note\">\n  **Note:** This experimental setup requires calibration before each use.\n</Callout>\n\n<Callout type=\"warning\">\n  **Caution:** The solution becomes unstable at temperatures above 50°C.\n</Callout>\n\n<Callout type=\"tip\">\n  **Tip:** Record measurements at 5-minute intervals for optimal data collection.\n</Callout>\n\n## Highlighting Important Concepts\n\nUse the Highlight component to emphasize key concepts:\n\nThe experiment showed that <Highlight>temperature is directly proportional to pressure</Highlight> under the tested conditions.\n\n<Highlight color=\"blue\">Statistical significance</Highlight> was observed with p < 0.05.\n\n## Interactive Data Exploration\n\nIntegrate interactive components to explain concepts:\n\n<Box className=\"bg-gray-50 dark:bg-gray-800 p-4\">\n  <h3 className=\"text-lg font-bold mb-2\">Interactive Wave Function</h3>\n  <p className=\"mb-4\">Adjust the parameters to see how they affect the wave function.</p>\n  \n  <div className=\"mb-4\">\n    <label className=\"block mb-1\">Amplitude:</label>\n    <input \n      type=\"range\" \n      min=\"0\" \n      max=\"100\" \n      defaultValue=\"50\" \n      className=\"w-full\"\n    />\n  </div>\n  \n  <div className=\"h-32 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 flex items-center justify-center\">\n    Wave visualization would appear here\n  </div>\n</Box>\n\n## Sample Statistical Analysis\n\nThe following data represents growth measurements over time:\n\n| Time (days) | Group A (mm) | Group B (mm) | p-value |\n|-------------|--------------|--------------|---------|\n| 0           | 5.2 ± 0.3    | 5.3 ± 0.2    | 0.42    |\n| 7           | 8.4 ± 0.7    | 10.1 ± 0.8   | 0.03*   |\n| 14          | 12.3 ± 1.1   | 15.7 ± 1.2   | 0.01*   |\n| 21          | 15.8 ± 1.5   | 20.2 ± 1.4   | 0.005** |\n\n*p < 0.05, **p < 0.01\n\n## Code for Data Analysis\n\n```python\nimport numpy as np\nimport matplotlib.pyplot as plt\nfrom scipy import stats\n\n# Sample data\ngroup_a = np.array([5.2, 8.4, 12.3, 15.8])\ngroup_b = np.array([5.3, 10.1, 15.7, 20.2])\ntime = np.array([0, 7, 14, 21])\n\n# Calculate growth rate (linear regression)\nslope_a, intercept_a, r_a, p_a, std_err_a = stats.linregress(time, group_a)\nslope_b, intercept_b, r_b, p_b, std_err_b = stats.linregress(time, group_b)\n\nprint(f\"Growth rate Group A: {slope_a:.2f} mm/day\")\nprint(f\"Growth rate Group B: {slope_b:.2f} mm/day\")\n\n# Plot the data and regression lines\nplt.figure(figsize=(10, 6))\nplt.scatter(time, group_a, label='Group A')\nplt.scatter(time, group_b, label='Group B')\nplt.plot(time, intercept_a + slope_a*time, 'b--')\nplt.plot(time, intercept_b + slope_b*time, 'r--')\nplt.xlabel('Time (days)')\nplt.ylabel('Size (mm)')\nplt.legend()\nplt.title('Growth Comparison Between Groups')\nplt.grid(True, alpha=0.3)\nplt.show()\n```\n\n## Citations and References\n\nMDX can be extended to support academic citations. For example:\n\nAccording to Smith et al. (2023)[^1], the method shows promising results for large-scale applications.\n\n[^1]: Smith, J., Johnson, M., & Williams, R. (2023). Novel approaches to scientific writing with MDX. *Journal of Digital Documentation*, 42(3), 256-270.\n\n---\n\nThis example demonstrates how MDX can be used effectively for academic and scientific writing, combining the power of Markdown with mathematical expressions and interactive elements. ",
+    "createdAt": "2025-04-04T11:06:42.536Z",
+    "updatedAt": "2025-04-04T11:06:42.536Z",
+    "versions": [],
+    "folderId": "folder-1743733092916-y3zpoid",
+    "extension": ".mdx",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590339-1363x1y",
-    "name": "idea",
-    "content": "# idea\n\nUnpack this '''Everybody wants to have their tools AI enabled.  Unfortunately, bolting in AI after the fact leaves a lot of potential untapped.  To do this right, a tool or application must be rebuilt from the ground up using an entirely new foundation.  A foundation that is AI-native.  But what does that actually mean?'''\n\n# unpacked\n\nOkay, let's break down the meaning and implications of that paragraph:\n\n1.  **High Demand for AI:**\n    *   \"Everybody wants to have their tools AI enabled.\"\n    *   *Meaning:* There's a strong market trend and user desire to integrate AI capabilities (like automation, prediction, natural language processing, smart suggestions, etc.) into existing software tools and applications.\n\n2.  **The Common (Flawed) Approach:**\n    *   \"Unfortunately, bolting in AI after the fact...\"\n    *   *Meaning:* The typical way companies are trying to meet this demand is by adding AI features *onto* their existing software products. This is often referred to as a \"retrofit\" or \"bolt-on\" approach. Think of adding a GPS unit to an old car rather than designing a new car with integrated navigation.\n\n3.  **The Problem with the Common Approach:**\n    *   \"...leaves a lot of potential untapped.\"\n    *   *Meaning:* Simply adding AI features superficially doesn't fully leverage AI's capabilities. The underlying structure, data models, and workflows of the original tool weren't designed *with AI in mind*. This limits how deeply AI can be integrated and how much value it can truly add. It might offer some surface-level improvements, but it misses out on transformative possibilities.\n\n4.  **The Proposed (Better) Solution:**\n    *   \"To do this right, a tool or application must be rebuilt from the ground up...\"\n    *   *Meaning:* The author argues that the *correct* way to integrate AI effectively requires a fundamental redesign. You can't just patch AI onto an old system; you need to start over.\n\n5.  **The Core of the Solution: A New Foundation:**\n    *   \"...using an entirely new foundation. A foundation that is AI-native.\"\n    *   *Meaning:* This rebuild shouldn't just be a rewrite of the old code. It needs a completely new architectural basis. This new foundation is termed \"AI-native,\" implying that AI is not an add-on but a core, intrinsic part of the system's design from the very beginning. The data structures, workflows, user interface, and core logic should be built *around* AI capabilities.\n\n6.  **The Crucial Question:**\n    *   \"But what does that actually mean?\"\n    *   *Meaning:* The author acknowledges that \"AI-native\" is a compelling term but lacks immediate, concrete definition. It raises the question: What specific architectural principles, design choices, data strategies, and capabilities define a system as being truly \"AI-native\" as opposed to just having AI features bolted on?\n\n**In essence, the paragraph argues:**\n\n*   Adding AI to existing tools is popular but often superficial and limiting (\"bolting on\").\n*   To truly unlock AI's potential, software needs to be fundamentally re-architected (\"rebuilt from the ground up\").\n*   This new architecture must be \"AI-native,\" meaning designed with AI at its core from the start.\n*   The precise definition and characteristics of an \"AI-native\" system need further explanation.\n",
-    "createdAt": "2025-04-03T14:08:59.348Z",
-    "updatedAt": "2025-04-03T14:08:59.348Z",
-    "versions": [
-      {
-        "id": "ver-1743689339349-u29a40i",
-        "content": "",
-        "createdAt": "2025-04-03T14:08:59.348Z",
-        "message": "Initial version"
-      }
-    ],
-    "folderId": "folder-1743725441640-2aere2y",
+    "id": "doc-1743764802537-u56d7no",
+    "name": "component-example",
+    "content": "\n# Interactive Components in MDX\n\nMDX allows you to embed React components directly within your markdown content. This creates opportunities for interactive documentation, tutorials, and blog posts.\n\n## Basic Component Example\n\nHere's a simple alert component:\n\n```jsx\nexport function Alert({ type, children }) {\n  return (\n    <div className={`alert alert-${type}`} role=\"alert\">\n      {children}\n    </div>\n  );\n}\n```\n\nAnd now we can use it right in our MDX:\n\n<Alert type=\"info\">\n  This is an informational alert message!\n</Alert>\n\n## Dynamic Content with Variables\n\nMDX also lets you use JavaScript expressions:\n\nCurrent date: {new Date().toLocaleDateString()}\n\n## Counter Component Example\n\nHere's a more interactive example:\n\n```jsx\nimport { useState } from 'react';\n\nexport function Counter() {\n  const [count, setCount] = useState(0);\n  \n  return (\n    <div className=\"counter\">\n      <p>Count: {count}</p>\n      <button onClick={() => setCount(count + 1)}>\n        Increment\n      </button>\n      <button onClick={() => setCount(count - 1)}>\n        Decrement\n      </button>\n    </div>\n  );\n}\n```\n\nYou would use it like this:\n\n<Counter />\n\n## Benefits of MDX\n\n1. **Rich content** - Mix markdown and components\n2. **Interactive documentation** - Add live demos\n3. **Consistent styling** - Use your app's component library\n4. **Developer experience** - Write in familiar markdown syntax ",
+    "createdAt": "2025-04-04T11:06:42.537Z",
+    "updatedAt": "2025-04-04T11:06:42.537Z",
+    "versions": [],
+    "folderId": "folder-1743733092916-y3zpoid",
+    "extension": ".mdx",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590339-snb8925",
-    "name": "implementation",
-    "content": "Designing an **AI-native application** means you treat AI not as a plugin or module, but as the *central organizing principle* for how the system is built and evolves. In other words, every major layer of the stack—and every aspect of your workflow—must be **AI-aware** and **AI-enabled** from the start. Below is an expanded view of what the **foundation** of an AI-native system looks like, using the self-discovery and pattern-language concepts we’ve discussed.\n\n---\n\n## 1. AI-Native Foundation at a Glance\n\nAn AI-native application typically comprises six foundational pillars:\n\n1. **Knowledge-Centric Architecture**  \n2. **Data and Model Pipelines**  \n3. **Code Self-Discovery and Reuse**  \n4. **Pattern Language Integration**  \n5. **User-AI Collaboration Layer**  \n6. **Governance, Monitoring, and Continuous Learning**\n\nWe’ll walk through each in detail.\n\n---\n\n## 2. Knowledge-Centric Architecture\n\n### 2.1 Semantic Data Layer\n\n- **Goal**: Make *all* resources (code, documentation, logs, user feedback, domain rules) machine-discoverable and interlinked.  \n- **Approach**:  \n  - Use a **knowledge graph** or **vector store** to represent software artifacts, domain knowledge, and system context.  \n  - Tag and annotate each artifact with metadata (e.g., creation date, author, usage patterns, dependencies).  \n  - Maintain relationships like “depends on,” “uses,” “extends,” or “relates to domain concept X.”  \n\n### 2.2 Unified Access for the LLM\n\n- **Why**: The LLM needs to *see* all these connections to reason effectively.  \n- **How**: Build an **API** or microservice specifically for retrieving, aggregating, and updating knowledge across the system. The LLM calls this service to assemble context for inferences or generation.  \n\nBy centering the design on a **knowledge graph or semantic repository**, you ensure that the system’s intelligence is always based on up-to-date, richly linked resources—not fragmented or stale data sources.\n\n---\n\n## 3. Data and Model Pipelines\n\n### 3.1 Continuous Data Ingestion and Curation\n\n- **Data as a Living Resource**: Everything from user interactions to new code commits flows into the system, triggering indexing and embedding updates.  \n- **Cleaning and Normalization**: Raw data is parsed, cleaned, and enriched (e.g., docstrings extracted, code ASTs generated, domain concepts identified).  \n- **Governance**: Data lineage and compliance checks (GDPR, HIPAA, etc.) are built into the ingestion pipeline, so the AI layer always respects privacy and legal constraints.\n\n### 3.2 Model Management and Orchestration\n\n- **LLM + Specialized Models**:  \n  - You’ll likely use a *core LLM* for reasoning and language tasks, plus specialized models (e.g., named entity recognition, code analysis, or domain-specific classifiers).  \n- **Versioning and Deployment**:  \n  - Each model has a lifecycle—training, validation, deployment, retirement. Use a tool like MLflow, Kubernetes, or a dedicated MLOps platform to manage these stages.  \n- **In-Context Learning Orchestration**:  \n  - The system must dynamically build prompts (context assembly) by retrieving relevant knowledge, summarizing it (if needed), and injecting it into the LLM’s input.\n\n---\n\n## 4. Code Self-Discovery and Reuse\n\n### 4.1 Code Representation\n\n- **Parsing and Embeddings**:  \n  - Transform your codebase into a set of embeddings using a model like CodeBERT or CodeT5. Store function signatures, docstrings, test cases, and even code usage patterns in a semantic index.  \n- **Code Graph**:  \n  - Construct a knowledge graph where nodes are classes, methods, modules, and edges represent “imports,” “implements,” “is tested by,” etc.  \n\n### 4.2 Intelligent Retrieval\n\n- **Introspection API**:  \n  - The LLM accesses an API that can “search for relevant code patterns” based on a query or user request.  \n- **Context Construction**:  \n  - When a user wants to build a new feature, the LLM finds relevant snippets, patterns, or modules, then *weaves them* into a proposed solution—complete with references and reasoning.  \n\n### 4.3 Continuous Refresh\n\n- **Real-Time Index Updates**:  \n  - On every commit, run a pipeline that re-parses changed files, updates embeddings, and re-links or unlinks code in the knowledge graph.  \n- **Developer Feedback**:  \n  - When developers reject or accept LLM suggestions, that feedback is stored—enabling the system to learn which references or patterns are most helpful.\n\n---\n\n## 5. Pattern Language Integration\n\n### 5.1 Defining Your Pattern Library\n\n- **Domain-Specific Patterns**:  \n  - E.g., If you’re building a FinTech platform, “Fraud Detection Flow” or “Payment Gateway Abstraction” might be core patterns.  \n- **Technical/Architectural Patterns**:  \n  - Common design patterns: Factory, Observer, Builder, CQRS, Event-Sourcing, etc.  \n  - Annotate each pattern with usage examples, performance constraints, and typical pitfalls.\n\n### 5.2 Embedding Patterns into the System\n\n- **Pattern Metadata**:  \n  - Each pattern has a name, description, typical solutions, code examples, references to real uses in the codebase, and constraints (like concurrency, scaling, or legal compliance).  \n- **Pattern->Code Mapping**:  \n  - Identify actual code segments that implement or partially implement a pattern. Link them as references in your knowledge graph.  \n\n### 5.3 Pattern-Driven Prompting\n\n- **LLM Recognition and Recommendation**:  \n  - Given a user request, the LLM can suggest, “Use the PaymentGateway Pattern,” pulling in relevant code examples.  \n- **Constraints in Patterns**:  \n  - If certain patterns can’t be used in regulated contexts, the LLM is aware of these constraints and will choose or suggest alternative patterns.\n\n---\n\n## 6. User-AI Collaboration Layer\n\n### 6.1 Developer/Designer Experience\n\n- **In-IDE Assistance**:  \n  - The LLM surfaces code snippets, patterns, and relevant docs contextually as you type.  \n- **ChatOps Integration**:  \n  - Team members can query the LLM in a Slack/Teams channel, referencing the knowledge graph for immediate answers about architecture, patterns, or code usage.\n- **Auto-Generated Documentation**:  \n  - As the LLM synthesizes or modifies code, it updates or generates docstrings, UML diagrams, or sequence charts that reflect the new design.\n\n### 6.2 Human-Centric Workflow\n\n- **Feedback & Approval**:  \n  - The developer is always in control—reviewing suggestions before merging.  \n- **Explainability & Traceability**:  \n  - The system logs how the LLM arrived at a solution, referencing code and patterns. This fosters trust and helps with audits.  \n\n---\n\n## 7. Governance, Monitoring, and Continuous Learning\n\n### 7.1 Observability and Telemetry\n\n- **Application Metrics**:  \n  - Measure usage (API calls, feature adoption), latency, error rates. Correlate them with AI-generated solutions to see if AI suggestions are creating performance bottlenecks or new errors.  \n- **Model Metrics**:  \n  - Track LLM accuracy, confidence, or user satisfaction. Segment by domain, pattern type, or code module.  \n- **Bias and Fairness Checks**:  \n  - Continuously monitor if certain suggestions are systematically biased or incomplete.  \n\n### 7.2 Automated Quality Checks\n\n- **Static and Dynamic Analysis**:  \n  - After the LLM proposes a code snippet, run automated static analysis or tests to ensure correctness and compliance (e.g., security scans).  \n- **Pattern Compliance**:  \n  - If your codebase requires certain standards, the system can flag suggestions that deviate from them.  \n\n### 7.3 Continuous Improvement Loop\n\n- **Data-Driven Updates**:  \n  - As real-world usage changes, new patterns emerge or old ones become less relevant. The system can detect these shifts and prompt maintainers to refresh or retire patterns.  \n- **Feedback to Retraining**:  \n  - If you fine-tune your LLM, incorporate developer feedback, logs of code acceptance/rejection, and new domain knowledge.\n\n---\n\n## Putting It All Together: An Example Flow\n\nLet’s imagine a developer needs to build a new “reporting dashboard” feature for a FinTech application:\n\n1. **Developer Request**:  \n   - “I want to create a dashboard that shows transaction trends over time, with alerts for anomalies.”  \n\n2. **LLM + Knowledge Graph**:  \n   - The LLM queries the knowledge graph: “Which patterns handle charting and anomaly detection?”  \n   - The knowledge graph returns: *ChartingUI Pattern*, *AnomalyDetection Flow*, plus references to existing code modules used in the “Risk Analysis” microservice.  \n\n3. **Context Assembly**:  \n   - The system builds a prompt:  \n     - Summaries of the relevant “ChartingUI Pattern,” including code examples, doc links.  \n     - Summaries of anomaly detection modules, with usage instructions.  \n\n4. **LLM Synthesis**:  \n   - The LLM generates a draft solution that reuses:  \n     - The standard charting library wrapper from the UI microservice.  \n     - The existing anomaly detection modules from the risk engine.  \n   - It also includes stubs for how to configure alerts, referencing the domain pattern for “AlertRouting.”\n\n5. **Human Review**:  \n   - The developer sees the proposed solution in their IDE with relevant doc references.  \n   - They make tweaks, add new domain logic, and accept the final code.  \n\n6. **Auto-Documentation & Deployment**:  \n   - The system updates the knowledge graph to reflect that we’ve now integrated *ChartingUI Pattern* + *AnomalyDetection Flow* into the “ReportingDashboard Module.”  \n   - Tests pass, CI/CD merges the changes, and the LLM is now “aware” of this integration for future queries.\n\n---\n\n## Summary: Designing the AI-Native Foundation\n\n1. **Knowledge-First**  \n   - Everything is machine-readable and richly linked (code, docs, usage patterns, domain knowledge).  \n2. **LLM-Centric**  \n   - The LLM is not just a feature; it’s the *intelligence orchestrator*, discovering, retrieving, and synthesizing knowledge to build solutions.  \n3. **Pattern Language as the Brain**  \n   - Patterns codify best practices and guide the LLM to produce consistent, high-quality solutions.  \n4. **Continuous Co-Evolution**  \n   - Code changes feed back into the knowledge graph. The LLM’s suggestions evolve accordingly.  \n5. **Human-in-the-Loop**  \n   - Developers curate and refine AI suggestions, ensuring accountability, trust, and domain expertise.\n\nWhen you build a system around these principles, you’re no longer *just* adding an AI model to an existing product. Instead, you’re creating an **AI-native ecosystem** where the model(s) and the rest of the application continuously enrich each other—driving efficiency, innovation, and a *truly* intelligent user experience.\n",
-    "createdAt": "2025-04-03T14:08:59.509Z",
-    "updatedAt": "2025-04-03T14:08:59.509Z",
-    "versions": [
-      {
-        "id": "ver-1743689339509-iqx6jkn",
-        "content": "",
-        "createdAt": "2025-04-03T14:08:59.509Z",
-        "message": "Initial version"
-      }
-    ],
-    "folderId": "folder-1743725441640-2aere2y",
+    "id": "doc-1743764802537-t0slwkr",
+    "name": "component-examples",
+    "content": "\n# Practical MDX Component Examples\n\nThis document provides practical examples of MDX components that you could actually use in your writing workflow.\n\n## Callouts and Admonitions\n\nCallouts help highlight important information:\n\n<Callout type=\"note\">\n  **Note:** This is important information that supplements the main content.\n</Callout>\n\n<Callout type=\"warning\">\n  **Warning!** Be careful about this potential issue.\n</Callout>\n\n<Callout type=\"tip\">\n  **Pro tip:** Here's a better way to accomplish this task.\n</Callout>\n\n## Table of Contents\n\nAuto-generated table of contents:\n\n<TableOfContents />\n\n## Expandable Sections\n\nExpandable sections help organize lengthy content:\n\n<Expandable title=\"Click to see additional details\">\n  This content is initially hidden but can be expanded by clicking the header.\n  \n  You can include any markdown content here:\n  \n  - Lists\n  - **Bold text**\n  - Even code blocks\n  \n  ```js\n  const expandable = true;\n  ```\n</Expandable>\n\n## Citations and References\n\nAcademic citations with hover previews:\n\nThis is a statement that needs a citation<Citation id=\"smith2019\" />.\n\n<References>\n  <Reference id=\"smith2019\" type=\"article\">\n    Smith, J. (2019). An amazing discovery. *Journal of Important Things*, 12(3), 45-67.\n  </Reference>\n  <Reference id=\"johnson2020\" type=\"book\">\n    Johnson, R. (2020). *The Definitive Guide to Everything*. Academic Press.\n  </Reference>\n</References>\n\n## Sidenotes and Marginalia\n\nAdd notes without interrupting the main flow:\n\nThis is a paragraph with a sidenote<Sidenote>This additional information appears in the margin without interrupting the main text flow.</Sidenote> that provides additional context without breaking the flow of the main content.\n\n## Image Galleries\n\nDisplay multiple images in a gallery:\n\n<ImageGallery>\n  <Image src=\"https://via.placeholder.com/300x200\" alt=\"Example image 1\" caption=\"First image\" />\n  <Image src=\"https://via.placeholder.com/300x200\" alt=\"Example image 2\" caption=\"Second image\" />\n  <Image src=\"https://via.placeholder.com/300x200\" alt=\"Example image 3\" caption=\"Third image\" />\n</ImageGallery>\n\n## Tabs\n\nOrganize content into tabbed sections:\n\n<Tabs>\n  <Tab label=\"Introduction\">\n    This is the introduction section that provides an overview.\n  </Tab>\n  <Tab label=\"Details\">\n    This section contains the detailed explanation.\n  </Tab>\n  <Tab label=\"Examples\">\n    Here are some concrete examples to illustrate the concepts.\n  </Tab>\n</Tabs>\n\n## Definition Tooltips\n\n<Definitions>\n  <Define term=\"MDX\">Markdown with JSX - allows you to use React components in your markdown.</Define>\n  <Define term=\"JSX\">JavaScript XML - a syntax extension for JavaScript that looks similar to HTML.</Define>\n  <Define term=\"Component\">Reusable pieces of code that return React elements describing what should appear on the screen.</Define>\n</Definitions>\n\nThis document uses <Tooltip term=\"MDX\" /> to embed <Tooltip term=\"Component\">components</Tooltip> using <Tooltip term=\"JSX\" />.\n\n## Math Equations\n\nMDX works great with mathematical equations:\n\n<Equation>\n  E = mc^2\n</Equation>\n\n<Equation display={true}>\n  \\int_{a}^{b} f(x) \\, dx = F(b) - F(a)\n</Equation>\n\n## Syntax Highlighting\n\nCode with enhanced syntax highlighting:\n\n<CodeBlock language=\"javascript\" filename=\"example.js\" lineNumbers={true} highlight=\"2\">\nfunction greeting(name) {\n  // This is a simple greeting function\n  return \"Hello, \" + name;\n}\n</CodeBlock>\n\n## Charts and Diagrams\n\nEmbed charts directly in your documents:\n\n<Chart type=\"bar\" />\n\n<FlowChart>\n  Simple flow chart example\n</FlowChart>\n\n## Interactive Exercises\n\nAdd interactive elements for educational content:\n\n<Quiz>\n  <Question prompt=\"What does MDX stand for?\">\n    <Option correct>Markdown with JSX</Option>\n    <Option>Markup Data XML</Option>\n    <Option>Modern Document Experience</Option>\n  </Question>\n</Quiz>\n\n## Embedded Spreadsheets\n\nWork with tabular data:\n\n<Spreadsheet editable={true} />\n\n## Audio Player\n\nEmbed audio content with a player:\n\n<AudioPlayer \n  src=\"path/to/audio.mp3\" \n  title=\"Podcast Episode: Introduction to MDX\" \n  showControls={true}\n/>\n\n## Timeline\n\nDisplay chronological information:\n\n<Timeline>\n  <TimelineEvent date=\"2019-01-01\" title=\"Project Started\">\n    Initial research and planning phase.\n  </TimelineEvent>\n  <TimelineEvent date=\"2019-03-15\" title=\"Prototype Completed\">\n    First working prototype demonstrated to stakeholders.\n  </TimelineEvent>\n  <TimelineEvent date=\"2019-06-30\" title=\"Beta Release\">\n    Limited beta release to test with early users.\n  </TimelineEvent>\n  <TimelineEvent date=\"2019-12-01\" title=\"Version 1.0\">\n    Official release of version 1.0 with all core features.\n  </TimelineEvent>\n</Timeline>\n\n## Kanban Board\n\nVisualize tasks and workflows:\n\n<KanbanBoard>\n  <Column title=\"To Do\">\n    <KanbanCard>Research content</KanbanCard>\n    <KanbanCard>Create outline</KanbanCard>\n  </Column>\n  <Column title=\"In Progress\">\n    <KanbanCard>Draft introduction</KanbanCard>\n  </Column>\n  <Column title=\"Done\">\n    <KanbanCard>Project setup</KanbanCard>\n    <KanbanCard>Research competitors</KanbanCard>\n  </Column>\n</KanbanBoard>\n\n## Implementing Your Own Components\n\nRemember that you'll need to implement these components or import them from libraries before they can be used in your MDX documents. The great thing about MDX is that you can create exactly the components you need for your specific workflow.\n\nTo use a custom component:\n\n1. Create the component in your application\n2. Make it available to the MDX renderer\n3. Use it in your MDX documents\n\nWith this approach, you can extend your writing environment with exactly the tools you need. ",
+    "createdAt": "2025-04-04T11:06:42.537Z",
+    "updatedAt": "2025-04-04T11:06:42.537Z",
+    "versions": [],
+    "folderId": "folder-1743733092916-y3zpoid",
+    "extension": ".mdx",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743764802538-e27wnhe",
+    "name": "data-visualization",
+    "content": "\n# Data Visualization with MDX\n\nPresenting data effectively is crucial for making informed decisions. This example demonstrates how to integrate various data visualization techniques into your MDX documents.\n\n## Simple Chart Components\n\nMDX allows you to embed interactive charts directly in your content:\n\n<Chart \n  type=\"bar\" \n  title=\"Monthly Revenue\"\n/>\n\n<Box className=\"p-4 border rounded-lg mb-6 bg-gray-50 dark:bg-gray-800\">\n  <h3 className=\"font-bold mb-3\">Sales Comparison</h3>\n  <p className=\"mb-2\">Comparison of quarterly sales data (2022-2023)</p>\n  \n  <div className=\"grid grid-cols-2 gap-4\">\n    <Chart type=\"bar\" title=\"Q1-Q2\" />\n    <Chart type=\"bar\" title=\"Q3-Q4\" />\n  </div>\n</Box>\n\n## Tabular Data\n\nTables are an effective way to present structured data:\n\n### Customer Growth by Region\n\n| Region      | Q1 2023 | Q2 2023 | Q3 2023 | Growth Rate |\n|-------------|---------|---------|---------|-------------|\n| North       | 1,245   | 1,467   | 1,695   | +36.1%      |\n| South       | 867     | 912     | 1,031   | +18.9%      |\n| East        | 1,032   | 1,154   | 1,282   | +24.2%      |\n| West        | 1,489   | 1,726   | 2,038   | +36.9%      |\n| Central     | 745     | 893     | 1,084   | +45.5%      |\n| **Total**   | **5,378** | **6,152** | **7,130** | **+32.6%** |\n\n<Alert type=\"info\">\n  Data updated as of November 1, 2023. Growth rate is calculated from Q1 to Q3.\n</Alert>\n\n## Interactive Data Displays\n\nInteractive components can make data more engaging and explorable:\n\n<Box className=\"p-6 bg-white dark:bg-gray-700 rounded-lg shadow-sm mb-6\">\n  <h3 className=\"text-xl font-bold mb-3\">Product Performance Dashboard</h3>\n  \n  <div className=\"mb-4\">\n    <label className=\"block mb-2\">Select Time Period:</label>\n    <select className=\"w-full p-2 border rounded dark:bg-gray-800\">\n      <option>Last 7 days</option>\n      <option>Last 30 days</option>\n      <option>Last quarter</option>\n      <option>Year to date</option>\n      <option>Custom range</option>\n    </select>\n  </div>\n  \n  <div className=\"grid grid-cols-1 md:grid-cols-3 gap-4 mb-6\">\n    <div className=\"bg-blue-50 dark:bg-blue-900 p-4 rounded\">\n      <h4 className=\"font-bold text-sm mb-1\">Total Users</h4>\n      <p className=\"text-2xl font-bold\">12,547</p>\n      <p className=\"text-sm text-green-600 dark:text-green-400\">↑ 12.3%</p>\n    </div>\n    \n    <div className=\"bg-purple-50 dark:bg-purple-900 p-4 rounded\">\n      <h4 className=\"font-bold text-sm mb-1\">Conversion Rate</h4>\n      <p className=\"text-2xl font-bold\">4.7%</p>\n      <p className=\"text-sm text-green-600 dark:text-green-400\">↑ 0.8%</p>\n    </div>\n    \n    <div className=\"bg-teal-50 dark:bg-teal-900 p-4 rounded\">\n      <h4 className=\"font-bold text-sm mb-1\">Avg. Session</h4>\n      <p className=\"text-2xl font-bold\">3:24</p>\n      <p className=\"text-sm text-red-600 dark:text-red-400\">↓ 0.3%</p>\n    </div>\n  </div>\n  \n  <Chart type=\"line\" title=\"User Engagement Trends\" />\n</Box>\n\n## Visualizing Relationships\n\nIllustrate relationships between different data points:\n\n<TwoColumnLayout>\n  <Column>\n    <Box className=\"p-4 border rounded h-full\">\n      <h3 className=\"font-bold mb-2\">User Retention</h3>\n      <Chart type=\"bar\" />\n      <p className=\"text-sm mt-2\">\n        Monthly retention rates show improvement after the Q2 product updates.\n      </p>\n    </Box>\n  </Column>\n  \n  <Column>\n    <Box className=\"p-4 border rounded h-full\">\n      <h3 className=\"font-bold mb-2\">Feature Usage</h3>\n      <div className=\"bg-white dark:bg-gray-700 p-4 rounded text-center\">\n        [Feature Usage Diagram]\n      </div>\n      <p className=\"text-sm mt-2\">\n        Advanced search and filtering features see the highest engagement.\n      </p>\n    </Box>\n  </Column>\n</TwoColumnLayout>\n\n## Geographic Data Visualization\n\nRepresent location-based data effectively:\n\n<Box className=\"p-4 border rounded-lg mb-6\">\n  <h3 className=\"font-bold mb-3\">Customer Distribution</h3>\n  \n  <div className=\"bg-white dark:bg-gray-700 p-4 rounded mb-3 text-center\">\n    [Geographic Map Visualization]\n  </div>\n  \n  <div className=\"grid grid-cols-2 md:grid-cols-4 gap-3 text-center\">\n    <div>\n      <h4 className=\"font-bold\">North America</h4>\n      <p className=\"text-xl\">42%</p>\n    </div>\n    <div>\n      <h4 className=\"font-bold\">Europe</h4>\n      <p className=\"text-xl\">28%</p>\n    </div>\n    <div>\n      <h4 className=\"font-bold\">Asia</h4>\n      <p className=\"text-xl\">22%</p>\n    </div>\n    <div>\n      <h4 className=\"font-bold\">Other</h4>\n      <p className=\"text-xl\">8%</p>\n    </div>\n  </div>\n</Box>\n\n## Process Flows and Diagrams\n\nVisualize complex processes or workflows:\n\n<Box className=\"p-6 bg-white dark:bg-gray-700 rounded-lg shadow-sm mb-6\">\n  <h3 className=\"text-xl font-bold mb-4\">User Onboarding Flow</h3>\n  \n  <div className=\"flex flex-col md:flex-row items-center justify-center gap-4 mb-4\">\n    <div className=\"bg-blue-100 dark:bg-blue-800 p-3 rounded-lg text-center\">\n      <strong>Sign Up</strong>\n      <p className=\"text-sm\">Conversion: 82%</p>\n    </div>\n    <div className=\"hidden md:block\">→</div>\n    <div className=\"bg-blue-100 dark:bg-blue-800 p-3 rounded-lg text-center\">\n      <strong>Profile Setup</strong>\n      <p className=\"text-sm\">Conversion: 64%</p>\n    </div>\n    <div className=\"hidden md:block\">→</div>\n    <div className=\"bg-blue-100 dark:bg-blue-800 p-3 rounded-lg text-center\">\n      <strong>First Action</strong>\n      <p className=\"text-sm\">Conversion: 51%</p>\n    </div>\n    <div className=\"hidden md:block\">→</div>\n    <div className=\"bg-green-100 dark:bg-green-800 p-3 rounded-lg text-center\">\n      <strong>Activation</strong>\n      <p className=\"text-sm\">Conversion: 42%</p>\n    </div>\n  </div>\n  \n  <Alert type=\"info\">\n    Drop-off is highest between Profile Setup and First Action, suggesting an opportunity for improvement.\n  </Alert>\n</Box>\n\n## Comparative Analysis\n\nPresent data in ways that facilitate comparison:\n\n<Tabs>\n  <TabPanel label=\"Revenue\">\n    <Box className=\"p-4\">\n      <h3 className=\"font-bold mb-3\">Revenue Breakdown</h3>\n      <Chart type=\"pie\" />\n      \n      <div className=\"grid grid-cols-2 gap-4 mt-4\">\n        <div>\n          <h4 className=\"font-bold\">Key Insights</h4>\n          <ul className=\"list-disc pl-5\">\n            <li>Subscription revenue grew 24% YoY</li>\n            <li>One-time purchases declined by 8%</li>\n            <li>Add-on services increased by 42%</li>\n          </ul>\n        </div>\n        <div>\n          <h4 className=\"font-bold\">Recommendations</h4>\n          <ul className=\"list-disc pl-5\">\n            <li>Focus marketing on subscription benefits</li>\n            <li>Explore additional add-on service options</li>\n            <li>Review one-time purchase offerings</li>\n          </ul>\n        </div>\n      </div>\n    </Box>\n  </TabPanel>\n  \n  <TabPanel label=\"User Growth\">\n    <Box className=\"p-4\">\n      <h3 className=\"font-bold mb-3\">User Growth Trends</h3>\n      <Chart type=\"line\" />\n      \n      <div className=\"grid grid-cols-2 gap-4 mt-4\">\n        <div>\n          <h4 className=\"font-bold\">Key Insights</h4>\n          <ul className=\"list-disc pl-5\">\n            <li>New user acquisition up 18% QoQ</li>\n            <li>Churn rate decreased to 3.2%</li>\n            <li>Mobile users increased by 34%</li>\n          </ul>\n        </div>\n        <div>\n          <h4 className=\"font-bold\">Recommendations</h4>\n          <ul className=\"list-disc pl-5\">\n            <li>Continue mobile experience optimization</li>\n            <li>Expand retention initiatives</li>\n            <li>Analyze acquisition channels for efficiency</li>\n          </ul>\n        </div>\n      </div>\n    </Box>\n  </TabPanel>\n  \n  <TabPanel label=\"Engagement\">\n    <Box className=\"p-4\">\n      <h3 className=\"font-bold mb-3\">User Engagement Metrics</h3>\n      <Chart type=\"bar\" />\n      \n      <div className=\"grid grid-cols-2 gap-4 mt-4\">\n        <div>\n          <h4 className=\"font-bold\">Key Insights</h4>\n          <ul className=\"list-disc pl-5\">\n            <li>Daily active users increased by 12%</li>\n            <li>Average session duration up 0:42</li>\n            <li>Feature adoption improved across all segments</li>\n          </ul>\n        </div>\n        <div>\n          <h4 className=\"font-bold\">Recommendations</h4>\n          <ul className=\"list-disc pl-5\">\n            <li>Expand onboarding tutorials for advanced features</li>\n            <li>Implement additional engagement triggers</li>\n            <li>Review and optimize UX for core workflows</li>\n          </ul>\n        </div>\n      </div>\n    </Box>\n  </TabPanel>\n</Tabs>\n\n## Integrating External Visualization Tools\n\nWhile MDX provides built-in visualization capabilities, you can also embed visualizations from external tools:\n\n<Box className=\"border rounded-lg p-4 mb-4\">\n  <h3 className=\"font-bold mb-2\">Embedding External Visualizations</h3>\n  \n  <p className=\"mb-3\">For complex data analysis, consider embedding visualizations from specialized tools:</p>\n  \n  <ul className=\"list-disc pl-5 mb-4\">\n    <li>Tableau dashboards</li>\n    <li>Power BI reports</li>\n    <li>Custom D3.js visualizations</li>\n    <li>Google Data Studio reports</li>\n  </ul>\n  \n  <div className=\"bg-gray-100 dark:bg-gray-800 p-4 rounded\">\n    <code>\n      {`<iframe \n  src=\"https://public.tableau.com/views/YourDashboard\" \n  width=\"100%\" \n  height=\"600\"\n  frameborder=\"0\"\n></iframe>`}\n    </code>\n  </div>\n</Box>\n\n## Best Practices for Data Visualization\n\n<TwoColumnLayout>\n  <Column>\n    <h3 className=\"font-bold mb-2\">Effective Visualization Tips</h3>\n    \n    <ul className=\"list-disc pl-5\">\n      <li>Choose the right chart type for your data</li>\n      <li>Use color purposefully and consistently</li>\n      <li>Don't distort the data with misleading scales</li>\n      <li>Label data points clearly and directly</li>\n      <li>Provide context with titles and legends</li>\n      <li>Keep visualizations simple and focused</li>\n      <li>Use interactive elements for complex datasets</li>\n    </ul>\n  </Column>\n  \n  <Column>\n    <h3 className=\"font-bold mb-2\">Common Mistakes to Avoid</h3>\n    \n    <ul className=\"list-disc pl-5\">\n      <li>Using inappropriate chart types</li>\n      <li>Cluttering visualizations with too much data</li>\n      <li>Relying on 3D charts that can distort perception</li>\n      <li>Using inconsistent scales across comparisons</li>\n      <li>Choosing confusing or misleading colors</li>\n      <li>Omitting important context or methodology</li>\n      <li>Failing to make visualizations accessible</li>\n    </ul>\n  </Column>\n</TwoColumnLayout>\n\n## Conclusion\n\nEffective data visualization transforms raw data into actionable insights. By leveraging MDX's component-based approach, you can create rich, interactive data visualizations that enhance understanding and drive better decision-making.\n\n<Callout type=\"tip\">\n  Remember that the goal of data visualization is to communicate clearly, not to impress with complexity. Always prioritize clarity and accuracy over visual flair.\n</Callout> ",
+    "createdAt": "2025-04-04T11:06:42.538Z",
+    "updatedAt": "2025-04-04T11:06:42.538Z",
+    "versions": [],
+    "folderId": "folder-1743733092916-y3zpoid",
+    "extension": ".mdx",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743764802539-9qfl0p7",
+    "name": "documentation-guide",
+    "content": "\n# Creating Documentation with MDX\n\nMDX is an excellent format for technical documentation, combining the simplicity of Markdown with the power of components. This guide demonstrates how to create effective and engaging documentation.\n\n## Why MDX for Documentation?\n\nMDX offers several advantages for technical documentation:\n\n1. **Simplicity** - Markdown is easy to write and read\n2. **Components** - Add interactive elements to clarify concepts\n3. **Consistency** - Maintain uniform styling across documents\n4. **Extensibility** - Create custom components for specific needs\n5. **Portability** - Documentation can be published in various formats\n\n## Structuring Your Documentation\n\nGood documentation follows a clear structure:\n\n<TwoColumnLayout>\n  <Column>\n    ### Recommended Sections\n    \n    * Introduction/Overview\n    * Getting Started\n    * Installation\n    * Basic Usage\n    * Configuration\n    * Advanced Usage\n    * API Reference\n    * Troubleshooting\n    * FAQ\n  </Column>\n  <Column>\n    ### Best Practices\n    \n    * Use consistent heading levels\n    * Keep sections focused on a single topic\n    * Include examples for key concepts\n    * Provide navigation between related topics\n    * Update documentation when code changes\n    * Include version information\n  </Column>\n</TwoColumnLayout>\n\n## Essential Documentation Components\n\n### Callouts and Alerts\n\nUse callouts to highlight important information:\n\n<Callout type=\"note\">\n  **Note:** This is a standard note providing additional context.\n</Callout>\n\n<Callout type=\"tip\">\n  **Tip:** This is a helpful tip to improve the user experience.\n</Callout>\n\n<Callout type=\"warning\">\n  **Warning:** This warns about potential issues or important considerations.\n</Callout>\n\n<Alert type=\"info\">\n  The Alert component is useful for highlighting important information that requires user attention.\n</Alert>\n\n<Alert type=\"warning\">\n  This warns users about potential problems or things to be careful about.\n</Alert>\n\n<Alert type=\"error\">\n  This indicates an error condition or a critical warning that users should not ignore.\n</Alert>\n\n### Code Examples\n\nCode examples are essential for technical documentation:\n\n```javascript\n// Basic usage example\nimport { MyComponent } from 'my-library';\n\nfunction Example() {\n  return <MyComponent config={{ theme: 'dark', animate: true }} />;\n}\n```\n\nFor interactive code examples, use the CodeEditor component:\n\n<CodeEditor \n  code=\"// Try editing this code\\nconst greeting = 'Hello, world!';\\nconsole.log(greeting);\" \n  language=\"javascript\"\n/>\n\n### Tabs for Multiple Examples\n\nUse tabs to show multiple implementation options:\n\n<Tabs>\n  <TabPanel label=\"JavaScript\">\n    ```javascript\n    // JavaScript implementation\n    const calculateArea = (width, height) => {\n      return width * height;\n    };\n    \n    const area = calculateArea(5, 10);\n    console.log(`The area is ${area}`);\n    ```\n  </TabPanel>\n  \n  <TabPanel label=\"Python\">\n    ```python\n    # Python implementation\n    def calculate_area(width, height):\n        return width * height\n    \n    area = calculate_area(5, 10)\n    print(f\"The area is {area}\")\n    ```\n  </TabPanel>\n  \n  <TabPanel label=\"Ruby\">\n    ```ruby\n    # Ruby implementation\n    def calculate_area(width, height)\n      width * height\n    end\n    \n    area = calculate_area(5, 10)\n    puts \"The area is #{area}\"\n    ```\n  </TabPanel>\n</Tabs>\n\n## API Documentation\n\nWhen documenting APIs, use consistent formatting:\n\n### Function Reference\n\n<Box className=\"border rounded-lg p-4 mb-4\">\n  <h3 className=\"text-xl font-bold\">getUserData(userId, options)</h3>\n  <p className=\"text-sm mb-2\">Retrieves user data from the API.</p>\n  \n  <div className=\"mb-2\">\n    <strong>Parameters:</strong>\n    <ul className=\"list-disc ml-5\">\n      <li><code>userId</code> <em>(string, required)</em> - The unique identifier for the user</li>\n      <li><code>options</code> <em>(object, optional)</em> - Configuration options</li>\n      <ul className=\"list-disc ml-5\">\n        <li><code>include</code> <em>(string[])</em> - Related data to include</li>\n        <li><code>version</code> <em>(string)</em> - API version to use</li>\n      </ul>\n    </ul>\n  </div>\n  \n  <div className=\"mb-2\">\n    <strong>Returns:</strong> <em>Promise&lt;UserData&gt;</em> - The user data object\n  </div>\n  \n  <div className=\"mb-2\">\n    <strong>Throws:</strong>\n    <ul className=\"list-disc ml-5\">\n      <li><code>AuthError</code> - If the request is not authorized</li>\n      <li><code>NotFoundError</code> - If the user doesn't exist</li>\n    </ul>\n  </div>\n  \n  <div className=\"mt-3 pt-3 border-t\">\n    <strong>Example:</strong>\n    \n    ```javascript\n    const userData = await getUserData('user-123', {\n      include: ['profile', 'preferences'],\n      version: 'v2'\n    });\n    \n    console.log(userData.name);\n    ```\n  </div>\n</Box>\n\n## Step-by-Step Guides\n\nBreak down complex procedures into clear steps:\n\n<Box className=\"bg-gray-50 dark:bg-gray-800 p-6 rounded-lg mb-6\">\n  <h3 className=\"text-xl font-bold mb-4\">Setting Up Your Development Environment</h3>\n  \n  <ol className=\"list-decimal ml-6 space-y-4\">\n    <li>\n      <strong>Install Dependencies</strong>\n      <p>Make sure you have Node.js (v14+) and npm installed.</p>\n      \n      ```bash\n      # Check current versions\n      node -v\n      npm -v\n      ```\n    </li>\n    \n    <li>\n      <strong>Clone the Repository</strong>\n      \n      ```bash\n      git clone https://github.com/example/project.git\n      cd project\n      ```\n    </li>\n    \n    <li>\n      <strong>Install Project Dependencies</strong>\n      \n      ```bash\n      npm install\n      ```\n      \n      <Alert type=\"info\">\n        If you encounter any errors during installation, see the Troubleshooting section.\n      </Alert>\n    </li>\n    \n    <li>\n      <strong>Configure Environment Variables</strong>\n      <p>Create a <code>.env</code> file in the project root:</p>\n      \n      ```\n      API_KEY=your_api_key_here\n      DEBUG=false\n      ```\n    </li>\n    \n    <li>\n      <strong>Start the Development Server</strong>\n      \n      ```bash\n      npm run dev\n      ```\n      \n      <p>The application will be available at <a href=\"http://localhost:3000\">http://localhost:3000</a></p>\n    </li>\n  </ol>\n</Box>\n\n## Interactive Diagrams\n\nDocumentation can include interactive diagrams to explain concepts:\n\n<Box className=\"border p-4 mb-4 text-center\">\n  <h3 className=\"mb-2\">System Architecture</h3>\n  <div className=\"bg-white dark:bg-gray-700 p-4 rounded\">\n    [Interactive Diagram Placeholder]\n  </div>\n  <p className=\"text-sm mt-2\">Click on components for more information.</p>\n</Box>\n\n## Versioned Documentation\n\nIndicate when documentation applies to specific versions:\n\n<Box className=\"bg-blue-50 dark:bg-blue-900 p-4 rounded-lg mb-4\">\n  <h3 className=\"text-lg font-bold flex items-center\">\n    <span className=\"mr-2\">📌</span> Version Information\n  </h3>\n  <ul>\n    <li><strong>Current version:</strong> 2.5.0</li>\n    <li><strong>Compatible with:</strong> 2.0.0 and higher</li>\n    <li><strong>Last updated:</strong> October 15, 2023</li>\n  </ul>\n</Box>\n\n## Best Practices for Documentation\n\n<TwoColumnLayout>\n  <Column>\n    ### Do\n    \n    * Keep language simple and clear\n    * Use consistent terminology\n    * Include practical examples\n    * Update docs with code changes\n    * Link to related topics\n    * Provide search functionality\n    * Get feedback from users\n  </Column>\n  \n  <Column>\n    ### Don't\n    \n    * Use jargon without explanation\n    * Assume prior knowledge\n    * Leave outdated information\n    * Write overly long paragraphs\n    * Forget to include troubleshooting\n    * Ignore user feedback\n    * Neglect mobile readability\n  </Column>\n</TwoColumnLayout>\n\n## Conclusion\n\nGreat documentation is a critical part of any successful project. By using MDX, you can create documentation that is both informative and engaging, helping users get the most out of your product.\n\n<Alert type=\"info\">\n  **Pro Tip:** Regularly review and update your documentation based on user feedback and questions. If users frequently ask about something, it's a sign that your documentation could be improved in that area.\n</Alert>\n\n---\n\n<Box className=\"bg-gray-50 dark:bg-gray-800 p-4 rounded-lg text-sm\">\n  <strong>Further Resources:</strong>\n  <ul className=\"mt-2\">\n    <li><a href=\"#\">Documentation Style Guide</a></li>\n    <li><a href=\"#\">Creating Custom Documentation Components</a></li>\n    <li><a href=\"#\">Automating Documentation Workflows</a></li>\n  </ul>\n</Box> ",
+    "createdAt": "2025-04-04T11:06:42.539Z",
+    "updatedAt": "2025-04-04T11:06:42.539Z",
+    "versions": [],
+    "folderId": "folder-1743733092916-y3zpoid",
+    "extension": ".mdx",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743764802539-lyca0cw",
+    "name": "interactive-components",
+    "content": "\n# Interactive Components in MDX\n\nOne of the most powerful features of MDX is the ability to include interactive components directly in your content. This example demonstrates several interactive components you can use in your documents.\n\n## Counter Component\n\nThe Counter component allows you to maintain state directly in your document:\n\n<Counter startValue={5} />\n\nTry clicking the buttons above to change the counter value.\n\n## Color Picker\n\nThe ColorPicker component provides a simple way to select and display colors:\n\n<ColorPicker defaultColor=\"#3B82F6\" />\n\n## Simple Button\n\nButtons can be used to trigger actions:\n\n<SimpleButton>\n  Click Me!\n</SimpleButton>\n\n## Code Editor\n\nThe CodeEditor component allows you to display editable code snippets:\n\n<CodeEditor \n  code=\"function greet(name) {\\n  return `Hello, ${name}`;\\n}\\n\\nconsole.log(greet('Developer'));\" \n  language=\"javascript\"\n/>\n\n## Card Component\n\nCards can be used to display content in an attractive format:\n\n<Card title=\"Sample Card\" image=\"https://source.unsplash.com/random/800x400/?nature\">\n  This is a card component with an image and some content. Cards are great for \n  displaying information in a visually appealing way.\n  \n  You can hover over the card to see effects.\n</Card>\n\n## Tabs Component\n\nTabs are useful for organizing content into discrete sections:\n\n<Tabs>\n  <TabPanel label=\"First Tab\">\n    This is the content for the first tab.\n    \n    * List item 1\n    * List item 2\n  </TabPanel>\n  \n  <TabPanel label=\"Second Tab\">\n    Content for the second tab goes here.\n    \n    ```js\n    // Some code in the second tab\n    const message = \"Hello from tab 2!\";\n    console.log(message);\n    ```\n  </TabPanel>\n  \n  <TabPanel label=\"Third Tab\">\n    And here's the content for the third tab.\n    \n    <Alert type=\"warning\">\n      You can even include other components inside tabs!\n    </Alert>\n  </TabPanel>\n</Tabs>\n\n## Call to Action\n\nUse the CallToAction component to draw attention to important actions:\n\n<CallToAction>\n  Subscribe to our newsletter!\n</CallToAction>\n\n## Bringing It All Together\n\nThese interactive components allow you to create rich, engaging content that goes beyond static text. Experiment with combining these components to create powerful documents! ",
+    "createdAt": "2025-04-04T11:06:42.539Z",
+    "updatedAt": "2025-04-04T11:06:42.539Z",
+    "versions": [],
+    "folderId": "folder-1743733092916-y3zpoid",
+    "extension": ".mdx",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743764802540-v5aimlu",
+    "name": "interactive-mdx-demo",
+    "content": "\n# Interactive MDX Demo\n\nThis file demonstrates the MDX capabilities of the Writing App, showing how you can combine Markdown with JSX components to create interactive documents.\n\n## Basic Markdown Still Works\n\nAll your favorite Markdown syntax still works as expected:\n\n- **Bold text** and *italic text*\n- Lists, both ordered and unordered\n- [Links](https://example.com)\n- > Blockquotes look like this\n- Code blocks with syntax highlighting:\n\n```javascript\nfunction greeting(name) {\n  return `Hello, ${name}!`;\n}\n\nconsole.log(greeting('World'));\n```\n\n## JSX Components\n\nIn MDX, you can use React-style JSX components directly in your markdown:\n\n<Alert variant=\"info\">\n  This is an info alert component that provides important information to the reader.\n</Alert>\n\n<Card title=\"Interactive Card Component\">\n  This card component can contain any content, including other markdown.\n  \n  - It can have lists\n  - And other formatting\n\n  ```\n  Even code blocks\n  ```\n</Card>\n\n## JavaScript Expressions\n\nYou can use JavaScript expressions within curly braces:\n\nThe current date is: {(new Date()).toLocaleDateString()}\n\n2 + 2 = 4\n\n### Dynamic Lists\n\nYou can even generate content dynamically:\n\n<ul>\n  <li><strong>React</strong> - A JavaScript framework</li>\n  <li><strong>Vue</strong> - A JavaScript framework</li>\n  <li><strong>Angular</strong> - A JavaScript framework</li>\n  <li><strong>Svelte</strong> - A JavaScript framework</li>\n</ul>\n\n## Component Props\n\nComponents can accept properties to customize their behavior:\n\n<Tabs>\n  <TabPanel label=\"First Tab\">\n    This is the content of the first tab.\n  </TabPanel>\n  <TabPanel label=\"Second Tab\">\n    This is the content of the second tab.\n  </TabPanel>\n  <TabPanel label=\"Third Tab\">\n    This is the content of the third tab.\n  </TabPanel>\n</Tabs>\n\n## Interactive Elements\n\nMDX allows for truly interactive documents:\n\n<Counter startValue={0} />\n\n<ColorPicker defaultColor=\"#3366FF\" />\n\n## Import Statements\n\nIn MDX, you can import custom components at the top of your file:\n\n```jsx\nimport { Chart } from './components/Chart'\nimport { DataTable } from './components/DataTable'\n```\n\nThen use them in your document:\n\n<Chart type=\"bar\" title=\"Sample Chart\" />\n\n## Internal Links\n\nYou can still use the app's internal linking syntax to reference other documents:\n\n[[design]] - Links to the design document\n\n## Conditional Content\n\nYou can conditionally display content based on variables:\n\n<RestrictedContent>\n  This content is only visible to logged-in users.\n</RestrictedContent>\n\n## Using MDX for Writing\n\nMDX is perfect for:\n\n- Technical documentation with interactive examples\n- Educational content with exercises\n- Scientific papers with interactive visualizations\n- Creative writing with custom layouts\n- Product documentation with live demos\n\n## Custom Layouts\n\nMDX allows for custom layouts that aren't possible with regular markdown:\n\n<TwoColumnLayout>\n  <Column width=\"60%\">\n    This column takes up 60% of the available width.\n    \n    It can contain regular markdown:\n    \n    1. First item\n    2. Second item\n    3. Third item\n  </Column>\n  <Column width=\"40%\">\n    This column takes the remaining 40%.\n    \n    ![An example image](https://via.placeholder.com/300x200)\n    \n    *Image caption goes here*\n  </Column>\n</TwoColumnLayout>\n\n## Live Code Editing\n\nWith the right components, you can even create live code editors:\n\n<CodeEditor\n  language=\"javascript\"\n  code=\"function sayHello(name) { return 'Hello, ' + name; }\"\n/>\n\n---\n\n## Getting Started with MDX\n\nTo use MDX in your own documents:\n\n1. Create a new file with the `.mdx` extension\n2. Write your content using a combination of Markdown and JSX\n3. Import and use any available components\n4. Enjoy the power of interactive documents!\n\nRemember, all standard Markdown syntax works alongside the JSX components, giving you the best of both worlds.\n\n---\n\n**Note**: Not all components shown in this demo may be available by default. Custom components need to be implemented and made available to the MDX renderer. ",
+    "createdAt": "2025-04-04T11:06:42.540Z",
+    "updatedAt": "2025-04-04T11:06:42.540Z",
+    "versions": [],
+    "folderId": "folder-1743733092916-y3zpoid",
+    "extension": ".mdx",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743764802540-4rk3nap",
+    "name": "layout-showcase",
+    "content": "\n# Layout Components in MDX\n\nMDX allows you to create sophisticated layouts directly in your markdown documents. This example demonstrates various layout components and techniques you can use to structure your content.\n\n## Basic Two-Column Layout\n\n<TwoColumnLayout>\n  <Column>\n    ### First Column\n\n    This is the content for the first column. You can put any markdown or components here.\n\n    - List item 1\n    - List item 2\n    - List item 3\n    \n    <Alert type=\"info\">\n      Info alerts work great in columns!\n    </Alert>\n  </Column>\n  \n  <Column>\n    ### Second Column\n    \n    Content for the second column goes here. Columns are responsive and will stack on smaller screens.\n    \n    ```jsx\n    function HelloWorld() {\n      return <div>Hello, world!</div>;\n    }\n    ```\n    \n    ![Placeholder image](https://source.unsplash.com/random/400x300/?nature)\n  </Column>\n</TwoColumnLayout>\n\n## Cards in Columns\n\n<TwoColumnLayout>\n  <Column>\n    <Card title=\"Feature 1\" bordered>\n      This card highlights an important feature of your application.\n      \n      * Benefit 1\n      * Benefit 2\n    </Card>\n  </Column>\n  \n  <Column>\n    <Card title=\"Feature 2\" bordered>\n      Another key feature of your application explained here.\n      \n      * Benefit 1\n      * Benefit 2\n    </Card>\n  </Column>\n</TwoColumnLayout>\n\n## Media and Text Layout\n\n<Box className=\"flex flex-col md:flex-row gap-6 items-center mb-8 bg-gray-50 dark:bg-gray-800 p-6 rounded-lg\">\n  <div className=\"md:w-1/3\">\n    <div className=\"rounded-lg overflow-hidden\">\n      ![Example Image](https://source.unsplash.com/random/600x400/?technology)\n    </div>\n  </div>\n  \n  <div className=\"md:w-2/3\">\n    ### Media with Text\n    \n    This layout pairs an image with explanatory text. This is perfect for:\n    \n    * Product features\n    * Case studies\n    * Tutorials with visual aids\n    * Concept explanations\n    \n    <SimpleButton>\n      Learn More\n    </SimpleButton>\n  </div>\n</Box>\n\n## Hero Section Layout\n\n<Box className=\"relative rounded-xl overflow-hidden mb-10\">\n  <div className=\"absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 opacity-90\"></div>\n  \n  <div className=\"relative p-8 md:p-12 text-white\">\n    <h2 className=\"text-3xl md:text-4xl font-bold mb-4\">Create Beautiful Documents</h2>\n    <p className=\"text-xl mb-6 max-w-2xl\">\n      MDX gives you the power to combine markdown's simplicity with the flexibility of React components.\n    </p>\n    \n    <div className=\"flex flex-wrap gap-4\">\n      <SimpleButton>\n        Get Started\n      </SimpleButton>\n      \n      <SimpleButton>\n        View Examples\n      </SimpleButton>\n    </div>\n  </div>\n</Box>\n\n## Feature Grid Layout\n\n<div className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8\">\n  <Box className=\"p-4 text-center\">\n    ### Easy to Use\n    \n    Simple markdown-based syntax that's easy to learn.\n  </Box>\n  \n  <Box className=\"p-4 text-center\">\n    ### Customizable\n    \n    Create and use your own custom components.\n  </Box>\n  \n  <Box className=\"p-4 text-center\">\n    ### Interactive\n    \n    Add interactive elements to your documents.\n  </Box>\n  \n  <Box className=\"p-4 text-center\">\n    ### Responsive\n    \n    Layouts work on all screen sizes.\n  </Box>\n  \n  <Box className=\"p-4 text-center\">\n    ### Extensible\n    \n    Easy to extend with new features.\n  </Box>\n  \n  <Box className=\"p-4 text-center\">\n    ### Accessible\n    \n    Built with accessibility in mind.\n  </Box>\n</div>\n\n## Content with Sidebar Layout\n\n<div className=\"flex flex-col md:flex-row gap-6\">\n  <div className=\"md:w-2/3\">\n    ### Main Content Area\n    \n    This is the main content area, which takes up most of the width. Here you would put your primary content, such as:\n    \n    1. The main article text\n    2. Primary documentation\n    3. Key information\n    \n    <Alert type=\"info\">\n      The sidebar will appear on the right on desktop devices, and below the content on mobile devices.\n    </Alert>\n    \n    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam euismod, nisl eget aliquam ultricies, nunc nisl aliquet nunc, quis aliquam nisl nunc quis nisl.\n  </div>\n  \n  <div className=\"md:w-1/3\">\n    <Box className=\"bg-gray-50 dark:bg-gray-800 p-4 rounded-lg\">\n      ### Sidebar\n      \n      * Related links\n      * Additional resources\n      * Quick reference\n      * Table of contents\n      \n      <Card title=\"Featured Item\">\n        Check out this special featured content!\n      </Card>\n    </Box>\n  </div>\n</div>\n\n## Combining Layout Techniques\n\nBy mixing and matching these layout techniques, you can create sophisticated document designs that enhance your content's presentation and readability. Experiment with different combinations to find what works best for your specific needs!\n\n<Box className=\"bg-blue-50 dark:bg-blue-900 p-6 rounded-lg text-center\">\n  <h2 className=\"text-2xl font-bold mb-2\">Ready to Get Started?</h2>\n  <p className=\"mb-4\">Create your own beautiful layouts with MDX.</p>\n  \n  <SimpleButton>\n    Try It Now\n  </SimpleButton>\n</Box> ",
+    "createdAt": "2025-04-04T11:06:42.540Z",
+    "updatedAt": "2025-04-04T11:06:42.540Z",
+    "versions": [],
+    "folderId": "folder-1743733092916-y3zpoid",
+    "extension": ".mdx",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743764802540-hc70ic7",
+    "name": "simple-mdx-guide",
+    "content": "\n# Getting Started with MDX\n\nThis guide will help you understand the basics of MDX and how to use it in your documents.\n\n## What is MDX?\n\nMDX is simply **Markdown + JSX**. It lets you use React components right inside your Markdown documents.\n\nThink of it this way:\n- **Markdown**: Great for writing text content\n- **JSX**: Great for interactive components\n- **MDX**: Combines both so you can have the best of both worlds!\n\n## Basic Examples\n\n### Standard Markdown\n\nMDX supports all the standard markdown syntax you're already familiar with:\n\n#### Text Formatting\n\nYou can use **bold text**, *italic text*, or ~~strikethrough~~.\n\n#### Lists\n\nUnordered lists:\n- Item one\n- Item two\n- Item three\n\nOrdered lists:\n1. First step\n2. Second step\n3. Third step\n\n#### Links and Images\n\n[Visit the MDX website](https://mdxjs.com/)\n\n![Example image](https://via.placeholder.com/600x300)\n\n### Simple JSX Components\n\nNow let's add some simple JSX components:\n\n<SimpleButton>Click Me</SimpleButton>\n\n<Highlight color=\"yellow\">\n  This text is highlighted in yellow\n</Highlight>\n\n## How JSX Looks in MDX\n\nJSX uses a tag-based syntax that looks similar to HTML:\n\n```jsx\n<ComponentName propName={value}>\n  Content goes here\n</ComponentName>\n```\n\nThe key parts are:\n1. Component name (always starts with a capital letter)\n2. Props (attributes that customize the component)\n3. Content (what goes between the opening and closing tags)\n\n## Using JavaScript Expressions\n\nYou can use JavaScript expressions inside curly braces:\n\nThe current year is: {new Date().getFullYear()}\n\nA simple calculation: 5 + 10 = {5 + 10}\n\n## Mixing Markdown and JSX\n\nYou can mix markdown and JSX freely:\n\n<Box padding={20} background=\"#f0f0f0\">\n  ## This is a markdown heading inside a Box component\n  \n  - You can use **bold text** and *italic text*\n  - And regular markdown lists\n</Box>\n\n## Example with Props\n\nComponents can be customized with props:\n\n<Card \n  title=\"My Card Title\" \n  image=\"https://via.placeholder.com/300x200\"\n  bordered={true}\n>\n  This is the card content. You can write anything here.\n</Card>\n\n## Importing Components\n\nAt the top of your MDX file, you can import custom components:\n\n```jsx\nimport { SpecialComponent } from './components/SpecialComponent'\nimport { MyChart } from './components/MyChart'\n```\n\nThen use them in your document.\n\n## A Note on Component Availability\n\nNot all components may be available by default in your MDX environment. The writing app needs to provide the components that you can use. Check the documentation for a list of available components.\n\n## Simple Example: Tabs Component\n\nHere's a practical example of using a tabs component:\n\n<Tabs>\n  <Tab label=\"First Tab\">\n    This is the content of the first tab.\n  </Tab>\n  <Tab label=\"Second Tab\">\n    This is the content of the second tab.\n  </Tab>\n</Tabs>\n\n## Creating Your First MDX Document\n\n1. Create a new file with the `.mdx` extension\n2. Start with some basic markdown content\n3. Add a simple component like `<Highlight>Some text</Highlight>`\n4. Save and preview your document\n\n## When to Use MDX\n\nMDX is great for:\n- Documents that need interactive elements\n- Content with custom formatting needs\n- Creating reusable document patterns\n- Educational content with interactive exercises\n\n## Conclusion\n\nThat's the basics of MDX! It's a powerful way to enhance your documents with interactive components while keeping the simplicity of markdown for your content.\n\nAs you get more comfortable, you can explore more complex components and even create your own custom components for your specific needs.\n\n<CallToAction>\n  Try creating your own MDX document now!\n</CallToAction> ",
+    "createdAt": "2025-04-04T11:06:42.540Z",
+    "updatedAt": "2025-04-04T11:06:42.540Z",
+    "versions": [],
+    "folderId": "folder-1743733092916-y3zpoid",
+    "extension": ".mdx",
     "annotations": [],
     "contextDocuments": []
   },
@@ -905,6 +997,7 @@
       }
     ],
     "folderId": null,
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -923,6 +1016,107 @@
       }
     ],
     "folderId": null,
+    "extension": ".md",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743764802541-6ikbk6z",
+    "name": "jsx-test",
+    "content": "\n# Testing JSX Code Blocks\n\nThis is a test file with various code block formats to ensure our MDX renderer handles them correctly.\n\n## JSX Code Block\n\n```jsx\nfunction HelloWorld() {\n  return <div>Hello, world!</div>;\n}\n\nexport default HelloWorld;\n```\n\n## JavaScript Code Block\n\n```js\nfunction greet(name) {\n  return `Hello, ${name}!`;\n}\n\nconsole.log(greet('World'));\n```\n\n## TypeScript Code Block\n\n```typescript\ninterface User {\n  name: string;\n  age: number;\n}\n\nfunction greetUser(user: User): string {\n  return `Hello, ${user.name}! You are ${user.age} years old.`;\n}\n```\n\n## No Language Specified\n\n```\nThis is a code block with no language specified.\nIt should be rendered as plain text.\n``` ",
+    "createdAt": "2025-04-04T11:06:42.541Z",
+    "updatedAt": "2025-04-04T11:06:42.541Z",
+    "versions": [],
+    "folderId": null,
+    "extension": ".mdx",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743689338952-dacl0t8",
+    "name": "analysis",
+    "content": "Building **AI-native** applications that enable an LLM to *discover* and *leverage* existing code capabilities requires a fundamentally different approach than just bolting AI on top of traditional software. The goal is to create an environment where the **Large Language Model (LLM)** can:\n\n1. **Explore** what is already in the codebase—APIs, functions, classes, templates, etc.  \n2. **Recognize** meaningful patterns or frameworks for solving particular tasks.  \n3. **Synthesize** new solutions by combining existing components with the knowledge embedded in the model.  \n\nBelow is a deep dive into how you might achieve *self-discovery* in an AI-native system, along with how *pattern languages* can help structure this process.\n\n---\n\n## 1. Self-Discovery: Why It Matters\n\n### 1.1 Avoid Reinventing the Wheel\nIn many teams, repeated solutions to common tasks proliferate throughout the codebase, often creating redundancy. An AI system that is *aware* of these existing pieces can recommend or *auto-assemble* them into new features or fix existing workflows instead of rewriting from scratch.\n\n### 1.2 Enhanced Collaboration\nDevelopers spend a lot of time looking for “How do I call this method?” or “Which library does X?” If the LLM can introspect the code (and accompanying docs/test cases), it can guide developers to precisely what they need—fast.\n\n### 1.3 Continuous Adaptation\nAs the codebase evolves, an AI-native system with self-discovery dynamically *updates its understanding*. This fosters an environment where the LLM’s knowledge tracks the code’s evolution, continually offering relevant solutions.\n\n---\n\n## 2. Architecting for Code Self-Discovery\n\n### 2.1 Semantic Code Indexing\nInstead of storing your entire codebase as raw text, you can build a **semantic index** (or “vector index”) of the code:\n\n1. **Token-Level & AST Parsing**  \n   - Parse the code into an **Abstract Syntax Tree (AST)** or an intermediate representation.  \n   - Tag or label classes, functions, parameters, docstrings, etc.  \n\n2. **Embedding & Vector Representation**  \n   - Use code-specific transformers (e.g., CodeBERT, CodeT5) to generate embeddings.  \n   - Store embeddings in a vector database to enable semantic search—so the LLM can retrieve relevant code snippets or patterns when needed.\n\n3. **Metadata & Documentation Linkage**  \n   - Attach docstrings, test cases, usage examples, design docs, and code reviews to the same index entries.  \n   - This ensures the LLM doesn’t just “know” the code but also the rationale, typical use-cases, and constraints.\n\n### 2.2 Dynamic Discovery & Retrieval\nAt inference time, the LLM:\n\n1. **Analyzes Developer Queries**  \n   - A developer or user might ask, “How do I implement a payment gateway interface for X?”  \n2. **Contextual Search**  \n   - The LLM queries the semantic index for relevant modules or patterns—e.g., existing payment APIs.  \n3. **Prompt Composition**  \n   - The system assembles the relevant code snippets and doc references into a prompt chunk so the LLM has “eyes” on existing solutions.  \n4. **Solution Synthesis**  \n   - The LLM generates new code *guided by* the discovered resources, ensuring maximum reuse and alignment.\n\n### 2.3 A “Knowledge Graph” for Code\nBeyond vector indexing, you can store code relationships in a **knowledge graph**:\n\n- **Nodes** represent modules, classes, or even domain concepts.  \n- **Edges** represent “imports,” “extends,” “calls,” “depends on,” or “implements a pattern.”  \n- **Inference**: The LLM can navigate these edges to see how everything ties together, helping it propose well-integrated solutions that respect existing system architecture.\n\n---\n\n## 3. Pattern Languages: The Glue for Self-Discovery\n\nA **pattern language** is a structured way of describing recurring solutions to common problems. In AI-native systems, it’s particularly useful for two reasons:\n\n1. **Codifies Common Solutions**  \n   - Pattern languages define *how* to solve typical design challenges. For example, “Builder Pattern” for constructing objects, or domain-specific patterns like “Microservice Choreography” for distributed systems.\n\n2. **Guides the LLM’s Reasoning**  \n   - With a well-defined pattern language, the LLM can *recognize* that a certain problem is best served by a known pattern and then adapt the existing pattern to the specifics of your codebase.\n\n### 3.1 Embedding Patterns into the System\n\n1. **Pattern Documentation**  \n   - Maintain a repository of recognized design and architectural patterns relevant to your domain—each with context, example code, and typical usage scenarios.  \n2. **Link Patterns to Code**  \n   - Annotate code sections that implement certain patterns. For instance, tag a class or method with `@FactoryPattern` or link them to a pattern ID in your knowledge graph.  \n3. **Prompt Engineering with Patterns**  \n   - When the LLM is generating code, prompt it with references to known patterns. Example: “Use the ‘Observer Pattern’ from the knowledge base to handle event notifications,” then retrieve relevant snippet sets.\n\n### 3.2 Pattern Recognition & Recommendation\n- **Automated Pattern Detection**  \n  - Tools can scan the codebase to identify probable uses of known patterns. This metadata is then available to the LLM.  \n- **Contextual Pattern Recommendation**  \n  - If a developer is adding a feature for state synchronization, the LLM might suggest the “Publisher-Subscriber” pattern after discovering prior usage in the code.\n\n---\n\n## 4. AI-First Workflow: Putting It All Together\n\n### 4.1 Code + LLM Co-evolution\n1. **Frequent Codebase Snapshots**  \n   - As devs merge code, new “snapshots” are embedded/parsed.  \n   - The LLM’s knowledge representation is updated automatically.  \n2. **AI-Assisted Code Generation**  \n   - When developers initiate new tasks, the LLM retrieves relevant patterns & code.  \n   - The user can refine the suggestions, feeding the final version back into the codebase.  \n3. **Continuous Feedback Loop**  \n   - Developer feedback on suggestions is captured (like “This was helpful,” or “Needs a different approach”).  \n   - The system learns which patterns or code references truly help, refining subsequent suggestions.\n\n### 4.2 Governance & Trust\n- **Version Control & Audit Trails**  \n  - Keep track of how the LLM was prompted and which code snippets it used. This is crucial for auditing the reasoning behind critical solutions.  \n- **Safety Mechanisms**  \n  - The LLM should understand constraints (e.g., data privacy, performance requirements) and avoid suggestions that violate these constraints. Pattern languages can embed such constraints directly into pattern definitions.\n\n---\n\n## 5. Human Factors & Developer Experience\n\n### 5.1 Transparent Suggestions\n- **“Why This Code?” Explanations**  \n  - Show the developer *why* the LLM suggested a specific snippet or pattern, referencing the code relationships or docstrings.  \n- **Natural Integration**  \n  - Provide suggestions in the IDE or code review tool. Make it frictionless for developers to accept, reject, or refine.\n\n### 5.2 Knowledge Sharing & Collective Wisdom\n- **Democratize Patterns**  \n  - Let developers add new patterns, tag existing ones, and refine usage examples.  \n- **Shared Vocabulary**  \n  - A robust pattern language helps developers communicate complex design intentions more easily, aligning both *human* and *AI* understanding.\n\n---\n\n## 6. Key Takeaways\n\n1. **Code as Discoverable Knowledge**  \n   - Storing code in a semantic or knowledge-graph form transforms it from opaque text into a richly interconnected resource the LLM can traverse.\n\n2. **Pattern Languages Guide the LLM**  \n   - Instead of randomly generating solutions, the LLM uses pattern languages to match the right recurring solution to the problem at hand.\n\n3. **AI-Native == Continuous Co-evolution**  \n   - The codebase is continuously re-indexed, and the LLM’s “awareness” evolves alongside the code—creating a living, adaptive ecosystem.\n\n4. **Human-in-the-Loop for Quality & Trust**  \n   - Developers remain essential for validating suggestions, injecting domain expertise, and refining or extending pattern definitions.\n\nBy combining **self-discovery** of existing capabilities, robust **pattern languages**, and an **AI-native** architecture for code and documentation, you create a system where the LLM not only solves problems but does so *intelligently*, *efficiently*, and in concert with the best practices already embedded in your organization’s software. This is the essence of building an environment where *the LLM sees and understands everything*—leading to solutions that truly maximize what’s already available.\n",
+    "createdAt": "2025-04-03T14:08:58.952Z",
+    "updatedAt": "2025-04-03T14:08:58.952Z",
+    "versions": [
+      {
+        "id": "ver-1743689338952-0990t4t",
+        "content": "",
+        "createdAt": "2025-04-03T14:08:58.952Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1743730931987-zh6lzxn",
+    "extension": ".md",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743689339070-n1ywl54",
+    "name": "design",
+    "content": "# design\n\nExplore in detail what needs to be addressed to build an AI native application from the ground up.  Focus  on LLM in-context learning, prompting design, information hygiene and human factors.\n\n# Explore\n\nBuilding an **AI-native application** goes well beyond merely integrating a pre-trained Large Language Model (LLM) into existing software. It requires a holistic re-think of the application’s data pipelines, user experience, development workflows, and operational practices so that AI is a *core* design principle rather than an afterthought. Below is a detailed exploration of what to address, with a particular focus on:\n\n1. **LLM In-Context Learning**  \n2. **Prompting Design**  \n3. **Information Hygiene**  \n4. **Human Factors**  \n\n---\n\n## 1. LLM In-Context Learning\n\n### 1.1 What Is In-Context Learning?\n\n- **Definition**: In-context learning allows Large Language Models (like GPT-4, PaLM, etc.) to “learn” or adapt behavior based on the *prompt* or “context” provided at inference time, without requiring fine-tuning or model parameter updates.  \n- **Importance**: This technique leverages the model’s internal reasoning capabilities to interpret and respond to tasks by examining examples, instructions, or data included directly in the prompt.\n\n### 1.2 Architectural Considerations\n\n- **Context Assembly**: You need a robust pipeline to dynamically collect and assemble the right context (data, instructions, examples) for each user request. This can involve:  \n  - **Knowledge Retrieval**: Searching knowledge bases, vector databases, or specialized data stores to retrieve relevant text or structured data.  \n  - **Metadata Handling**: Incorporating additional signals (e.g., user profile, session data, or historical interactions) to tailor the prompt.\n- **Dynamic Context Sizing**: Most LLMs have a context window limit. Architectures must gracefully manage how to prioritize or summarize context if it exceeds the maximum token limit.\n- **Latency and Scalability**: In-context learning is typically heavier on compute than standard inference because the entire context must be tokenized and processed. The system must be optimized (e.g., using caching, efficient retrieval, or partial context updates) to serve requests at scale.\n\n### 1.3 Pattern-Based Prompting\n\n- **Example Prompts**: Provide the model with carefully crafted examples (mini-datasets of instructions and outputs) within the prompt so it can “see” the pattern and follow it.\n- **Instruction Priming**: Write explicit instructions or guidelines in the prompt to steer the model toward the desired style, format, or solution approach.\n\n---\n\n## 2. Prompting Design\n\n### 2.1 Why Prompting Design Matters\n\n- **Bridge Between User Intent & Model Output**: The prompt is how we communicate *context* and *intent* to the model. Poorly designed prompts lead to incorrect or undesired outputs, while well-structured prompts can elicit more reliable, accurate answers.\n- **Consistent Experience**: Standardizing prompt patterns across the application ensures consistent behavior and fosters user trust.\n\n### 2.2 Best Practices for Prompt Construction\n\n1. **Clear Instructions**  \n   - Use direct, specific language.  \n   - Include desired output format (e.g., “Provide a JSON object containing…”).  \n2. **Contextual Cues**  \n   - If referencing previous messages or knowledge, explicitly restate important details.  \n   - Summarize user queries or relevant data to reduce ambiguity.  \n3. **Role-based / Persona-based Prompts**  \n   - Specify the model’s intended role, e.g., “You are a helpful assistant,” or “You are a legal expert,” to set context for style and domain.  \n   - For multi-step flows, define each role in the chain of thought, e.g., “Step 1: Summarize facts. Step 2: Provide legal analysis.”  \n4. **Guardrails & Constraints**  \n   - Incorporate disclaimers, safety checks, and boundaries (e.g., “Avoid referencing personal details,” or “Do not generate harmful content.”)  \n   - Use negative examples: “If the user requests disallowed content, respond with a refusal message.”\n\n### 2.3 Iterative Refinement\n\n- **Prompt Tuning**: Continuously iterate and refine prompts based on user feedback, system logs, and performance metrics.  \n- **Test Prompts**: Automated and manual testing of prompts ensures they handle various edge cases, user queries, and domain scenarios gracefully.\n\n---\n\n## 3. Information Hygiene\n\n### 3.1 Definition & Importance\n\n- **Information Hygiene** involves curating, validating, securing, and organizing data so that the LLM receives *accurate* and *relevant* context—crucial for producing reliable outputs. \n- **Risk of Garbage-In-Garbage-Out**: An LLM, no matter how advanced, can only generate useful answers if it’s fed precise, correct, and well-structured information.\n\n### 3.2 Data Curation and Validation\n\n- **Structured vs. Unstructured Data**  \n  - Use consistent schemas for data retrieval (e.g., JSON, knowledge graphs) whenever possible.  \n  - For unstructured text, employ standard cleaning steps (e.g., removing HTML tags, normalizing whitespace).\n- **Verification & Source Tracking**  \n  - Where feasible, store and pass metadata about data sources (e.g., origin, publication date, author) to the model.  \n  - Consider using retrieval-augmented techniques: retrieve validated text snippets and pass them into the prompt, so the model can cite or reference them directly.\n\n### 3.3 Data Governance & Security\n\n- **Privacy & Compliance**:  \n  - Comply with regulations (GDPR, HIPAA, etc.) by anonymizing or encrypting personal data.  \n  - Implement role-based access control for sensitive data.  \n- **Version Control**:  \n  - Maintain versioned datasets to ensure reproducibility in case you need to track down errors or refine the context for historical interactions.  \n- **Bias & Fairness**:  \n  - Develop processes to detect and mitigate biases in training data or retrieved content.  \n  - Continuously monitor for discriminatory outputs and employ adjustments or guardrails as needed.\n\n### 3.4 Keeping Context Fresh\n\n- **Real-Time Updates**:  \n  - If your application relies on data that changes frequently (e.g., product inventory, market prices), ensure the retrieval layer is kept current.  \n- **Expiring Outdated Context**:  \n  - Build mechanisms to expire or supersede old data so the model doesn’t rely on stale or misleading context.\n\n---\n\n## 4. Human Factors\n\n### 4.1 User Experience (UX) Design for AI-Driven Applications\n\n- **Explainability & Transparency**  \n  - Provide insights into how the model arrived at a particular answer.  \n  - Show relevant sources or references when possible to build trust and clarify the chain of thought.\n- **Feedback Channels**  \n  - Users should have straightforward ways to flag incorrect or incomplete responses (e.g., “Was this helpful?” thumbs up/down).  \n  - Incorporate these signals into your continuous improvement pipeline—e.g., re-ranking retrieved documents or refining prompt templates.\n\n### 4.2 Trust & Reliability\n\n- **Expectation Management**  \n  - Clearly communicate the model’s capabilities and limitations.  \n  - Avoid over-promising on AI’s accuracy; disclaim that the model may produce errors or confabulations.\n- **Human-in-the-Loop (HITL)**  \n  - For critical applications (e.g., medical, legal, financial), integrate expert reviews or validations in the workflow.  \n  - A feedback loop that allows domain experts to quickly correct or override outputs ensures safety and reliability.\n\n### 4.3 Accessibility & Inclusivity\n\n- **Language and Tone**  \n  - Ensure the application can interact with diverse user backgrounds and abilities.  \n- **Localization**  \n  - Incorporate localized data and prompts for different cultures or languages.  \n  - Respect cultural nuances to prevent misunderstandings or unintended biases.\n\n---\n\n## Putting It All Together\n\n1. **Start with a Modern, Scalable Architecture**  \n   - Cloud-native services, container orchestration, GPU/TPU capabilities, and a robust data pipeline.  \n   - Real-time or near-real-time data sync for continuous context updates.\n\n2. **Design for In-Context Learning from the Ground Up**  \n   - Build retrieval pipelines (e.g., vector stores) to dynamically feed relevant context to LLM prompts.  \n   - Manage prompt size carefully and consider summarization techniques if context grows too large.\n\n3. **Develop a Comprehensive Prompt Strategy**  \n   - Standardize prompt formats for various tasks (e.g., summarization, Q&A, classification).  \n   - Maintain a library of tested prompts and incorporate best practices for clarity, constraints, and structure.\n\n4. **Establish Rigorous Information Hygiene**  \n   - Curate and validate data through automated or semi-automated pipelines.  \n   - Integrate versioning, source tracking, and privacy measures for compliance and security.\n\n5. **Focus on Human Factors Throughout**  \n   - Provide meaningful explanations, references, and feedback mechanisms.  \n   - Maintain trust through transparent disclosures and user-centric design.\n\n6. **Iterate & Improve Continuously**  \n   - Use analytics on user interactions, feedback, and error cases to refine prompts, context retrieval, and data management.  \n   - Keep monitoring for bias, drift, or changes in user requirements.\n\n**Bottom Line**: An AI-native approach for LLM-based applications requires deep integration of AI capabilities at every layer of the stack—from how you collect and store data, to how you design prompts, to how you engage users in feedback loops. By embracing robust **in-context learning**, carefully **crafting prompts**, maintaining **information hygiene**, and centering **human factors**, you can build applications that are both powerful and trustworthy.\n",
+    "createdAt": "2025-04-03T14:08:59.069Z",
+    "updatedAt": "2025-04-03T14:08:59.069Z",
+    "versions": [
+      {
+        "id": "ver-1743689339070-umq0dlf",
+        "content": "",
+        "createdAt": "2025-04-03T14:08:59.069Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1743730931987-zh6lzxn",
+    "extension": ".md",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743764802542-tspgwuk",
+    "name": "idea",
+    "content": "# idea\n\nUnpack this '''Everybody wants to have their tools AI enabled.  Unfortunately, bolting in AI after the fact leaves a lot of potential untapped.  To do this right, a tool or application must be rebuilt from the ground up using an entirely new foundation.  A foundation that is AI-native.  But what does that actually mean?'''\n\n# unpacked\n\nOkay, let's break down the meaning and implications of that paragraph:\n\n1.  **High Demand for AI:**\n    *   \"Everybody wants to have their tools AI enabled.\"\n    *   *Meaning:* There's a strong market trend and user desire to integrate AI capabilities (like automation, prediction, natural language processing, smart suggestions, etc.) into existing software tools and applications.\n\n2.  **The Common (Flawed) Approach:**\n    *   \"Unfortunately, bolting in AI after the fact...\"\n    *   *Meaning:* The typical way companies are trying to meet this demand is by adding AI features *onto* their existing software products. This is often referred to as a \"retrofit\" or \"bolt-on\" approach. Think of adding a GPS unit to an old car rather than designing a new car with integrated navigation.\n\n3.  **The Problem with the Common Approach:**\n    *   \"...leaves a lot of potential untapped.\"\n    *   *Meaning:* Simply adding AI features superficially doesn't fully leverage AI's capabilities. The underlying structure, data models, and workflows of the original tool weren't designed *with AI in mind*. This limits how deeply AI can be integrated and how much value it can truly add. It might offer some surface-level improvements, but it misses out on transformative possibilities.\n\n4.  **The Proposed (Better) Solution:**\n    *   \"To do this right, a tool or application must be rebuilt from the ground up...\"\n    *   *Meaning:* The author argues that the *correct* way to integrate AI effectively requires a fundamental redesign. You can't just patch AI onto an old system; you need to start over.\n\n5.  **The Core of the Solution: A New Foundation:**\n    *   \"...using an entirely new foundation. A foundation that is AI-native.\"\n    *   *Meaning:* This rebuild shouldn't just be a rewrite of the old code. It needs a completely new architectural basis. This new foundation is termed \"AI-native,\" implying that AI is not an add-on but a core, intrinsic part of the system's design from the very beginning. The data structures, workflows, user interface, and core logic should be built *around* AI capabilities.\n\n6.  **The Crucial Question:**\n    *   \"But what does that actually mean?\"\n    *   *Meaning:* The author acknowledges that \"AI-native\" is a compelling term but lacks immediate, concrete definition. It raises the question: What specific architectural principles, design choices, data strategies, and capabilities define a system as being truly \"AI-native\" as opposed to just having AI features bolted on?\n\n**In essence, the paragraph argues:**\n\n*   Adding AI to existing tools is popular but often superficial and limiting (\"bolting on\").\n*   To truly unlock AI's potential, software needs to be fundamentally re-architected (\"rebuilt from the ground up\").\n*   This new architecture must be \"AI-native,\" meaning designed with AI at its core from the start.\n*   The precise definition and characteristics of an \"AI-native\" system need further explanation.\n",
+    "createdAt": "2025-04-03T14:08:59.348Z",
+    "updatedAt": "2025-04-03T14:08:59.348Z",
+    "versions": [
+      {
+        "id": "ver-1743689339349-u29a40i",
+        "content": "",
+        "createdAt": "2025-04-03T14:08:59.348Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1743730931987-zh6lzxn",
+    "extension": ".md",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743764802542-fldq3o7",
+    "name": "implementation",
+    "content": "Designing an **AI-native application** means you treat AI not as a plugin or module, but as the *central organizing principle* for how the system is built and evolves. In other words, every major layer of the stack—and every aspect of your workflow—must be **AI-aware** and **AI-enabled** from the start. Below is an expanded view of what the **foundation** of an AI-native system looks like, using the self-discovery and pattern-language concepts we’ve discussed.\n\n---\n\n## 1. AI-Native Foundation at a Glance\n\nAn AI-native application typically comprises six foundational pillars:\n\n1. **Knowledge-Centric Architecture**  \n2. **Data and Model Pipelines**  \n3. **Code Self-Discovery and Reuse**  \n4. **Pattern Language Integration**  \n5. **User-AI Collaboration Layer**  \n6. **Governance, Monitoring, and Continuous Learning**\n\nWe’ll walk through each in detail.\n\n---\n\n## 2. Knowledge-Centric Architecture\n\n### 2.1 Semantic Data Layer\n\n- **Goal**: Make *all* resources (code, documentation, logs, user feedback, domain rules) machine-discoverable and interlinked.  \n- **Approach**:  \n  - Use a **knowledge graph** or **vector store** to represent software artifacts, domain knowledge, and system context.  \n  - Tag and annotate each artifact with metadata (e.g., creation date, author, usage patterns, dependencies).  \n  - Maintain relationships like “depends on,” “uses,” “extends,” or “relates to domain concept X.”  \n\n### 2.2 Unified Access for the LLM\n\n- **Why**: The LLM needs to *see* all these connections to reason effectively.  \n- **How**: Build an **API** or microservice specifically for retrieving, aggregating, and updating knowledge across the system. The LLM calls this service to assemble context for inferences or generation.  \n\nBy centering the design on a **knowledge graph or semantic repository**, you ensure that the system’s intelligence is always based on up-to-date, richly linked resources—not fragmented or stale data sources.\n\n---\n\n## 3. Data and Model Pipelines\n\n### 3.1 Continuous Data Ingestion and Curation\n\n- **Data as a Living Resource**: Everything from user interactions to new code commits flows into the system, triggering indexing and embedding updates.  \n- **Cleaning and Normalization**: Raw data is parsed, cleaned, and enriched (e.g., docstrings extracted, code ASTs generated, domain concepts identified).  \n- **Governance**: Data lineage and compliance checks (GDPR, HIPAA, etc.) are built into the ingestion pipeline, so the AI layer always respects privacy and legal constraints.\n\n### 3.2 Model Management and Orchestration\n\n- **LLM + Specialized Models**:  \n  - You’ll likely use a *core LLM* for reasoning and language tasks, plus specialized models (e.g., named entity recognition, code analysis, or domain-specific classifiers).  \n- **Versioning and Deployment**:  \n  - Each model has a lifecycle—training, validation, deployment, retirement. Use a tool like MLflow, Kubernetes, or a dedicated MLOps platform to manage these stages.  \n- **In-Context Learning Orchestration**:  \n  - The system must dynamically build prompts (context assembly) by retrieving relevant knowledge, summarizing it (if needed), and injecting it into the LLM’s input.\n\n---\n\n## 4. Code Self-Discovery and Reuse\n\n### 4.1 Code Representation\n\n- **Parsing and Embeddings**:  \n  - Transform your codebase into a set of embeddings using a model like CodeBERT or CodeT5. Store function signatures, docstrings, test cases, and even code usage patterns in a semantic index.  \n- **Code Graph**:  \n  - Construct a knowledge graph where nodes are classes, methods, modules, and edges represent “imports,” “implements,” “is tested by,” etc.  \n\n### 4.2 Intelligent Retrieval\n\n- **Introspection API**:  \n  - The LLM accesses an API that can “search for relevant code patterns” based on a query or user request.  \n- **Context Construction**:  \n  - When a user wants to build a new feature, the LLM finds relevant snippets, patterns, or modules, then *weaves them* into a proposed solution—complete with references and reasoning.  \n\n### 4.3 Continuous Refresh\n\n- **Real-Time Index Updates**:  \n  - On every commit, run a pipeline that re-parses changed files, updates embeddings, and re-links or unlinks code in the knowledge graph.  \n- **Developer Feedback**:  \n  - When developers reject or accept LLM suggestions, that feedback is stored—enabling the system to learn which references or patterns are most helpful.\n\n---\n\n## 5. Pattern Language Integration\n\n### 5.1 Defining Your Pattern Library\n\n- **Domain-Specific Patterns**:  \n  - E.g., If you’re building a FinTech platform, “Fraud Detection Flow” or “Payment Gateway Abstraction” might be core patterns.  \n- **Technical/Architectural Patterns**:  \n  - Common design patterns: Factory, Observer, Builder, CQRS, Event-Sourcing, etc.  \n  - Annotate each pattern with usage examples, performance constraints, and typical pitfalls.\n\n### 5.2 Embedding Patterns into the System\n\n- **Pattern Metadata**:  \n  - Each pattern has a name, description, typical solutions, code examples, references to real uses in the codebase, and constraints (like concurrency, scaling, or legal compliance).  \n- **Pattern->Code Mapping**:  \n  - Identify actual code segments that implement or partially implement a pattern. Link them as references in your knowledge graph.  \n\n### 5.3 Pattern-Driven Prompting\n\n- **LLM Recognition and Recommendation**:  \n  - Given a user request, the LLM can suggest, “Use the PaymentGateway Pattern,” pulling in relevant code examples.  \n- **Constraints in Patterns**:  \n  - If certain patterns can’t be used in regulated contexts, the LLM is aware of these constraints and will choose or suggest alternative patterns.\n\n---\n\n## 6. User-AI Collaboration Layer\n\n### 6.1 Developer/Designer Experience\n\n- **In-IDE Assistance**:  \n  - The LLM surfaces code snippets, patterns, and relevant docs contextually as you type.  \n- **ChatOps Integration**:  \n  - Team members can query the LLM in a Slack/Teams channel, referencing the knowledge graph for immediate answers about architecture, patterns, or code usage.\n- **Auto-Generated Documentation**:  \n  - As the LLM synthesizes or modifies code, it updates or generates docstrings, UML diagrams, or sequence charts that reflect the new design.\n\n### 6.2 Human-Centric Workflow\n\n- **Feedback & Approval**:  \n  - The developer is always in control—reviewing suggestions before merging.  \n- **Explainability & Traceability**:  \n  - The system logs how the LLM arrived at a solution, referencing code and patterns. This fosters trust and helps with audits.  \n\n---\n\n## 7. Governance, Monitoring, and Continuous Learning\n\n### 7.1 Observability and Telemetry\n\n- **Application Metrics**:  \n  - Measure usage (API calls, feature adoption), latency, error rates. Correlate them with AI-generated solutions to see if AI suggestions are creating performance bottlenecks or new errors.  \n- **Model Metrics**:  \n  - Track LLM accuracy, confidence, or user satisfaction. Segment by domain, pattern type, or code module.  \n- **Bias and Fairness Checks**:  \n  - Continuously monitor if certain suggestions are systematically biased or incomplete.  \n\n### 7.2 Automated Quality Checks\n\n- **Static and Dynamic Analysis**:  \n  - After the LLM proposes a code snippet, run automated static analysis or tests to ensure correctness and compliance (e.g., security scans).  \n- **Pattern Compliance**:  \n  - If your codebase requires certain standards, the system can flag suggestions that deviate from them.  \n\n### 7.3 Continuous Improvement Loop\n\n- **Data-Driven Updates**:  \n  - As real-world usage changes, new patterns emerge or old ones become less relevant. The system can detect these shifts and prompt maintainers to refresh or retire patterns.  \n- **Feedback to Retraining**:  \n  - If you fine-tune your LLM, incorporate developer feedback, logs of code acceptance/rejection, and new domain knowledge.\n\n---\n\n## Putting It All Together: An Example Flow\n\nLet’s imagine a developer needs to build a new “reporting dashboard” feature for a FinTech application:\n\n1. **Developer Request**:  \n   - “I want to create a dashboard that shows transaction trends over time, with alerts for anomalies.”  \n\n2. **LLM + Knowledge Graph**:  \n   - The LLM queries the knowledge graph: “Which patterns handle charting and anomaly detection?”  \n   - The knowledge graph returns: *ChartingUI Pattern*, *AnomalyDetection Flow*, plus references to existing code modules used in the “Risk Analysis” microservice.  \n\n3. **Context Assembly**:  \n   - The system builds a prompt:  \n     - Summaries of the relevant “ChartingUI Pattern,” including code examples, doc links.  \n     - Summaries of anomaly detection modules, with usage instructions.  \n\n4. **LLM Synthesis**:  \n   - The LLM generates a draft solution that reuses:  \n     - The standard charting library wrapper from the UI microservice.  \n     - The existing anomaly detection modules from the risk engine.  \n   - It also includes stubs for how to configure alerts, referencing the domain pattern for “AlertRouting.”\n\n5. **Human Review**:  \n   - The developer sees the proposed solution in their IDE with relevant doc references.  \n   - They make tweaks, add new domain logic, and accept the final code.  \n\n6. **Auto-Documentation & Deployment**:  \n   - The system updates the knowledge graph to reflect that we’ve now integrated *ChartingUI Pattern* + *AnomalyDetection Flow* into the “ReportingDashboard Module.”  \n   - Tests pass, CI/CD merges the changes, and the LLM is now “aware” of this integration for future queries.\n\n---\n\n## Summary: Designing the AI-Native Foundation\n\n1. **Knowledge-First**  \n   - Everything is machine-readable and richly linked (code, docs, usage patterns, domain knowledge).  \n2. **LLM-Centric**  \n   - The LLM is not just a feature; it’s the *intelligence orchestrator*, discovering, retrieving, and synthesizing knowledge to build solutions.  \n3. **Pattern Language as the Brain**  \n   - Patterns codify best practices and guide the LLM to produce consistent, high-quality solutions.  \n4. **Continuous Co-Evolution**  \n   - Code changes feed back into the knowledge graph. The LLM’s suggestions evolve accordingly.  \n5. **Human-in-the-Loop**  \n   - Developers curate and refine AI suggestions, ensuring accountability, trust, and domain expertise.\n\nWhen you build a system around these principles, you’re no longer *just* adding an AI model to an existing product. Instead, you’re creating an **AI-native ecosystem** where the model(s) and the rest of the application continuously enrich each other—driving efficiency, innovation, and a *truly* intelligent user experience.\n",
+    "createdAt": "2025-04-03T14:08:59.509Z",
+    "updatedAt": "2025-04-03T14:08:59.509Z",
+    "versions": [
+      {
+        "id": "ver-1743689339509-iqx6jkn",
+        "content": "",
+        "createdAt": "2025-04-03T14:08:59.509Z",
+        "message": "Initial version"
+      }
+    ],
+    "folderId": "folder-1743730931987-zh6lzxn",
+    "extension": ".md",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743764802543-coh30t2",
+    "name": "sample",
+    "content": "\n# Testing MDX Support\n\nThis is a simple MDX document to test the new MDX support in the writing app.\n\n## JSX Components\n\n<Alert type=\"info\">\n  This is an information alert component.\n</Alert>\n\n## JavaScript Expressions\n\nThe current date is: {new Date().toLocaleDateString()}\n\n## Code Block\n\n```javascript\nfunction greeting(name) {\n  return `Hello, ${name}!`;\n}\n\nconsole.log(greeting('MDX User'));\n```\n\n## List with Highlighted Item\n\n- Regular list item\n- <Highlight>Highlighted list item</Highlight>\n- Another regular item ",
+    "createdAt": "2025-04-04T11:06:42.543Z",
+    "updatedAt": "2025-04-04T11:06:42.543Z",
+    "versions": [],
+    "folderId": null,
+    "extension": ".mdx",
     "annotations": [],
     "contextDocuments": []
   },
@@ -934,39 +1128,43 @@
     "updatedAt": "2025-03-21T23:52:25.489Z",
     "versions": [],
     "folderId": "folder-1742582748295-cvk7ccu",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
     "id": "doc-1743551639924-0t9vfnf",
     "name": "history",
-    "content": "# Chat History\n\nThis file contains a record of all user messages from the AI chat interface.\n\n## History\n\n### 2025-04-01 19:38:03\n\nList the chapters of the art of war. \n\n### 2025-04-01 20:01:26\n\nWhat is chapter 11\n\n### 2025-04-01 20:03:29\n\nWhat is chapter 9?\n\n### 2025-04-01 20:13:50\n\nList the chapters of the art of war.\n\n### 2025-04-01 20:14:19\n\nDescribe in detail chapter 1.\n\n### 2025-04-01 20:14:46\n\n[EDITED] Original: \"Describe in detail chapter 1.\" → New: \"Describe in detail chapter 1.\"\n\n### 2025-04-01 20:15:09\n\n[EDITED] Original: \"Describe in detail chapter 1.\" → New: \"Describe in detail chapter 2.\"\n\n### 2025-04-01 20:15:40\n\n[EDITED] Original: \"Describe in detail chapter 2.\" → New: \"Describe in detail chapter 3.\"\n\n### 2025-04-02 10:36:43\n\ntest\n\n### 2025-04-02 11:08:01\n\ntest\n\n### 2025-04-02 15:08:22\n\ntest\n\n### 2025-04-02 15:08:42\n\ntest\n\n### 2025-04-02 15:08:50\n\ntest\n\n### 2025-04-02 15:09:07\n\ntest\n\n### 2025-04-02 15:09:20\n\ntest\n\n### 2025-04-02 15:12:37\n\ntest\n\n### 2025-04-02 15:12:48\n\ntest\n\n### 2025-04-02 15:35:32\n\ntest\n\n### 2025-04-02 15:35:48\n\ntest\n\n### 2025-04-02 15:35:55\n\nwho am i?\n\n### 2025-04-03 13:28:35\n\nwhat is the art of war\n\n### 2025-04-03 13:28:45\n\nwhat are the chapters?\n\n### 2025-04-03 13:28:57\n\nwhat's chapter 10 about?\n\n### 2025-04-03 13:29:12\n\n[EDITED] Original: \"what's chapter 10 about?\" → New: \"what's chapter 13\n about?\"\n",
+    "content": "# Chat History\n\nThis file contains a record of all user messages from the AI chat interface.\n\n## History\n\n### 2025-04-01 19:38:03\n\nList the chapters of the art of war. \n\n### 2025-04-01 20:01:26\n\nWhat is chapter 11\n\n### 2025-04-01 20:03:29\n\nWhat is chapter 9?\n\n### 2025-04-01 20:13:50\n\nList the chapters of the art of war.\n\n### 2025-04-01 20:14:19\n\nDescribe in detail chapter 1.\n\n### 2025-04-01 20:14:46\n\n[EDITED] Original: \"Describe in detail chapter 1.\" → New: \"Describe in detail chapter 1.\"\n\n### 2025-04-01 20:15:09\n\n[EDITED] Original: \"Describe in detail chapter 1.\" → New: \"Describe in detail chapter 2.\"\n\n### 2025-04-01 20:15:40\n\n[EDITED] Original: \"Describe in detail chapter 2.\" → New: \"Describe in detail chapter 3.\"\n\n### 2025-04-02 10:36:43\n\ntest\n\n### 2025-04-02 11:08:01\n\ntest\n\n### 2025-04-02 15:08:22\n\ntest\n\n### 2025-04-02 15:08:42\n\ntest\n\n### 2025-04-02 15:08:50\n\ntest\n\n### 2025-04-02 15:09:07\n\ntest\n\n### 2025-04-02 15:09:20\n\ntest\n\n### 2025-04-02 15:12:37\n\ntest\n\n### 2025-04-02 15:12:48\n\ntest\n\n### 2025-04-02 15:35:32\n\ntest\n\n### 2025-04-02 15:35:48\n\ntest\n\n### 2025-04-02 15:35:55\n\nwho am i?\n\n### 2025-04-03 13:28:35\n\nwhat is the art of war\n\n### 2025-04-03 13:28:45\n\nwhat are the chapters?\n\n### 2025-04-03 13:28:57\n\nwhat's chapter 10 about?\n\n### 2025-04-03 13:29:12\n\n[EDITED] Original: \"what's chapter 10 about?\" → New: \"what's chapter 13\n about?\"\n\n### 2025-04-04 06:40:57\n\ntest\n",
     "createdAt": "2025-04-01T23:53:59.924Z",
     "updatedAt": "2025-04-01T23:59:31.941Z",
     "versions": [],
     "folderId": "folder-1742582748295-cvk7ccu",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590340-etw3j7u",
+    "id": "doc-1743764802544-tf7i969",
     "name": "mcp-servers",
     "content": "# MCP Servers Configuration\n\nThis file contains configuration for installed MCP servers.\n\n```yaml\nservers:\n  - qualifiedName: exa\n    config:\n      exaApiKey: b4f1c7aa-6263-47c3-bb82-897414271ffc\n      apiKey: b4f1c7aa-6263-47c3-bb82-897414271ffc\n      description: |-\n        Fast, intelligent web search and crawling.\n\n        Exa combines embeddings and traditional search to deliver the best results for LLMs.\n      homepage: https://smithery.ai/server/exa\n      owner: ''\n      repo: ''\n      enabled: true\n      useCount: 25854\n      createdAt: '2024-12-13T15:46:50.750Z'\n    enabled: true\n    name: Exa Search\n    deploymentUrl: https://server.smithery.ai/exa\n    connections:\n      - type: stdio\n        configSchema:\n          type: object\n          required:\n            - exaApiKey\n          properties:\n            exaApiKey:\n              type: string\n              description: The API key for the Exa AI Search server.\n        exampleConfig:\n          exaApiKey: your-api-key-here\n        published: true\n        stdioFunction: 'config => ({ command: ''npx'', args: [''-y'', ''exa-mcp-server''], env: { EXA_API_KEY: config.exaApiKey } })'\n      - type: ws\n        deploymentUrl: https://server.smithery.ai/exa\n        configSchema:\n          type: object\n          required:\n            - exaApiKey\n          properties:\n            exaApiKey:\n              type: string\n              description: The API key for accessing the Exa Search API.\n  - qualifiedName: '@wonderwhy-er/desktop-commander'\n    config:\n      description: Execute terminal commands and manage files with diff editing capabilities. Coding, shell and terminal, task automation\n      homepage: https://smithery.ai/server/@wonderwhy-er/desktop-commander\n      owner: '@wonderwhy-er'\n      repo: desktop-commander\n      enabled: true\n      useCount: 2825\n      createdAt: '2025-03-24T03:05:46.076Z'\n    enabled: true\n    name: Desktop Commander\n    deploymentUrl: ''\n    connections:\n      - type: stdio\n        configSchema: {}\n        exampleConfig: {}\n        published: true\n        stdioFunction: 'config => ({ command: ''npx'', args: [''-y'', ''@wonderwhy-er/desktop-commander''] })'\n      - type: ws\n        deploymentUrl: https://server.smithery.ai/@wonderwhy-er/desktop-commander\n        configSchema:\n          type: object\n          properties: {}\n\n```\n",
-    "createdAt": "2025-04-04T00:13:10.340Z",
-    "updatedAt": "2025-04-04T00:13:10.340Z",
+    "createdAt": "2025-04-04T11:06:42.544Z",
+    "updatedAt": "2025-04-04T11:06:42.544Z",
     "versions": [],
     "folderId": "folder-1742582748295-cvk7ccu",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590340-o185byn",
+    "id": "doc-1743764802544-gr6yauu",
     "name": "sessions",
     "content": "# Document Sessions\n\n## Session: TestSession\n\nID: session-testsession-1743698720392\nDescription: Designing stuff.\nColor: #627BFF\nCreated: 2025-04-03T16:45:20.392Z\nLast accessed: 2025-04-03T16:45:20.392Z\n\nDocuments:\n\n## Session: History Session 4/3/2025 1:05:43 PM\n\nID: session-history-session-4-3-2025-1-05-43-pm-1743699943081\nDescription: Session created from navigation history on 4/3/2025, 1:05:43 PM\nColor: #627BFF\nCreated: 2025-04-03T17:05:43.081Z\nLast accessed: 2025-04-03T17:05:43.081Z\n\nDocuments:\n- doc-1743699882431-kth7jbe\n- doc-1743689267813\n- doc-1743688763359-gbh7y3g\n- doc-1742662140463\n- doc-1743699882428-ci5bx3g\n- doc-1743020878197\n\n",
-    "createdAt": "2025-04-04T00:13:10.340Z",
-    "updatedAt": "2025-04-04T00:13:10.340Z",
+    "createdAt": "2025-04-04T11:06:42.544Z",
+    "updatedAt": "2025-04-04T11:06:42.544Z",
     "versions": [],
     "folderId": "folder-1742582748295-cvk7ccu",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -985,6 +1183,7 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1003,11 +1202,12 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590341-bgi1h9a",
+    "id": "doc-1743764802545-td04576",
     "name": "analysis",
     "content": "# Text Analysis Template\n\nAnalyze the following text in depth, examining its content, structure, style, and implications:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A comprehensive analysis covering:\n   - Main themes and ideas\n   - Tone and style\n   - Structure and organization\n   - Language use and rhetorical devices\n   - Underlying assumptions or biases\n   - Strengths and weaknesses\n2. Critical evaluation of the arguments or claims made\n3. Contextual factors that influence the text\n4. Potential interpretations or perspectives\n5. Key insights and implications ",
     "createdAt": "2025-03-19T01:04:01.030Z",
@@ -1021,6 +1221,7 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1039,6 +1240,7 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1057,6 +1259,7 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1075,17 +1278,19 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590342-inb4yyq",
+    "id": "doc-1743764802547-3ouzjyt",
     "name": "expand",
     "content": "---\nid: doc-1742343001043\nname: expand\ncreatedAt: '2025-03-19T01:03:01.030Z'\nupdatedAt: 2025-03-27T00:53:18.591Z\nversions:\n  - id: ver-1742343001043-initial\n    createdAt: '2025-03-19T01:03:01.030Z'\n    message: Initial version\nannotations: []---\n\nExpand on the following text to make it more detailed, comprehensive, and informative:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. An expanded version with more details, examples, and explanations\n2. Additional context and background information\n3. Supporting evidence or data where relevant\n4. Elaboration on key points and concepts\n5. Logical transitions between ideas\n6. A conclusion that summarizes the expanded content ",
-    "createdAt": "2025-04-04T00:13:10.342Z",
-    "updatedAt": "2025-04-04T00:13:10.342Z",
+    "createdAt": "2025-04-04T11:06:42.547Z",
+    "updatedAt": "2025-04-04T11:06:42.547Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1104,6 +1309,7 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1122,17 +1328,19 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590342-m99hadv",
+    "id": "doc-1743764802547-25mh7xc",
     "name": "llm-demo",
     "content": "\n# LLM Extension Demo\n\nThis template demonstrates the capabilities of the LLM extension in Nunjucks templates.\n\n## Basic Example\n\n### Prompt: Generate a short paragraph about climate change\n\n{% llm \"Generate a short paragraph about climate change\" %}\n\n## Using Parameters\n\n### Prompt: Generate a creative story with high temperature\n\n{% llm \"Generate a short creative story about a robot discovering emotions\", \n   temperature: 0.9, \n   maxTokens: 500\n%}\n\n## Using Context Variables\n\n### Prompt: Answer a question about {{ topic | default('artificial intelligence') }}\n\n{% llm \"Write a short explanation about \" + topic | default('artificial intelligence') %}\n\n## Using AI Roles\n\n### Prompt: Write as a poet\n\n{% llm \"Write a poem about the ocean\", \n   aiRole: \"creative\"\n%}\n\n## Content Transformation\n\n### Original Content:\n```\n{{ content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.') }}\n```\n\n### LLM-Enhanced Content:\n{% llm \"Improve the following content to make it more engaging and descriptive: \" + content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.'),\n   temperature: 0.7,\n   maxTokens: 300\n%}\n\n## Custom Context Documents (when provided)\n\n{% if contextDocuments and contextDocuments.length > 0 %}\n### Summary of Context Documents:\n\n{% llm \"Summarize the following documents in a few paragraphs:\", \n   contextDocuments: contextDocuments,\n   temperature: 0.5\n%}\n{% else %}\n*No context documents provided. To see this feature in action, provide context documents when processing this template.*\n{% endif %}\n\n## Chat Mode Example\n\n{% llm \"Provide a conclusion based on this conversation\", \n   chat: true,\n   messages: [\n     { role: \"user\", content: \"What are the benefits of exercise?\" },\n     { role: \"assistant\", content: \"Exercise has many benefits including improved cardiovascular health, better mood through endorphin release, increased strength and flexibility, better sleep quality, and reduced risk of chronic diseases.\" },\n     { role: \"user\", content: \"What about the mental health benefits specifically?\" }\n   ]\n%}\n\n---\n\n*This template was rendered at {{ date | dateFormat('PP') }} {{ date | timeFormat }}* ",
-    "createdAt": "2025-04-04T00:13:10.342Z",
-    "updatedAt": "2025-04-04T00:13:10.342Z",
+    "createdAt": "2025-04-04T11:06:42.547Z",
+    "updatedAt": "2025-04-04T11:06:42.547Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1151,6 +1359,7 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1169,17 +1378,19 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590343-391uwpc",
+    "id": "doc-1743764802548-d5crkme",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-04-04T00:13:10.343Z",
-    "updatedAt": "2025-04-04T00:13:10.343Z",
+    "createdAt": "2025-04-04T11:06:42.548Z",
+    "updatedAt": "2025-04-04T11:06:42.548Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1191,6 +1402,7 @@
     "updatedAt": "2025-03-14T15:33:56.372Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1209,6 +1421,7 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1227,11 +1440,12 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590343-mdbrdwn",
+    "id": "doc-1743764802549-kp08qys",
     "name": "simplify",
     "content": "# Text Simplification Template\n\nSimplify the following text to make it clearer, more accessible, and easier to understand:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. A simplified version using:\n   - Shorter sentences\n   - Simpler vocabulary\n   - Clear structure\n   - Plain language\n   - Concrete examples\n2. Explanations of complex terms or concepts\n3. Visual aids or analogies to illustrate key points\n4. Multiple versions at different reading levels (elementary, middle school, high school)\n5. The key message preserved in the simplest form possible ",
     "createdAt": "2025-03-19T01:05:01.030Z",
@@ -1245,6 +1459,7 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1263,6 +1478,7 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1281,28 +1497,31 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590344-66z11y7",
+    "id": "doc-1743764802550-z8vseib",
     "name": "Test Template",
     "content": "\nThis is a test template\n",
     "createdAt": "2023-07-05T12:00:00.000Z",
     "updatedAt": "2023-07-05T12:00:00.000Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590344-eaxxvh0",
+    "id": "doc-1743764802550-dp5q9s4",
     "name": "test_simple",
     "content": "\n# Simple LLM Test\n\nThis is a basic test of the LLM extension:\n\n{% llm \"Generate a short paragraph about climate change\" %} ",
-    "createdAt": "2025-04-04T00:13:10.344Z",
-    "updatedAt": "2025-04-04T00:13:10.344Z",
+    "createdAt": "2025-04-04T11:06:42.550Z",
+    "updatedAt": "2025-04-04T11:06:42.550Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
@@ -1321,11 +1540,12 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1743725590344-4w82oc3",
+    "id": "doc-1743764802551-e6fjb7v",
     "name": "translate",
     "content": "# Prompt template\n\ntranslate this to English: '''\n{{selectedText}}\n'''\n\n\n",
     "createdAt": "2025-03-19T00:10:01.030Z",
@@ -1339,6 +1559,19 @@
       }
     ],
     "folderId": "folder-1742346055866-pvb3iin",
+    "extension": ".md",
+    "annotations": [],
+    "contextDocuments": []
+  },
+  {
+    "id": "doc-1743764802551-d4bbnxy",
+    "name": "test-fix",
+    "content": "\n# Testing MDX Rendering\n\nThis is a simple test to verify that our MDX rendering is working properly.\n\n## Basic Markdown\n\n- Item 1\n- Item 2\n- Item 3\n\n## Code Block Test\n\n```jsx\nfunction TestComponent() {\n  return <div>Hello, world!</div>;\n}\n```\n\n## Component Test\n\n<Alert type=\"warning\">\n  This is a warning message that should use our custom components.\n</Alert>\n\n## Expression Test\n\nCurrent time: {new Date().toLocaleTimeString()}\n\n## Done!\n\nIf you can see this, the MDX renderer is working properly. ",
+    "createdAt": "2025-04-04T11:06:42.551Z",
+    "updatedAt": "2025-04-04T11:06:42.551Z",
+    "versions": [],
+    "folderId": null,
+    "extension": ".mdx",
     "annotations": [],
     "contextDocuments": []
   }

@@ -5,23 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   File, 
-  Folder, 
+  FolderIcon, 
   GitCompare, 
   Plus, 
   FolderPlus, 
-  ChevronRight, 
-  ChevronDown, 
-  MoreVertical, 
-  Move, 
-  Upload, 
-  Download, 
   FileText, 
-  Shield, 
-  RefreshCw, 
-  Filter,
-  Settings,
+  Trash as TrashIcon, 
+  Settings, 
+  ChevronRight, 
+  ChevronDown,
+  Download,
+  Upload,
   Layers,
-  Trash as TrashIcon
+  MoreVertical,
+  RefreshCw,
+  Search,
+  X,
+  BookOpen,
+  Filter,
+  Move,
+  Shield
 } from "lucide-react";
 
 import {
@@ -34,7 +37,11 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { useDocumentStore, Folder as FolderType } from "@/lib/store";
+import {
+  useDocumentStore,
+  Document,
+  Folder
+} from "@/lib/store";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { VersionHistory } from "./version-history";
@@ -55,16 +62,15 @@ import {
 } from "@/components/ui/dialog";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { Document } from "@/lib/store";
 import { CompositionComposer } from "./composition-composer";
 import { DirectoryView } from './directory-view';
 import { useRouter } from "next/navigation";
-import { 
-  SpecialDirectoryType, 
-  getSpecialDirectoryType, 
+import {
+  getSpecialDirectoryType,
   isSpecialDirectory,
   isDirectoryProtected,
-  SPECIAL_DIRECTORIES
+  SPECIAL_DIRECTORIES,
+  SpecialDirectoryType
 } from "@/lib/special-directories";
 
 // Create a context for the DocumentNavigation props
@@ -105,7 +111,7 @@ function getFolderIcon(folder: { id: string; name: string; parentId: string | nu
   const folderWithDate = {
     ...folder,
     createdAt: new Date() // Add a placeholder date since it's only used for type checking
-  } as FolderType;
+  } as Folder;
   
   const specialDirType = getSpecialDirectoryType(folderWithDate);
   
@@ -122,12 +128,12 @@ function getFolderIcon(folder: { id: string; name: string; parentId: string | nu
       case 'layers':
         return <Layers className="h-3 w-3 text-violet-500" />;
       default:
-        return <Folder className="h-3 w-3 text-muted-foreground" />;
+        return <FolderIcon className="h-3 w-3 text-muted-foreground" />;
     }
   }
   
   // Default folder icon
-  return <Folder className="h-3 w-3 text-muted-foreground" />;
+  return <FolderIcon className="h-3 w-3 text-muted-foreground" />;
 }
 
 function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQuery, filterConfig, onFileSelect, trashFolderId, handleDocumentDelete }: FolderItemProps) {
@@ -212,11 +218,11 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
     return false;
   });
 
-  // Cast the folder to FolderType for isSpecialDirectory function
+  // Cast the folder to Folder type for isSpecialDirectory function
   const folderWithDate = {
     ...folder,
     createdAt: new Date() // Add a placeholder date for type compatibility
-  } as FolderType;
+  } as Folder;
 
   // Check if this is a special directory
   const isSpecial = isSpecialDirectory(folderWithDate);
@@ -633,18 +639,15 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect, trashF
   const handleContextMenuAction = (action: string) => {
     // Determine if this document is in a protected directory
     const isInProtectedDirectory = () => {
-      // Get the folder where this document is located
-      if (!document.folderId) return false;
-      
       // Find the folder
       const folder = folders.find(f => f.id === document.folderId);
       if (!folder) return false;
       
-      // Create a folder with date for type checking
+      // Create a proper folder object with createdAt
       const folderWithDate = {
         ...folder,
         createdAt: folder.createdAt instanceof Date ? folder.createdAt : new Date()
-      } as FolderType;
+      } as Folder;
       
       // Check if it's protected
       return isDirectoryProtected(folderWithDate);
@@ -899,6 +902,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
   const [items, setItems] = useState<FileItem[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [trashFolderId, setTrashFolderId] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   // Apply search filter with fuzzy search
   const searchFilteredDocuments = searchQuery.trim() 
@@ -1089,7 +1093,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
           if (zipData.files[fileName].dir) return;
           
           // Only process markdown files
-          if (!fileName.endsWith('.md') && !fileName.endsWith('.markdown') && !fileName.endsWith('.txt')) return;
+          if (!fileName.endsWith('.md') && !fileName.endsWith('.markdown') && !fileName.endsWith('.txt') && !fileName.endsWith('.mdx')) return;
           
           try {
             // Get the file content
@@ -1373,7 +1377,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
           {isDirectory ? (
             <>
               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              <Folder className="h-5 w-5 text-yellow-500" />
+              <FolderIcon className="h-5 w-5 text-yellow-500" />
             </>
           ) : (
             <File className="h-5 w-5 text-blue-500" />
@@ -1477,14 +1481,19 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
         const trashFolders = folders.filter(f => f.parentId === trashId);
         
         // Delete all documents in trash
-        trashDocuments.forEach(doc => {
+        for (const doc of trashDocuments) {
           deleteDocument(doc.id);
-        });
+        }
         
-        // Delete all folders in trash
-        trashFolders.forEach(folder => {
-          deleteFolder(folder.id);
-        });
+        // Delete all folders in trash recursively
+        for (const folder of trashFolders) {
+          // Try to delete recursively
+          try {
+            deleteFolder(folder.id);
+          } catch (error) {
+            console.error("Error deleting folder from trash:", error);
+          }
+        }
         
         toast({
           title: "Trash emptied",
@@ -1509,7 +1518,15 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     if (isInTrash) {
       // If already in trash, confirm permanent deletion
       if (confirm(`Are you sure you want to permanently delete folder "${folder.name}" and all its contents? This action cannot be undone.`)) {
-        deleteFolder(folderId);
+        deleteFolder(folderId).catch(error => {
+          console.error("Error deleting folder:", error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to delete folder. The folder might not be empty."
+          });
+        });
+        
         toast({
           title: "Folder deleted",
           description: `"${folder.name}" has been permanently deleted.`
@@ -1526,7 +1543,15 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
       } else {
         // No trash folder, fall back to delete
         if (confirm(`Are you sure you want to delete folder "${folder.name}" and all its contents?`)) {
-          deleteFolder(folderId);
+          deleteFolder(folderId).catch(error => {
+            console.error("Error deleting folder:", error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Failed to delete folder. The folder might not be empty."
+            });
+          });
+          
           toast({
             title: "Folder deleted",
             description: `"${folder.name}" has been deleted.`
@@ -1535,6 +1560,26 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
       }
     }
   };
+
+  // Add an error effect handler for recursive deletion prompts
+  useEffect(() => {
+    const error = useDocumentStore.getState().error;
+    
+    // Check if the error is a non-empty folder error that can be recursively deleted
+    if (error && typeof error === 'object' && 'canRecurse' in error && error.canRecurse && error.folderId) {
+      const folder = folders.find(f => f.id === error.folderId);
+      
+      if (folder && confirm(`${error.message}\n\nDo you want to delete this folder and all its contents?`)) {
+        // User confirmed recursive deletion, use the store directly
+        const store = useDocumentStore.getState();
+        if (store.deleteRecursively) {
+          store.deleteRecursively(error.folderId);
+        }
+      }
+      // Clear the error state
+      useDocumentStore.getState().setError(null);
+    }
+  }, [folders]);
 
   return (
     <DocumentNavigationContext.Provider value={{ onCompareDocuments }}>
@@ -1712,7 +1757,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
               filterConfig={filterConfig}
               onFileSelect={onFileSelect}
               trashFolderId={trashFolderId}
-              handleDocumentDelete={handleDocumentDelete}
+              handleDocumentDelete={handleFolderDelete}
             />
           ))}
           
@@ -1724,7 +1769,7 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
               filteredDocuments={filteredDocuments}
               onFileSelect={onFileSelect}
               trashFolderId={trashFolderId}
-              handleDocumentDelete={handleDocumentDelete}
+              handleDocumentDelete={handleFolderDelete}
             />
           ))}
         </div>

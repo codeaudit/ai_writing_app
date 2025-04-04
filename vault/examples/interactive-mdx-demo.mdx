@@ -1,0 +1,176 @@
+---
+title: Interactive MDX Demo
+author: Writing App Team
+created: 2023-08-10
+tags: [mdx, react, demo, interactive]
+---
+
+# Interactive MDX Demo
+
+This file demonstrates the MDX capabilities of the Writing App, showing how you can combine Markdown with JSX components to create interactive documents.
+
+## Basic Markdown Still Works
+
+All your favorite Markdown syntax still works as expected:
+
+- **Bold text** and *italic text*
+- Lists, both ordered and unordered
+- [Links](https://example.com)
+- > Blockquotes look like this
+- Code blocks with syntax highlighting:
+
+```javascript
+function greeting(name) {
+  return `Hello, ${name}!`;
+}
+
+console.log(greeting('World'));
+```
+
+## JSX Components
+
+In MDX, you can use React-style JSX components directly in your markdown:
+
+<Alert variant="info">
+  This is an info alert component that provides important information to the reader.
+</Alert>
+
+<Card title="Interactive Card Component">
+  This card component can contain any content, including other markdown.
+  
+  - It can have lists
+  - And other formatting
+
+  ```
+  Even code blocks
+  ```
+</Card>
+
+## JavaScript Expressions
+
+You can use JavaScript expressions within curly braces:
+
+The current date is: {(new Date()).toLocaleDateString()}
+
+2 + 2 = 4
+
+### Dynamic Lists
+
+You can even generate content dynamically:
+
+<ul>
+  <li><strong>React</strong> - A JavaScript framework</li>
+  <li><strong>Vue</strong> - A JavaScript framework</li>
+  <li><strong>Angular</strong> - A JavaScript framework</li>
+  <li><strong>Svelte</strong> - A JavaScript framework</li>
+</ul>
+
+## Component Props
+
+Components can accept properties to customize their behavior:
+
+<Tabs>
+  <TabPanel label="First Tab">
+    This is the content of the first tab.
+  </TabPanel>
+  <TabPanel label="Second Tab">
+    This is the content of the second tab.
+  </TabPanel>
+  <TabPanel label="Third Tab">
+    This is the content of the third tab.
+  </TabPanel>
+</Tabs>
+
+## Interactive Elements
+
+MDX allows for truly interactive documents:
+
+<Counter startValue={0} />
+
+<ColorPicker defaultColor="#3366FF" />
+
+## Import Statements
+
+In MDX, you can import custom components at the top of your file:
+
+```jsx
+import { Chart } from './components/Chart'
+import { DataTable } from './components/DataTable'
+```
+
+Then use them in your document:
+
+<Chart type="bar" title="Sample Chart" />
+
+## Internal Links
+
+You can still use the app's internal linking syntax to reference other documents:
+
+[[design]] - Links to the design document
+
+## Conditional Content
+
+You can conditionally display content based on variables:
+
+<RestrictedContent>
+  This content is only visible to logged-in users.
+</RestrictedContent>
+
+## Using MDX for Writing
+
+MDX is perfect for:
+
+- Technical documentation with interactive examples
+- Educational content with exercises
+- Scientific papers with interactive visualizations
+- Creative writing with custom layouts
+- Product documentation with live demos
+
+## Custom Layouts
+
+MDX allows for custom layouts that aren't possible with regular markdown:
+
+<TwoColumnLayout>
+  <Column width="60%">
+    This column takes up 60% of the available width.
+    
+    It can contain regular markdown:
+    
+    1. First item
+    2. Second item
+    3. Third item
+  </Column>
+  <Column width="40%">
+    This column takes the remaining 40%.
+    
+    ![An example image](https://via.placeholder.com/300x200)
+    
+    *Image caption goes here*
+  </Column>
+</TwoColumnLayout>
+
+## Live Code Editing
+
+With the right components, you can even create live code editors:
+
+<CodeEditor
+  language="javascript"
+  code="function sayHello(name) { return 'Hello, ' + name; }"
+/>
+
+---
+
+## Getting Started with MDX
+
+To use MDX in your own documents:
+
+1. Create a new file with the `.mdx` extension
+2. Write your content using a combination of Markdown and JSX
+3. Import and use any available components
+4. Enjoy the power of interactive documents!
+
+Remember, all standard Markdown syntax works alongside the JSX components, giving you the best of both worlds.
+
+---
+
+**Note**: Not all components shown in this demo may be available by default. Custom components need to be implemented and made available to the MDX renderer. 
