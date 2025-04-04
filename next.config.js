@@ -2,7 +2,7 @@
 const nextConfig = {
   env: {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-    GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
+    GOOGLE_API_KEY: process.env.GOGGLE_API_KEY,
     DEFAULT_LLM_PROVIDER: process.env.DEFAULT_LLM_PROVIDER,
     DEFAULT_LLM_MODEL: process.env.DEFAULT_LLM_MODEL,
   },
@@ -15,7 +15,7 @@ const nextConfig = {
   // Watch for changes to the sessions.md file
   watchOptions: {
     // Add vault/system/sessions.md to the list of watched files
-    ignored: ['node_modules/**', '.git/**', '.next/**', '!vault/system/sessions.md'],
+    ignore: ['node_modules/**', '.git/**', '.next/**', '!vault/system/sessions.md'],
   },
 };
 
