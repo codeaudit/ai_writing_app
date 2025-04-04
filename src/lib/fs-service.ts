@@ -1,5 +1,5 @@
 // This file should only be imported in server components or API routes
-import fs from 'fs';
+import fs from 'fs-extra';
 import path from 'path';
 import { Document, Folder, DocumentVersion } from './store';
 import matter from 'gray-matter';
@@ -15,18 +15,14 @@ const TEMPLATES_DIR = path.join(VAULT_DIR, 'templates');
 
 // Ensure vault directory exists
 try {
-  if (!fs.existsSync(VAULT_DIR)) {
-    fs.mkdirSync(VAULT_DIR, { recursive: true });
-  }
+  fs.ensureDirSync(VAULT_DIR);
 } catch (error) {
   console.error('Error creating vault directory:', error);
 }
 
 // Ensure templates directory exists
 try {
-  if (!fs.existsSync(TEMPLATES_DIR)) {
-    fs.mkdirSync(TEMPLATES_DIR, { recursive: true });    
-  }
+  fs.ensureDirSync(TEMPLATES_DIR);
 } catch (error) {
   console.error('Error creating templates directory:', error);
 }
@@ -38,9 +34,7 @@ const FOLDERS_INDEX = path.join(VAULT_DIR, '.obsidian', 'folders-index.json');
 // Ensure .obsidian directory exists for metadata
 try {
   const obsidianDir = path.join(VAULT_DIR, '.obsidian');
-  if (!fs.existsSync(obsidianDir)) {
-    fs.mkdirSync(obsidianDir, { recursive: true });
-  }
+  fs.ensureDirSync(obsidianDir);
 } catch (error) {
   console.error('Error creating .obsidian directory:', error);
 }
@@ -48,9 +42,7 @@ try {
 // Helper function to ensure a directory exists
 const ensureDir = (dirPath: string) => {
   try {
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
-    }
+    fs.ensureDirSync(dirPath);
   } catch (error) {
     console.error(`Error ensuring directory ${dirPath}:`, error);
     throw error;
@@ -58,10 +50,10 @@ const ensureDir = (dirPath: string) => {
 };
 
 // Helper function to write JSON to a file
-const writeJsonFile = (filePath: string, data: any) => {
+const writeJsonFile = (filePath: string, data: unknown) => {
   try {
     ensureDir(path.dirname(filePath));
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+    fs.writeJsonSync(filePath, data, { spaces: 2 });
   } catch (error) {
     console.error(`Error writing JSON file ${filePath}:`, error);
     throw error;
@@ -74,8 +66,7 @@ const readJsonFile = <T>(filePath: string, defaultValue: T): T => {
     if (!fs.existsSync(filePath)) {
       return defaultValue;
     }
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data) as T;
+    return fs.readJsonSync(filePath) as T;
   } catch (error) {
     console.error(`Error reading ${filePath}:`, error);
     return defaultValue;
@@ -277,7 +268,7 @@ export const saveDocument = (document: Document) => {
     const documentPath = getDocumentPath(document, folders);
     
     // Ensure the directory exists
-    ensureDir(path.dirname(documentPath));
+    fs.ensureDirSync(path.dirname(documentPath));
     
     // Convert document to Markdown with frontmatter and save
     const markdownContent = documentToMarkdown(document);
@@ -294,16 +285,8 @@ export const saveDocument = (document: Document) => {
 export const loadDocuments = (): Document[] => {
   try {
     // Try to load existing document index first to maintain consistent IDs
-    let existingDocuments: Document[] = [];
-    try {
-      if (fs.existsSync(DOCUMENTS_INDEX)) {
-        const data = fs.readFileSync(DOCUMENTS_INDEX, 'utf8');
-        existingDocuments = JSON.parse(data) as Document[];
-      }
-    } catch (error) {
-      console.error('Error reading existing document index:', error);
-    }
-
+    const existingDocuments: Document[] = readJsonFile<Document[]>(DOCUMENTS_INDEX, []);
+    
     // Create a map of existing document IDs for quick lookup
     const existingDocMap = new Map<string, Document>();
     existingDocuments.forEach(doc => {
@@ -494,15 +477,7 @@ export const saveFolder = (folder: Folder) => {
 export const loadFolders = (): Folder[] => {
   try {
     // Try to load existing folder index first to maintain consistent IDs
-    let existingFolders: Folder[] = [];
-    try {
-      if (fs.existsSync(FOLDERS_INDEX)) {
-        const data = fs.readFileSync(FOLDERS_INDEX, 'utf8');
-        existingFolders = JSON.parse(data) as Folder[];
-      }
-    } catch (error) {
-      console.error('Error reading existing folder index:', error);
-    }
+    const existingFolders: Folder[] = readJsonFile<Folder[]>(FOLDERS_INDEX, []);
     
     // Create a map of folder paths to existing folder IDs
     const folderPathMap = new Map<string, string>();
@@ -612,7 +587,7 @@ export const deleteDocument = (docId: string) => {
     const documentPath = getDocumentPath(document, folders);
     
     if (fs.existsSync(documentPath)) {
-      fs.unlinkSync(documentPath);
+      fs.removeSync(documentPath);
     }
   } catch (error) {
     console.error('Error deleting document:', error);
@@ -621,45 +596,125 @@ export const deleteDocument = (docId: string) => {
 };
 
 // Delete a folder from the file system
-export const deleteFolder = (folderId: string) => {
+export const deleteFolder = (folderId: string, options: { recursive?: boolean } = {}) => {
   try {
     // Get folder metadata
     const folders = loadFolders();
     const folder = folders.find(f => f.id === folderId);
     
     if (!folder) {
-      return;
+      return { success: false, error: "Folder not found in metadata" };
     }
     
-    // Check if folder has documents
-    const documents = loadDocuments();
-    const hasDocuments = documents.some(doc => doc.folderId === folderId);
-    
-    // Check if folder has subfolders
-    const hasSubfolders = folders.some(f => f.parentId === folderId);
-    
-    if (hasDocuments || hasSubfolders) {
-      throw new Error('Cannot delete folder that contains documents or subfolders');
-    }
-    
-    // Remove folder from index
-    const updatedFolders = folders.filter(f => f.id !== folderId);
-    writeJsonFile(FOLDERS_INDEX, updatedFolders);
-    
-    // Remove folder directory
+    // Get the folder path
     const folderPath = getFolderPath(folder, folders);
     
-    if (fs.existsSync(folderPath)) {
-      try {
-        fs.rmdirSync(folderPath);
-      } catch (error) {
-        console.error(`Error removing folder directory ${folderPath}:`, error);
+    // Check if folder exists on disk
+    const folderExistsOnDisk = fs.existsSync(folderPath);
+    
+    // If recursive is true, we'll delete everything regardless of contents
+    if (!options.recursive) {
+      // Check for subfolders
+      const hasSubfolders = folders.some(f => f.parentId === folderId);
+      if (hasSubfolders) {
+        return {
+          success: false,
+          error: "Cannot delete folder that contains subfolders",
+          canRecurse: true
+        };
       }
+      
+      // Check for documents in the folder
+      const documents = loadDocuments();
+      const documentsInFolder = documents.filter(doc => doc.folderId === folderId);
+      if (documentsInFolder.length > 0) {
+        return {
+          success: false,
+          error: "Cannot delete folder that contains documents",
+          canRecurse: true, 
+          documentCount: documentsInFolder.length
+        };
+      }
+    } else {
+      // Recursive delete - we need to delete all subfolders and documents
+      
+      // First, handle all documents in this folder and subfolders
+      const documents = loadDocuments();
+      const allFolderIds = getAllChildFolderIds(folders, folderId);
+      allFolderIds.push(folderId); // Include the current folder
+      
+      // Get all documents in this folder hierarchy
+      const documentsToDelete = documents.filter(doc => 
+        doc.folderId !== null && allFolderIds.includes(doc.folderId)
+      );
+      
+      // Delete all documents from the index
+      const remainingDocuments = documents.filter(doc => 
+        doc.folderId === null || !allFolderIds.includes(doc.folderId)
+      );
+      writeJsonFile(DOCUMENTS_INDEX, remainingDocuments);
+      
+      // Delete all child folders from the index
+      const remainingFolders = folders.filter(f => !allFolderIds.includes(f.id));
+      writeJsonFile(FOLDERS_INDEX, remainingFolders);
     }
+    
+    // At this point, we can safely delete the folder from disk if it exists
+    if (folderExistsOnDisk) {
+      try {
+        // If we're doing a recursive delete, remove the whole directory tree
+        if (options.recursive) {
+          fs.removeSync(folderPath);
+        } else {
+          // In non-recursive mode, only remove if it's empty
+          // This is just an extra safety check
+          const dirContents = fs.readdirSync(folderPath);
+          if (dirContents.length === 0) {
+            fs.removeSync(folderPath);
+          } else {
+            console.warn(`Folder ${folderPath} is not empty on disk, but metadata indicates it should be. Skipping physical deletion.`);
+          }
+        }
+      } catch (fsError: unknown) {
+        console.error('Error removing folder from filesystem:', fsError);
+        return { 
+          success: false, 
+          error: `Failed to delete folder from disk: ${fsError instanceof Error ? fsError.message : String(fsError)}`,
+          metadataUpdated: !options.recursive // If not recursive, we haven't updated metadata yet
+        };
+      }
+    } else {
+      console.warn(`Folder ${folderPath} does not exist on disk, only removing from metadata.`);
+    }
+    
+    // If we got here with non-recursive delete, now we can update the metadata
+    // (For recursive delete, we've already updated the metadata)
+    if (!options.recursive) {
+      const updatedFolders = folders.filter(f => f.id !== folderId);
+      writeJsonFile(FOLDERS_INDEX, updatedFolders);
+    }
+    
+    return { success: true };
   } catch (error) {
     console.error('Error deleting folder:', error);
-    throw error;
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : String(error)
+    };
   }
+};
+
+// Helper function to get all child folder IDs recursively
+const getAllChildFolderIds = (folders: Folder[], parentId: string): string[] => {
+  const directChildren = folders.filter(f => f.parentId === parentId);
+  if (directChildren.length === 0) {
+    return [];
+  }
+  
+  const directChildrenIds = directChildren.map(f => f.id);
+  const descendantIds = directChildrenIds.flatMap(id => getAllChildFolderIds(folders, id));
+  
+  return [...directChildrenIds, ...descendantIds];
 };
 
 // Rename a document (updates both metadata and file path)
@@ -735,10 +790,13 @@ export const renameFolder = (folderId: string, newName: string) => {
     // Move the directory
     if (fs.existsSync(oldPath)) {
       // Ensure the parent directory exists
-      ensureDir(path.dirname(newPath));
+      fs.ensureDirSync(path.dirname(newPath));
       
-      // Rename the directory
-      fs.renameSync(oldPath, newPath);
+      // Move the directory and its contents
+      fs.moveSync(oldPath, newPath, { overwrite: true });
+    } else {
+      // Create the directory if it doesn't exist
+      fs.ensureDirSync(newPath);
     }
     
     // Update the index
@@ -754,7 +812,7 @@ export const renameFolder = (folderId: string, newName: string) => {
   }
 };
 
-// Move a document to a different folder
+// Move document to a different folder
 export const moveDocument = (docId: string, targetFolderId: string | null) => {
   try {
     // Get document metadata
@@ -762,40 +820,42 @@ export const moveDocument = (docId: string, targetFolderId: string | null) => {
     const document = documents.find(doc => doc.id === docId);
     
     if (!document) {
-      return null;
+      throw new Error(`Document not found: ${docId}`);
     }
     
-    // Get the old path
+    // Get folder metadata
     const folders = loadFolders();
-    const oldPath = getDocumentPath(document, folders);
     
-    // Update document folder
+    // Check if target folder exists (if not null)
+    if (targetFolderId !== null && !folders.find(f => f.id === targetFolderId)) {
+      throw new Error(`Target folder not found: ${targetFolderId}`);
+    }
+    
+    // Get the current document path
+    const currentPath = getDocumentPath(document, folders);
+    
+    // Update the document's folder ID
+    const oldFolderId = document.folderId;
     document.folderId = targetFolderId;
-    document.updatedAt = new Date();
     
-    // Get the new path
+    // Get the new document path
     const newPath = getDocumentPath(document, folders);
     
-    // Move the file
-    if (fs.existsSync(oldPath)) {
-      // Ensure the directory exists
-      ensureDir(path.dirname(newPath));
+    // Move the file if the path has changed
+    if (currentPath !== newPath) {
+      // Ensure the target directory exists
+      fs.ensureDirSync(path.dirname(newPath));
       
-      // Read the content
-      const content = fs.readFileSync(oldPath, 'utf8');
-      
-      // Write to new location
-      fs.writeFileSync(newPath, content, 'utf8');
-      
-      // Delete the old file
-      fs.unlinkSync(oldPath);
+      // Move the file
+      if (fs.existsSync(currentPath)) {
+        fs.moveSync(currentPath, newPath, { overwrite: true });
+      }
     }
     
-    // Update the index
-    const updatedDocuments = documents.map(doc => 
-      doc.id === docId ? document : doc
-    );
-    writeJsonFile(DOCUMENTS_INDEX, updatedDocuments);
+    // Update the document metadata
+    const updatedIndex = documents.findIndex(doc => doc.id === docId);
+    documents[updatedIndex] = document;
+    writeJsonFile(DOCUMENTS_INDEX, documents);
     
     return document;
   } catch (error) {
@@ -812,45 +872,53 @@ export const moveFolder = (folderId: string, targetParentId: string | null) => {
     const folder = folders.find(f => f.id === folderId);
     
     if (!folder) {
-      return null;
+      throw new Error(`Folder not found: ${folderId}`);
     }
     
-    // Prevent circular references
-    if (targetParentId) {
+    // Check if target parent exists (if not null)
+    if (targetParentId !== null && !folders.find(f => f.id === targetParentId)) {
+      throw new Error(`Target parent folder not found: ${targetParentId}`);
+    }
+    
+    // Prevent moving a folder into itself or its descendants
+    if (targetParentId !== null) {
       let currentParentId: string | null = targetParentId;
       while (currentParentId) {
         if (currentParentId === folderId) {
-          throw new Error('Cannot move a folder into its own subfolder');
+          throw new Error("Cannot move a folder into itself or its descendants");
         }
-        const parentFolder = folders.find(f => f.id === currentParentId);
-        if (!parentFolder) break;
-        currentParentId = parentFolder.parentId;
+        const parent = folders.find(f => f.id === currentParentId);
+        if (!parent) break;
+        currentParentId = parent.parentId;
       }
     }
     
-    // Get the old path
-    const oldPath = getFolderPath(folder, folders);
+    // Get the current folder path
+    const currentPath = getFolderPath(folder, folders);
     
-    // Update folder parent
+    // Update the folder's parent ID
     folder.parentId = targetParentId;
     
-    // Get the new path
+    // Get the new folder path
     const newPath = getFolderPath(folder, folders);
     
-    // Move the directory
-    if (fs.existsSync(oldPath)) {
-      // Ensure the parent directory exists
-      ensureDir(path.dirname(newPath));
+    // Move the folder if the path has changed
+    if (currentPath !== newPath) {
+      // Ensure the target directory exists
+      fs.ensureDirSync(path.dirname(newPath));
       
-      // Rename/move the directory
-      fs.renameSync(oldPath, newPath);
+      // Move the folder and its contents
+      if (fs.existsSync(currentPath)) {
+        fs.moveSync(currentPath, newPath, { overwrite: true });
+      } else {
+        fs.ensureDirSync(newPath);
+      }
     }
     
-    // Update the index
-    const updatedFolders = folders.map(f => 
-      f.id === folderId ? folder : f
-    );
-    writeJsonFile(FOLDERS_INDEX, updatedFolders);
+    // Update the folder metadata
+    const updatedIndex = folders.findIndex(f => f.id === folderId);
+    folders[updatedIndex] = folder;
+    writeJsonFile(FOLDERS_INDEX, folders);
     
     return folder;
   } catch (error) {
@@ -916,21 +984,20 @@ const escapeRegExp = (string: string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-// Get all available templates
+// Get available templates
 export const getTemplates = (): { name: string; path: string }[] => {
   try {
-    if (!fs.existsSync(TEMPLATES_DIR)) {
-      return [];
-    }
+    // Ensure templates directory exists
+    fs.ensureDirSync(TEMPLATES_DIR);
     
-    const templateFiles = fs.readdirSync(TEMPLATES_DIR)
+    // Read template files
+    const files = fs.readdirSync(TEMPLATES_DIR);
+    return files
       .filter(file => file.endsWith('.md'))
       .map(file => ({
-        name: file.replace(/\.md$/, ''),
+        name: path.basename(file, '.md'),
         path: path.join(TEMPLATES_DIR, file)
       }));
-    
-    return templateFiles;
   } catch (error) {
     console.error('Error getting templates:', error);
     return [];
@@ -992,94 +1059,27 @@ const configureNunjucks = () => {
 // Initialize Nunjucks
 const nunjucksEnv = configureNunjucks();
 
-// Process a template with variable substitution using Nunjucks
+// Process a template with variables
 export const processTemplate = (templateName: string, variables: Record<string, any>): string => {
   try {
+    // Validate template
     const templatePath = path.join(TEMPLATES_DIR, `${templateName}.md`);
-    
     if (!fs.existsSync(templatePath)) {
       throw new Error(`Template not found: ${templateName}`);
     }
     
-    // Read the template content
+    // Read template content
     const templateContent = fs.readFileSync(templatePath, 'utf8');
     
-    // Configure Nunjucks if not already configured
-    const nunjucksEnv = configureNunjucks();
+    // Configure Nunjucks with custom filters and extensions
+    configureNunjucks();
     
-    // Default variables
-    const defaultVariables = {
-      date: new Date().toISOString(),
-      dateFormatted: new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      }),
-      time: new Date().toLocaleTimeString(),
-      timeFormatted: new Date().toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit', 
-        hour12: true 
-      }),
-      timestamp: new Date().getTime().toString(),
-      year: new Date().getFullYear().toString(),
-      month: (new Date().getMonth() + 1).toString().padStart(2, '0'),
-      day: new Date().getDate().toString().padStart(2, '0'),
-    };
+    // Process the template with variables
+    const processed = nunjucks.renderString(templateContent, variables);
     
-    // Merge default variables with user-provided variables
-    const mergedVariables: Record<string, any> = {
-      ...defaultVariables,
-      ...variables
-    };
-    
-    // Process Date objects to ensure they're formatted correctly for Nunjucks
-    const processDateValues = (obj: Record<string, any>): Record<string, any> => {
-      const result: Record<string, any> = {};
-      
-      Object.entries(obj).forEach(([key, value]) => {
-        // Handle Date objects
-        if (value instanceof Date) {
-          result[key] = value.toISOString();
-        } 
-        // Handle nested objects
-        else if (value && typeof value === 'object' && !Array.isArray(value)) {
-          result[key] = processDateValues(value as Record<string, any>);
-        } 
-        // Handle arrays
-        else if (Array.isArray(value)) {
-          result[key] = value.map(item => {
-            if (item instanceof Date) {
-              return item.toISOString();
-            } else if (item && typeof item === 'object') {
-              return processDateValues(item as Record<string, any>);
-            }
-            return item;
-          });
-        } 
-        // Handle primitive values
-        else {
-          result[key] = value;
-        }
-      });
-      
-      return result;
-    };
-    
-    // Process all variables to handle Date objects
-    const processedVariables = processDateValues(mergedVariables);
-    
-    // Remove the schema definition from the template before processing
-    // Using a workaround for the 's' flag (dotAll) for compatibility
-    const schemaRegex = /\{%\s*set\s+schema\s*=\s*\{[^}]*(?:\{[^}]*\}[^}]*)*\}\s*%\}/g;
-    const cleanedTemplate = templateContent.replace(schemaRegex, '');
-    
-    // Process the template with Nunjucks
-    const processedContent = nunjucksEnv.renderString(cleanedTemplate, processedVariables);
-    
-    return processedContent;
+    return processed;
   } catch (error) {
     console.error('Error processing template:', error);
-    throw new Error(`Failed to process template: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
   }
 }; 

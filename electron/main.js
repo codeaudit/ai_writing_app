@@ -1,6 +1,6 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs-extra');
 const isDev = require('electron-is-dev');
 const Store = require('electron-store');
 const matter = require('gray-matter');
@@ -19,11 +19,17 @@ const TEMPLATES_DIR = path.join(app.getPath('userData'), 'templates');
 
 // Create templates directory if it doesn't exist
 function ensureTemplatesDirectory() {
-  if (!fs.existsSync(TEMPLATES_DIR)) {
-    fs.mkdirSync(TEMPLATES_DIR, { recursive: true });
+  try {
+    fs.ensureDirSync(TEMPLATES_DIR);
     
-    // Create default templates
-    createDefaultTemplates();
+    // If the directory was just created (check if it's empty)
+    const files = fs.readdirSync(TEMPLATES_DIR);
+    if (files.length === 0) {
+      // Create default templates
+      createDefaultTemplates();
+    }
+  } catch (error) {
+    console.error('Error ensuring templates directory:', error);
   }
 }
 
@@ -88,18 +94,21 @@ Please rewrite the above text to improve clarity and readability while maintaini
 `;
 
   // Write templates to the directory
-  fs.writeFileSync(path.join(TEMPLATES_DIR, 'general.md'), generalTemplate);
-  fs.writeFileSync(path.join(TEMPLATES_DIR, 'code.md'), codeTemplate);
-  fs.writeFileSync(path.join(TEMPLATES_DIR, 'summary.md'), summaryTemplate);
-  fs.writeFileSync(path.join(TEMPLATES_DIR, 'rewrite.md'), rewriteTemplate);
+  try {
+    fs.writeFileSync(path.join(TEMPLATES_DIR, 'general.md'), generalTemplate);
+    fs.writeFileSync(path.join(TEMPLATES_DIR, 'code.md'), codeTemplate);
+    fs.writeFileSync(path.join(TEMPLATES_DIR, 'summary.md'), summaryTemplate);
+    fs.writeFileSync(path.join(TEMPLATES_DIR, 'rewrite.md'), rewriteTemplate);
+  } catch (error) {
+    console.error('Error writing default templates:', error);
+  }
 }
 
 // Get all available templates
 function getTemplates() {
   try {
-    if (!fs.existsSync(TEMPLATES_DIR)) {
-      ensureTemplatesDirectory();
-    }
+    // Ensure templates directory exists
+    ensureTemplatesDirectory();
     
     const templateFiles = fs.readdirSync(TEMPLATES_DIR)
       .filter(file => file.endsWith('.md'))
@@ -112,13 +121,13 @@ function getTemplates() {
           const { data } = matter(content);
           
           return {
-            name: data.name || file.replace(/\.md$/, ''),
+            name: data.name || path.basename(file, '.md'),
             path: filePath
           };
         } catch (error) {
           // Fallback to just the filename if parsing fails
           return {
-            name: file.replace(/\.md$/, ''),
+            name: path.basename(file, '.md'),
             path: filePath
           };
         }
@@ -420,7 +429,7 @@ ipcMain.handle('open-file-dialog', async () => {
   if (!canceled && filePaths.length > 0) {
     try {
       const filePath = filePaths[0];
-      const content = fs.readFileSync(filePath, 'utf8');
+      const content = await fs.readFile(filePath, 'utf8');
       return {
         path: filePath,
         name: path.basename(filePath),
@@ -445,16 +454,19 @@ ipcMain.handle('open-folder-dialog', async () => {
       const folderPath = filePaths[0];
       
       // Read all markdown files in the folder
-      const files = fs.readdirSync(folderPath)
-        .filter(file => file.endsWith('.md') || file.endsWith('.markdown'))
-        .map(file => {
-          const filePath = path.join(folderPath, file);
-          return {
-            path: filePath,
-            name: file,
-            content: fs.readFileSync(filePath, 'utf8')
-          };
-        });
+      const files = await Promise.all(
+        (await fs.readdir(folderPath))
+          .filter(file => file.endsWith('.md') || file.endsWith('.markdown'))
+          .map(async (file) => {
+            const filePath = path.join(folderPath, file);
+            const content = await fs.readFile(filePath, 'utf8');
+            return {
+              path: filePath,
+              name: file,
+              content
+            };
+          })
+      );
       
       return {
         path: folderPath,
@@ -488,7 +500,12 @@ ipcMain.handle('save-file-dialog', async (event, { content, defaultPath, name })
   }
 
   try {
-    fs.writeFileSync(defaultPath, content, 'utf8');
+    // Ensure the directory exists
+    await fs.ensureDir(path.dirname(defaultPath));
+    
+    // Write the file
+    await fs.writeFile(defaultPath, content, 'utf8');
+    
     return {
       path: defaultPath,
       name: path.basename(defaultPath)
@@ -515,6 +532,9 @@ ipcMain.handle('export-document', async (event, { content, format, name }) => {
   }
 
   try {
+    // Ensure the directory exists
+    await fs.ensureDir(path.dirname(filePath));
+    
     // For PDF, use Electron's PDF generation
     if (format.toLowerCase() === 'pdf') {
       const pdfData = await mainWindow.webContents.printToPDF({
@@ -524,10 +544,10 @@ ipcMain.handle('export-document', async (event, { content, format, name }) => {
         landscape: false
       });
 
-      fs.writeFileSync(filePath, pdfData);
+      await fs.writeFile(filePath, pdfData);
     } else {
       // For other formats, just write the content directly
-      fs.writeFileSync(filePath, content, 'utf8');
+      await fs.writeFile(filePath, content, 'utf8');
     }
 
     return {
@@ -581,13 +601,13 @@ app.on('activate', () => {
 });
 
 // Handle file associations (macOS)
-app.on('open-file', (event, filePath) => {
+app.on('open-file', async (event, filePath) => {
   event.preventDefault();
   
   // If app is already running, open the file
   if (mainWindow) {
     try {
-      const content = fs.readFileSync(filePath, 'utf8');
+      const content = await fs.readFile(filePath, 'utf8');
       mainWindow.webContents.send('file-opened', {
         path: filePath,
         name: path.basename(filePath),

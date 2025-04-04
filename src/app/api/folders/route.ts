@@ -40,15 +40,32 @@ export async function DELETE(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
+    const recursive = url.searchParams.get('recursive') === 'true';
     
     if (!id) {
       return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
     }
     
-    deleteFolder(id);
+    const result = deleteFolder(id, { recursive });
+    
+    if (!result.success) {
+      if (result.canRecurse) {
+        // Special case: the folder has contents but could be deleted recursively
+        return NextResponse.json({ 
+          error: result.error,
+          canRecurse: true,
+          documentCount: result.documentCount
+        }, { status: 409 }); // Conflict status code
+      }
+      
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting folder:', error);
-    return NextResponse.json({ error: 'Failed to delete folder' }, { status: 500 });
+    return NextResponse.json({ 
+      error: error instanceof Error ? error.message : 'Failed to delete folder' 
+    }, { status: 500 });
   }
 } 

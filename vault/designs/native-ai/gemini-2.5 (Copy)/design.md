@@ -1,11 +1,11 @@
 ---
-id: doc-1743706013269-z8slrzb
+id: doc-1743724764129-q6100cx
 name: design
-createdAt: '2025-04-03T18:46:53.250Z'
-updatedAt: '2025-04-03T18:46:53.250Z'
+createdAt: '2025-04-03T23:59:24.129Z'
+updatedAt: '2025-04-03T23:59:24.129Z'
 versions:
-  - id: ver-1743706013269-4ooqfh3
-    createdAt: '2025-04-03T18:46:53.250Z'
+  - id: ver-1743724764129-dgpv3xj
+    createdAt: '2025-04-03T23:59:24.129Z'
     message: Initial version
 annotations: []
 ---
