@@ -44,7 +44,8 @@ export function MCPServersIndicator({ provider, className }: MCPServersIndicator
   }, []);
 
   // Show for OpenAI, Anthropic, and Gemini
-  if (provider !== 'openai' && provider !== 'anthropic' && provider !== 'gemini') {
+  if (provider !== 'openai' && provider !== 'anthropic' && provider !== 'gemini' && 
+      provider !== 'openrouter' && provider !== 'featherless') {
     return null;
   }
 

@@ -24,6 +24,7 @@ import {
   getMCPClient
 } from './mcp-server-manager';
 import { logger } from './logger';
+import { LLM_MODELS } from '@/lib/config';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import type { ChatCompletionCreateParams } from 'openai/resources';
@@ -33,10 +34,26 @@ import type { MessageCreateParams } from '@anthropic-ai/sdk/resources/messages';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || '';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || '';
 
 // Create API clients
 const openaiClient = new OpenAI({
   apiKey: OPENAI_API_KEY
+});
+
+const openRouterClient = new OpenAI({
+  apiKey: OPENROUTER_API_KEY,
+  baseURL: 'https://openrouter.ai/api/v1',
+  defaultHeaders: {
+    'HTTP-Referer': 'https://github.com/yourusername/writing_app',
+    'X-Title': 'Writing App'
+  }
+});
+
+const featherlessClient = new OpenAI({
+  apiKey: FEATHERLESS_API_KEY,
+  baseURL: 'https://api.featherless.ai/v1'
 });
 
 const anthropicClient = new Anthropic({
@@ -372,7 +389,33 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
   const provider = lastMessage?.provider?.replace('mcp-', '') || config.provider;
   
   // Use the model from config or from the last message
-  const modelName = lastMessage?.model || config.model;
+  let modelName = lastMessage?.model || config.model;
+  
+  // Format model name for OpenRouter/Featherless if needed
+  if (provider === 'openrouter' && modelName) {
+    // OpenRouter models already have their provider prefixes in the config
+    const models = LLM_MODELS?.openrouter || [];
+    const modelFound = models.find((m) => m.value === modelName || m.label === modelName);
+    
+    // Only use the model name directly from config if found
+    if (modelFound) {
+      modelName = modelFound.value;
+      logger.debug(`Using OpenRouter with model: ${modelName}`);
+    }
+  }
+  
+  // For Featherless, use model names directly from config
+  if (provider === 'featherless' && modelName) {
+    // Featherless models already have their provider prefixes in the config
+    const models = LLM_MODELS?.featherless || [];
+    const modelFound = models.find((m) => m.value === modelName || m.label === modelName);
+    
+    // Only use the model name directly from config if found
+    if (modelFound) {
+      modelName = modelFound.value;
+      logger.debug(`Using Featherless with model: ${modelName}`);
+    }
+  }
   
   logger.debug(`Using provider: ${provider}, model: ${modelName}`);
   
@@ -440,7 +483,7 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
     
     let toolCalls: ToolCall[] | undefined;
     
-    if (provider === 'openai') {
+    if (provider === 'openai' || provider === 'openrouter' || provider === 'featherless') {
       logger.debug("Using OpenAI provider with MCP");
       // Get the singleton adapter instead of creating a new one
       const { getOpenAIAdapter } = await import('./mcp-server-manager');
@@ -485,8 +528,13 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
         }
       }
       
+      // Select the appropriate client based on provider
+      const client = provider === 'openai' ? openaiClient :
+                     provider === 'openrouter' ? openRouterClient :
+                     featherlessClient;
+      
       // Make API call
-      const response = await openaiClient.chat.completions.create(openaiOptions);
+      const response = await client.chat.completions.create(openaiOptions);
       
       // Get response content
       responseText = response.choices[0].message.content || '';
@@ -539,7 +587,7 @@ export async function generateMCPChatResponse(request: ChatRequest | ChatRequest
             loopMessages.push(...toolMessages as ChatCompletionMessageParam[]);
             
             // Get next response
-            const nextResponse = await openaiClient.chat.completions.create({
+            const nextResponse = await client.chat.completions.create({
               ...openaiOptions,
               messages: loopMessages
             });

@@ -332,13 +332,17 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
       
       // Subscribe to changes using the selector
       const unsubscribe = useLLMStore.subscribe(providerSelector, (newProvider: string) => {
-        // If provider changed while MCP is enabled, disable MCP
+        // If provider changed while MCP is enabled, check if the new provider supports MCP
         if (newProvider !== currentProvider && useMCPService) {
-          setUseMCPService(false);
-          toast({
-            title: "MCP Disabled",
-            description: "MCP has been disabled due to provider change."
-          });
+          // Only disable MCP for providers that don't support it
+          if (newProvider !== 'openai' && newProvider !== 'anthropic' && newProvider !== 'gemini' && 
+              newProvider !== 'openrouter' && newProvider !== 'featherless') {
+            setUseMCPService(false);
+            toast({
+              title: "MCP Disabled",
+              description: "MCP has been disabled due to provider change to an unsupported provider."
+            });
+          }
         }
       });
       
