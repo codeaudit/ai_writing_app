@@ -12,6 +12,18 @@
     "parentId": null
   },
   {
+    "id": "folder-1744398500959-jx9grvn",
+    "name": "comparing_ideas (Copy)",
+    "createdAt": "2025-04-11T19:08:20.960Z",
+    "parentId": "folder-1743691244633"
+  },
+  {
+    "id": "folder-1744398500960-vlaetig",
+    "name": "test",
+    "createdAt": "2025-04-11T19:08:20.960Z",
+    "parentId": "folder-1744398500959-jx9grvn"
+  },
+  {
     "id": "folder-1742346055866-k6ddp67",
     "name": "UI_Test_Files",
     "createdAt": "2025-03-19T01:00:55.866Z",
@@ -33,6 +45,18 @@
     "id": "folder-1743520459895-yzy2mgg",
     "name": "test",
     "createdAt": "2025-04-01T15:14:19.895Z",
+    "parentId": "folder-1742376758616"
+  },
+  {
+    "id": "folder-1744399084672",
+    "name": "test_compare",
+    "createdAt": "2025-04-11T19:18:04.672Z",
+    "parentId": "folder-1742376758616"
+  },
+  {
+    "id": "folder-1744399133632",
+    "name": "test_compare_docs",
+    "createdAt": "2025-04-11T19:18:53.632Z",
     "parentId": "folder-1742376758616"
   },
   {

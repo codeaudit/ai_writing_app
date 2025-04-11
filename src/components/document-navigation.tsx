@@ -24,7 +24,9 @@ import {
   BookOpen,
   Filter,
   Move,
-  Shield
+  Shield,
+  Copy,
+  History
 } from "lucide-react";
 
 import {
@@ -414,7 +416,8 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
                 }
               }}
             >
-              Copy Directory
+              <Copy className="h-3 w-3 mr-1" />
+              Duplicate Directory
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {/* Only show delete option if not protected or if it's trash (which can be emptied) */}
@@ -589,7 +592,8 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect, trashF
     moveDocument,
     folders,
     documents,
-    specialDirectoryIds
+    specialDirectoryIds,
+    addDocument
   } = useDocumentStore();
 
   // Get access to onCompareDocuments from the parent component
@@ -656,6 +660,27 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect, trashF
     const isProtected = isInProtectedDirectory();
     
     switch(action) {
+      case "duplicate":
+        const docToDuplicate = documents.find(d => d.id === document.id);
+        if (docToDuplicate) {
+          const newName = `${docToDuplicate.name} - Copy`;
+          addDocument(newName, docToDuplicate.content, docToDuplicate.folderId)
+            .then(newDocId => {
+              toast({
+                title: "Document duplicated",
+                description: `Created a copy of "${docToDuplicate.name}"`,
+              });
+            })
+            .catch(error => {
+              console.error("Error duplicating document:", error);
+              toast({
+                title: "Duplication failed",
+                description: "Failed to duplicate document",
+                variant: "destructive"
+              });
+            });
+        }
+        break;
       case "delete":
         if (isProtected) {
           toast({
@@ -738,6 +763,33 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect, trashF
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShowVersionHistory(true)}>
               Version History
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => {
+                // Copy document content to clipboard
+                navigator.clipboard.writeText(documents.find(d => d.id === document.id)?.content || '')
+                  .then(() => {
+                    toast({
+                      title: "Document copied",
+                      description: "Content copied to clipboard",
+                    });
+                  })
+                  .catch(err => {
+                    console.error("Error copying to clipboard:", err);
+                    toast({
+                      title: "Copy failed",
+                      description: "Failed to copy content to clipboard",
+                      variant: "destructive"
+                    });
+                  });
+              }}
+            >
+              <Copy className="h-3 w-3 mr-1" />
+              Copy to Clipboard
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleContextMenuAction('duplicate')}>
+              <Copy className="h-3 w-3 mr-1" />
+              Duplicate Document
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={() => {

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHand
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
-import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo, BookmarkIcon, Search, Sparkles, Hash, ArrowRight, Play, FileJson } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Code, Save, X, History, Undo, BookmarkIcon, Search, Sparkles, Hash, ArrowRight, Play, FileJson, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDocumentStore, Annotation, Document } from "@/lib/store";
 import { OnMount, useMonaco } from "@monaco-editor/react";
@@ -68,10 +68,12 @@ const MarkdownEditor = forwardRef<
   
   // Diff viewer state
   const [showDiff, setShowDiff] = useState(false);
-  const [diffOriginal, setDiffOriginal] = useState("");
-  const [diffModified, setDiffModified] = useState("");
-  const [diffOriginalTitle, setDiffOriginalTitle] = useState("");
-  const [diffModifiedTitle, setDiffModifiedTitle] = useState("");
+  const [diffOriginal, setDiffOriginal] = useState<string>("");
+  const [diffModified, setDiffModified] = useState<string>("");
+  const [diffOriginalTitle, setDiffOriginalTitle] = useState<string>("");
+  const [diffModifiedTitle, setDiffModifiedTitle] = useState<string>("");
+  const [diffLeftEditor, setDiffLeftEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [diffRightEditor, setDiffRightEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
 
   // Add a reference to the current selection
   const [showLLMDialog, setShowLLMDialog] = useState(false);
@@ -553,15 +555,154 @@ const MarkdownEditor = forwardRef<
   }, [selectedDocumentId, content, selectedDocument, updateDocument, toast]);
 
   const handleShowDiff = (originalContent: string, modifiedContent: string, originalTitle: string, modifiedTitle: string) => {
+    setShowDiff(true);
     setDiffOriginal(originalContent);
     setDiffModified(modifiedContent);
     setDiffOriginalTitle(originalTitle);
     setDiffModifiedTitle(modifiedTitle);
-    setShowDiff(true);
   };
 
   const handleCloseDiff = () => {
     setShowDiff(false);
+    setDiffOriginal("");
+    setDiffModified("");
+    setDiffOriginalTitle("");
+    setDiffModifiedTitle("");
+    setDiffLeftEditor(null);
+    setDiffRightEditor(null);
+  };
+
+  // Function to copy text from one side of diff to the other
+  const copySelectionFromLeftToRight = () => {
+    if (diffLeftEditor && diffRightEditor) {
+      const leftSelection = diffLeftEditor.getSelection();
+      if (leftSelection) {
+        const leftText = diffLeftEditor.getModel()?.getValueInRange(leftSelection) || "";
+        if (leftText) {
+          // Get the current position in the right editor
+          const rightSelection = diffRightEditor.getSelection();
+          if (rightSelection) {
+            // Create a new modified content with the copied text
+            const rightModel = diffRightEditor.getModel();
+            if (rightModel) {
+              // Use the editor's edit operation to insert the text
+              const edits = [{
+                range: rightSelection,
+                text: leftText
+              }];
+              
+              // Apply the edit
+              rightModel.pushEditOperations(
+                [],
+                edits,
+                () => null
+              );
+              
+              // Update the modified content state
+              setDiffModified(rightModel.getValue());
+              
+              toast({
+                title: "Section copied",
+                description: "Selected text copied from left to right",
+                duration: 2000,
+              });
+            }
+          }
+        }
+      } else {
+        toast({
+          title: "No selection",
+          description: "Please select text in the left document first",
+          variant: "destructive",
+          duration: 2000,
+        });
+      }
+    }
+  };
+  
+  const copySelectionFromRightToLeft = () => {
+    if (diffLeftEditor && diffRightEditor) {
+      const rightSelection = diffRightEditor.getSelection();
+      if (rightSelection) {
+        const rightText = diffRightEditor.getModel()?.getValueInRange(rightSelection) || "";
+        if (rightText) {
+          // Get the current position in the left editor
+          const leftSelection = diffLeftEditor.getSelection();
+          if (leftSelection) {
+            // Create a new original content with the copied text
+            const leftModel = diffLeftEditor.getModel();
+            if (leftModel) {
+              // Use the editor's edit operation to insert the text
+              const edits = [{
+                range: leftSelection,
+                text: rightText
+              }];
+              
+              // Apply the edit
+              leftModel.pushEditOperations(
+                [],
+                edits,
+                () => null
+              );
+              
+              // Update the original content state
+              setDiffOriginal(leftModel.getValue());
+              
+              toast({
+                title: "Section copied",
+                description: "Selected text copied from right to left",
+                duration: 2000,
+              });
+            }
+          }
+        }
+      } else {
+        toast({
+          title: "No selection",
+          description: "Please select text in the right document first",
+          variant: "destructive",
+          duration: 2000,
+        });
+      }
+    }
+  };
+  
+  // Function to apply the left content with selected right sections
+  const applyModifiedContent = () => {
+    if (diffModified && selectedDocumentId) {
+      updateDocument(
+        selectedDocumentId, 
+        { content: diffModified }, 
+        true, 
+        `Updated with modified sections on ${new Date().toLocaleString()}`
+      );
+      setContent(diffModified);
+      handleCloseDiff();
+      
+      toast({
+        title: "Changes applied",
+        description: "Document updated with modified content",
+      });
+    }
+  };
+  
+  // Function to apply the right content with selected left sections
+  const applyOriginalContent = () => {
+    if (diffOriginal && selectedDocumentId) {
+      updateDocument(
+        selectedDocumentId, 
+        { content: diffOriginal }, 
+        true, 
+        `Updated with original sections on ${new Date().toLocaleString()}`
+      );
+      setContent(diffOriginal);
+      handleCloseDiff();
+      
+      toast({
+        title: "Changes applied",
+        description: "Document updated with original content",
+      });
+    }
   };
 
   const insertMarkdown = (markdownSyntax: string) => {
@@ -1141,54 +1282,37 @@ const MarkdownEditor = forwardRef<
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => {
-                if (diffOriginal && selectedDocumentId) {
-                  // Update document with the original content (left side)
-                  updateDocument(
-                    selectedDocumentId, 
-                    { content: diffOriginal }, 
-                    true, 
-                    `Restored from diff view on ${new Date().toLocaleString()}`
-                  );
-                  setContent(diffOriginal);
-                  handleCloseDiff();
-                  
-                  // Show toast notification
-                  toast({
-                    title: "Version restored",
-                    description: "The left version has been restored.",
-                  });
-                }
-              }}
-              title="Restore the left version"
+              onClick={copySelectionFromRightToLeft}
+              title="Copy selected text from right to left"
             >
-              Restore Left
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Copy Selection to Left
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => {
-                if (diffModified && selectedDocumentId) {
-                  // Update document with the modified content (right side)
-                  updateDocument(
-                    selectedDocumentId, 
-                    { content: diffModified }, 
-                    true, 
-                    `Restored from diff view on ${new Date().toLocaleString()}`
-                  );
-                  setContent(diffModified);
-                  handleCloseDiff();
-                  
-                  // Show toast notification
-                  toast({
-                    title: "Version restored",
-                    description: "The right version has been restored.",
-                  });
-                }
-              }}
-              title="Restore the right version"
+              onClick={copySelectionFromLeftToRight}
+              title="Copy selected text from left to right"
             >
-              Restore Right
+              Copy Selection to Right
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+            <div className="h-full w-px bg-border mx-1"></div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={applyOriginalContent}
+              title="Apply the left version with any modifications"
+            >
+              Apply Left
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={applyModifiedContent}
+              title="Apply the right version with any modifications"
+            >
+              Apply Right
             </Button>
             <Button 
               variant="outline" 
@@ -1197,7 +1321,7 @@ const MarkdownEditor = forwardRef<
               title="Close diff view"
             >
               <X className="h-4 w-4 mr-2" />
-              Close Diff
+              Close
             </Button>
           </div>
         </div>
@@ -1239,9 +1363,15 @@ const MarkdownEditor = forwardRef<
                   vertical: "visible",
                   horizontal: "visible",
                 },
-                readOnly: true,
+                readOnly: false, // Allow editing to enable selection and copying
               }}
               className="diff-editor-container"
+              onMount={(editor) => {
+                // Get both the original (left) and modified (right) editors
+                const diffEditor = editor as monaco.editor.IDiffEditor;
+                setDiffLeftEditor(diffEditor.getOriginalEditor());
+                setDiffRightEditor(diffEditor.getModifiedEditor());
+              }}
             />
           )}
         </div>
