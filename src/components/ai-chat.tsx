@@ -1324,7 +1324,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                         </div>
                       ) : (
                               <div className="bg-primary/10 rounded-lg p-3 text-sm">
-                                {message.userContent}
+                                <div className="whitespace-pre-wrap">{message.userContent}</div>
                                 <div className="mt-2 flex justify-end gap-1 border-t pt-2">
                                   <BookmarkMessage messageContent={message.userContent} />
                           <Button
@@ -1366,7 +1366,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="bg-muted rounded-lg p-3 text-sm">
-                              {message.assistantContent}
+                              <div className="whitespace-pre-wrap">{message.assistantContent}</div>
                               <div className="mt-2 flex justify-end gap-1 border-t pt-2">
                                 <BookmarkMessage messageContent={message.assistantContent} />
                             <Button

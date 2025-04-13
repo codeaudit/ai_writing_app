@@ -621,25 +621,64 @@ export const deleteDocument = (docId: string) => {
 };
 
 // Delete a folder from the file system
-export const deleteFolder = (folderId: string) => {
+export const deleteFolder = (folderId: string, options?: { recursive?: boolean }): { 
+  success: boolean; 
+  error?: string; 
+  canRecurse?: boolean;
+  documentCount?: number;
+} => {
   try {
+    const recursive = options?.recursive || false;
+    
     // Get folder metadata
     const folders = loadFolders();
     const folder = folders.find(f => f.id === folderId);
     
     if (!folder) {
-      return;
+      return { success: false, error: 'Folder not found' };
     }
     
     // Check if folder has documents
     const documents = loadDocuments();
-    const hasDocuments = documents.some(doc => doc.folderId === folderId);
+    const folderDocuments = documents.filter(doc => doc.folderId === folderId);
+    const hasDocuments = folderDocuments.length > 0;
     
     // Check if folder has subfolders
-    const hasSubfolders = folders.some(f => f.parentId === folderId);
+    const subfolders = folders.filter(f => f.parentId === folderId);
+    const hasSubfolders = subfolders.length > 0;
     
-    if (hasDocuments || hasSubfolders) {
-      throw new Error('Cannot delete folder that contains documents or subfolders');
+    // If the folder has contents but we're not doing recursive deletion,
+    // return an error with the option to use recursive deletion
+    if ((hasDocuments || hasSubfolders) && !recursive) {
+      return { 
+        success: false, 
+        error: 'Cannot delete folder that contains documents or subfolders', 
+        canRecurse: true,
+        documentCount: folderDocuments.length
+      };
+    }
+    
+    // For recursive deletion, we need to:
+    // 1. Recursively delete all subfolders
+    // 2. Delete or move to trash all documents in this folder
+    if (recursive) {
+      // First recursively delete all subfolders
+      for (const subfolder of subfolders) {
+        const result = deleteFolder(subfolder.id, { recursive: true });
+        if (!result.success) {
+          return result; // Propagate the error
+        }
+      }
+      
+      // Then delete or move all documents to trash
+      for (const doc of folderDocuments) {
+        // For documents in folders marked for deletion, we'll move them to trash
+        // instead of permanently deleting them for safety
+        const result = moveToTrash(doc.id);
+        if (!result.success) {
+          return { success: false, error: `Failed to remove document: ${result.error}` };
+        }
+      }
     }
     
     // Remove folder from index
@@ -651,14 +690,29 @@ export const deleteFolder = (folderId: string) => {
     
     if (fs.existsSync(folderPath)) {
       try {
-        fs.rmdirSync(folderPath);
+        if (recursive) {
+          // Use rmSync with recursive option for recursive deletion
+          fs.rmSync(folderPath, { recursive: true, force: true });
+        } else {
+          // Use rmdirSync for empty folders
+          fs.rmdirSync(folderPath);
+        }
       } catch (error) {
         console.error(`Error removing folder directory ${folderPath}:`, error);
+        return { 
+          success: false, 
+          error: `Failed to remove folder directory: ${error instanceof Error ? error.message : String(error)}`
+        };
       }
     }
+    
+    return { success: true };
   } catch (error) {
     console.error('Error deleting folder:', error);
-    throw error;
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : String(error)
+    };
   }
 };
 

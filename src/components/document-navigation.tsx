@@ -1539,12 +1539,16 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
         
         // Delete all folders in trash recursively
         for (const folder of trashFolders) {
-          // Try to delete recursively
-          try {
-            deleteFolder(folder.id);
-          } catch (error) {
-            console.error("Error deleting folder from trash:", error);
-          }
+          // Use recursive deletion for folders in trash
+          useDocumentStore.getState().deleteRecursively(folder.id)
+            .catch(error => {
+              console.error("Error deleting folder from trash:", error);
+              toast({
+                variant: "destructive",
+                title: "Error",
+                description: `Failed to delete folder "${folder.name}": ${error.message || "Unknown error"}`
+              });
+            });
         }
         
         toast({
@@ -1570,14 +1574,16 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     if (isInTrash) {
       // If already in trash, confirm permanent deletion
       if (confirm(`Are you sure you want to permanently delete folder "${folder.name}" and all its contents? This action cannot be undone.`)) {
-        deleteFolder(folderId).catch(error => {
-          console.error("Error deleting folder:", error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to delete folder. The folder might not be empty."
+        useDocumentStore.getState().deleteRecursively(folderId)
+          .catch(error => {
+            console.error("Error deleting folder:", error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: error.message || "Failed to delete folder."
+            });
+            return;
           });
-        });
         
         toast({
           title: "Folder deleted",
@@ -1595,14 +1601,16 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
       } else {
         // No trash folder, fall back to delete
         if (confirm(`Are you sure you want to delete folder "${folder.name}" and all its contents?`)) {
-          deleteFolder(folderId).catch(error => {
-            console.error("Error deleting folder:", error);
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Failed to delete folder. The folder might not be empty."
+          useDocumentStore.getState().deleteRecursively(folderId)
+            .catch(error => {
+              console.error("Error deleting folder:", error);
+              toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to delete folder."
+              });
+              return;
             });
-          });
           
           toast({
             title: "Folder deleted",
@@ -1620,13 +1628,30 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     // Check if the error is a non-empty folder error that can be recursively deleted
     if (error && typeof error === 'object' && 'canRecurse' in error && error.canRecurse && error.folderId) {
       const folder = folders.find(f => f.id === error.folderId);
+      // Now we can safely access documentCount since it's part of the type
+      const documentCount = error.documentCount || 0;
       
-      if (folder && confirm(`${error.message}\n\nDo you want to delete this folder and all its contents?`)) {
-        // User confirmed recursive deletion, use the store directly
-        const store = useDocumentStore.getState();
-        if (store.deleteRecursively) {
-          store.deleteRecursively(error.folderId);
-        }
+      let message = error.message || 'This folder contains items.';
+      if (documentCount > 0) {
+        message += ` It contains ${documentCount} document${documentCount !== 1 ? 's' : ''}.`;
+      }
+      
+      if (folder && confirm(`${message}\n\nDo you want to delete this folder and all its contents?`)) {
+        // Use the store's deleteRecursively method
+        useDocumentStore.getState().deleteRecursively(error.folderId)
+          .then(() => {
+            toast({
+              title: "Folder deleted",
+              description: `"${folder.name}" and all its contents have been deleted.`
+            });
+          })
+          .catch(err => {
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: err.message || "Failed to delete folder."
+            });
+          });
       }
       // Clear the error state
       useDocumentStore.getState().setError(null);

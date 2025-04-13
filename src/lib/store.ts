@@ -97,6 +97,7 @@ interface DocumentStore {
     message: string;
     canRecurse?: boolean;
     folderId?: string;
+    documentCount?: number;
   };
   backlinks: { id: string, name: string }[];
   
