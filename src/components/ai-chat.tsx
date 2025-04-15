@@ -67,6 +67,10 @@ import { AIRoleSwitcher } from './ai-role-switcher';
 import { useTheme } from "next-themes";
 import { useInView } from "react-intersection-observer";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css"; // Import KaTeX CSS
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/components/ui/use-toast";
 import { useForm } from "react-hook-form";
@@ -1366,7 +1370,15 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="bg-muted rounded-lg p-3 text-sm">
-                              <div className="whitespace-pre-wrap">{message.assistantContent}</div>
+                              {/* Render Markdown with Math support */}
+                              <div className="prose prose-sm dark:prose-invert max-w-none">
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm, remarkMath]} 
+                                  rehypePlugins={[rehypeKatex]}
+                                >
+                                  {message.assistantContent}
+                                </ReactMarkdown>
+                              </div>
                               <div className="mt-2 flex justify-end gap-1 border-t pt-2">
                                 <BookmarkMessage messageContent={message.assistantContent} />
                             <Button
