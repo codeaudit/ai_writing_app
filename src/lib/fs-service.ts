@@ -122,6 +122,19 @@ const getFolderPath = (folder: Folder, folders: Folder[]): string => {
   return path.join(VAULT_DIR, ...folderPath);
 };
 
+// Helper function to get relative path for a document (vault-relative, no .md extension)
+const getRelativeDocumentPath = (document: Document, folders: Folder[]): string => {
+  const fullPath = getDocumentPath(document, folders);
+  const relativePathWithExt = path.relative(VAULT_DIR, fullPath);
+  return relativePathWithExt.replace(/\.md$/, '');
+};
+
+// Helper function to get relative path for a folder (vault-relative)
+const getRelativeFolderPath = (folder: Folder, folders: Folder[]): string => {
+  const fullPath = getFolderPath(folder, folders);
+  return path.relative(VAULT_DIR, fullPath);
+};
+
 // Sanitize a name for use in the filesystem
 const sanitizeName = (name: string): string => {
   return name.replace(/[/\\?%*:|"<>]/g, '-');
@@ -417,7 +430,7 @@ export const loadDocuments = (): Document[] => {
             folderId,
             annotations: Array.isArray(data.annotations) ? data.annotations.map((anno: any) => ({
               id: anno.id,
-              documentId: anno.documentId || docId, // Default to the document ID if not specified
+              documentId: anno.documentId || doc.id, // Default to the document ID if not specified
               startOffset: anno.startOffset,
               endOffset: anno.endOffset,
               content: anno.content || '',
@@ -721,56 +734,51 @@ export const renameDocument = (docId: string, newName: string) => {
   try {
     // Get document metadata
     const documents = loadDocuments();
+    const folders = loadFolders(); // Load folders once
     const document = documents.find(doc => doc.id === docId);
     
     if (!document) {
       return null;
     }
     
-    // Get the old path before updating the name
-    const folders = loadFolders();
+    // Get the old path and relative path before updating
     const oldPath = getDocumentPath(document, folders);
+    const oldRelativePath = getRelativeDocumentPath(document, folders);
     
     // Update document name
     document.name = newName;
     document.updatedAt = new Date();
     
-    // Get the new path after updating the name
+    // Get the new path and relative path after updating the name
     const newPath = getDocumentPath(document, folders);
+    const newRelativePath = getRelativeDocumentPath(document, folders);
     
-    // Move the file if it exists
+    // Rename the file using fs.renameSync for atomicity
     if (fs.existsSync(oldPath)) {
-      // Ensure the directory exists
+      // Ensure the target directory exists
       ensureDir(path.dirname(newPath));
       
-      // Read the content
-      const content = fs.readFileSync(oldPath, 'utf8');
+      // Perform the rename/move
+      fs.renameSync(oldPath, newPath);
       
-      // Write to new location
-      fs.writeFileSync(newPath, content, 'utf8');
-      
-      // Delete the old file - ensure this runs
-      try {
-        fs.unlinkSync(oldPath);
-      } catch (deleteError) {
-        console.error(`Error deleting old file at ${oldPath}:`, deleteError);
-        // Try with rimraf-like approach if direct unlink fails
-        if (fs.existsSync(oldPath)) {
-          fs.writeFileSync(oldPath, '', 'utf8'); // Clear the file first
-          fs.unlinkSync(oldPath); // Try delete again
-        }
-      }
+      // Update links pointing to the old path
+      updateLinksExactMatch(oldRelativePath, newRelativePath);
+    } else {
+      // If file didn't exist, still update links based on metadata change
+      updateLinksExactMatch(oldRelativePath, newRelativePath);
     }
     
-    // Update the index
+    // Update the index *only after* successful operation
     const updatedDocuments = documents.map(doc => 
       doc.id === docId ? document : doc
     );
+    // Regenerate index from updated documents in memory
     writeJsonFile(DOCUMENTS_INDEX, updatedDocuments);
     
     return document;
   } catch (error) {
     console.error('Error renaming document:', error);
+    // Re-throw the error so the caller knows it failed
     throw error;
   }
 };
@@ -786,14 +794,16 @@ export const renameFolder = (folderId: string, newName: string) => {
       return null;
     }
     
-    // Get the old path
+    // Get the old path and relative path
     const oldPath = getFolderPath(folder, folders);
+    const oldRelativeFolderPath = getRelativeFolderPath(folder, folders);
     
     // Update folder name
     folder.name = newName;
     
-    // Get the new path
+    // Get the new path and relative path
     const newPath = getFolderPath(folder, folders);
+    const newRelativeFolderPath = getRelativeFolderPath(folder, folders);
     
     // Move the directory
     if (fs.existsSync(oldPath)) {
@@ -802,6 +812,12 @@ export const renameFolder = (folderId: string, newName: string) => {
       
       // Rename the directory
       fs.renameSync(oldPath, newPath);
+
+      // Update links that used the old folder path prefix
+      updateLinksFolderPrefix(oldRelativeFolderPath, newRelativeFolderPath);
+    } else {
+        // If folder didn't exist, still update links based on metadata change
+        updateLinksFolderPrefix(oldRelativeFolderPath, newRelativeFolderPath);
     }
     
     // Update the index
@@ -822,39 +838,41 @@ export const moveDocument = (docId: string, targetFolderId: string | null) => {
   try {
     // Get document metadata
     const documents = loadDocuments();
+    const folders = loadFolders(); // Load folders once
     const document = documents.find(doc => doc.id === docId);
     
     if (!document) {
       return null;
     }
     
-    // Get the old path
-    const folders = loadFolders();
+    // Get the old path and relative path
     const oldPath = getDocumentPath(document, folders);
+    const oldRelativePath = getRelativeDocumentPath(document, folders);
     
     // Update document folder
     document.folderId = targetFolderId;
     document.updatedAt = new Date();
     
-    // Get the new path
+    // Get the new path and relative path
     const newPath = getDocumentPath(document, folders);
+    const newRelativePath = getRelativeDocumentPath(document, folders);
     
-    // Move the file
+    // Move the file using fs.renameSync for atomicity
     if (fs.existsSync(oldPath)) {
-      // Ensure the directory exists
+      // Ensure the target directory exists
       ensureDir(path.dirname(newPath));
       
-      // Read the content
-      const content = fs.readFileSync(oldPath, 'utf8');
-      
-      // Write to new location
-      fs.writeFileSync(newPath, content, 'utf8');
-      
-      // Delete the old file
-      fs.unlinkSync(oldPath);
+      // Perform the move (rename across directories)
+      fs.renameSync(oldPath, newPath);
+
+      // Update links pointing to the old path
+      updateLinksExactMatch(oldRelativePath, newRelativePath);
+    } else {
+        // If file didn't exist, still update links based on metadata change
+        updateLinksExactMatch(oldRelativePath, newRelativePath);
     }
     
-    // Update the index
+    // Update the index *only after* successful operation
     const updatedDocuments = documents.map(doc => 
       doc.id === docId ? document : doc
     );
@@ -863,6 +881,7 @@ export const moveDocument = (docId: string, targetFolderId: string | null) => {
     return document;
   } catch (error) {
     console.error('Error moving document:', error);
+    // Re-throw the error so the caller knows it failed
     throw error;
   }
 };
@@ -891,14 +910,16 @@ export const moveFolder = (folderId: string, targetParentId: string | null) => {
       }
     }
     
-    // Get the old path
+    // Get the old path and relative path
     const oldPath = getFolderPath(folder, folders);
+    const oldRelativeFolderPath = getRelativeFolderPath(folder, folders);
     
     // Update folder parent
     folder.parentId = targetParentId;
     
-    // Get the new path
+    // Get the new path and relative path
     const newPath = getFolderPath(folder, folders);
+    const newRelativeFolderPath = getRelativeFolderPath(folder, folders);
     
     // Move the directory
     if (fs.existsSync(oldPath)) {
@@ -907,6 +928,12 @@ export const moveFolder = (folderId: string, targetParentId: string | null) => {
       
       // Rename/move the directory
       fs.renameSync(oldPath, newPath);
+
+      // Update links that used the old folder path prefix
+      updateLinksFolderPrefix(oldRelativeFolderPath, newRelativeFolderPath);
+    } else {
+        // If folder didn't exist, still update links based on metadata change
+        updateLinksFolderPrefix(oldRelativeFolderPath, newRelativeFolderPath);
     }
     
     // Update the index
@@ -954,23 +981,76 @@ export const getBacklinks = (docId: string): { id: string; name: string }[] => {
   return backlinks.map(doc => ({ id: doc.id, name: doc.name }));
 };
 
-// Update links when a document is renamed
-export const updateLinks = (oldName: string, newName: string) => {
+// Update links when a document path changes (rename or move)
+// Handles exact matches: [[old/path/to/doc]] -> [[new/path/to/doc]]
+export const updateLinksExactMatch = (oldRelativePath: string, newRelativePath: string) => {
   const documents = loadDocuments();
   let updatedCount = 0;
-  
+
+  // Escape paths for regex
+  const oldLinkContent = escapeRegExp(oldRelativePath);
+  // Regex to find the link, capturing potential display text '|displayText'
+  const oldLinkRegex = new RegExp(`\[\[${oldLinkContent}(\|.*?)?\]\]`, 'g');
+
   for (const doc of documents) {
-    const oldLink = `[[${oldName}]]`;
-    const newLink = `[[${newName}]]`;
-    
-    if (doc.content.includes(oldLink)) {
-      doc.content = doc.content.replace(new RegExp(escapeRegExp(oldLink), 'g'), newLink);
+    let contentChanged = false;
+    doc.content = doc.content.replace(oldLinkRegex, (match, displayPipe) => {
+      contentChanged = true;
+      const displaySuffix = displayPipe || ''; // displayPipe will be like "|displayText" or undefined
+      return `[[${newRelativePath}${displaySuffix}]]`;
+    });
+
+    if (contentChanged) {
+      doc.updatedAt = new Date();
+      // saveDocument also updates the file content on disk
+      saveDocument(doc);
+      updatedCount++;
+    }
+  }
+
+  if (updatedCount > 0) {
+    console.log(`Updated exact link matches in ${updatedCount} documents: ${oldRelativePath} -> ${newRelativePath}`);
+  }
+  return updatedCount;
+};
+
+// Update links when a folder path changes (rename or move)
+// Handles prefix matches: [[old/folder/path/doc]] -> [[new/folder/path/doc]]
+export const updateLinksFolderPrefix = (oldRelativeFolderPath: string, newRelativeFolderPath: string) => {
+  const documents = loadDocuments();
+  let updatedCount = 0;
+
+  // Ensure paths don't have trailing slashes for consistency, handle root case
+  const oldPrefixPattern = oldRelativeFolderPath === '' ? '' : escapeRegExp(oldRelativeFolderPath) + '\/';
+  const newPrefix = newRelativeFolderPath === '' ? '' : newRelativeFolderPath + '/';
+
+  // Regex to find links starting with the old folder path prefix, capturing the rest
+  // Matches [[oldFolder/rest/of/path...]] or [[oldFolder/rest/of/path...|displayText]]
+  const oldLinkRegex = new RegExp(`\[\[(${oldPrefixPattern})(.*?)(\|.*?)?\]\]`, 'g');
+
+  for (const doc of documents) {
+    let contentChanged = false;
+    // Match: [[prefix][restOfPath][displayPipe?]]
+    doc.content = doc.content.replace(oldLinkRegex, (match, _prefix, restOfPath, displayPipe) => {
+      // Avoid matching the folder itself if it was linked directly
+      if (restOfPath === '') return match;
+
+      contentChanged = true;
+      const displaySuffix = displayPipe || '';
+      const newFullPath = `${newPrefix}${restOfPath}`;
+      return `[[${newFullPath}${displaySuffix}]]`;
+    });
+
+    if (contentChanged) {
       doc.updatedAt = new Date();
       saveDocument(doc);
       updatedCount++;
     }
   }
-  
+
+  if (updatedCount > 0) {
+    console.log(`Updated folder prefix links in ${updatedCount} documents: ${oldRelativeFolderPath}/ -> ${newPrefix}`);
+  }
   return updatedCount;
 };
 

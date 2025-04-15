@@ -1441,7 +1441,7 @@ export default function AIChat({ onInsertText, isExpanded, onToggleExpand }: AIC
               onFocus={handleFocus}
               onBlur={handleBlur}
               className={cn(
-                "flex-1 resize-y text-xs px-2 py-1.5 pr-12 transition-all duration-200",
+                "flex-1 resize-y text-xs px-2 py-1.5 pr-12 transition-all duration-200 ai-chat-textarea",
                 isExpanded 
                   ? "min-h-[150px] max-h-[500px] border-primary/50 text-sm"
                   : isInputFocused 

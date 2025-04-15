@@ -8,7 +8,7 @@ import AIComposer from "@/components/ai-composer";
 import Compositions from "@/components/compositions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { PanelLeft, PanelRight, Maximize2, Minimize2, FileText, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon, BookOpen, ArrowLeft, ArrowRight, Folder, ListPlus, Settings } from "lucide-react";
+import { PanelLeft, PanelRight, Maximize2, Minimize2, FileText, Info, ChevronRight, ChevronLeft, Sparkles, BookmarkIcon, BookOpen, ArrowLeft, ArrowRight, Folder, ListPlus, Settings, History, Copy, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useRouter } from "next/navigation";
@@ -23,12 +23,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import SessionManager from "@/components/session-manager";
 import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import { useSessionStore } from '@/lib/session-store';
 import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "@/components/ui/use-toast";
+import { RefreshCw } from "lucide-react";
 
 // Define layout constants
 const LAYOUT_STORAGE_KEY = "editor-layout-config";
@@ -98,6 +103,9 @@ const Home = () => {
     history,
     currentIndex
   } = useNavigationHistory();
+
+  // Add this line for user messages state
+  const [userMessages, setUserMessages] = useState<Array<{timestamp: string, message: string}>>([]);
 
   // Handle client-side mounting
   useEffect(() => {
@@ -575,6 +583,56 @@ const Home = () => {
     }
   }, [folders, documents]);
 
+  // Function to insert message into AI Chat input
+  const insertMessageIntoAIChat = (message: string) => {
+    // First copy to clipboard as fallback
+    navigator.clipboard.writeText(message);
+    
+    // Try to find the AI Chat textarea
+    const aiTextarea = document.querySelector('.ai-chat-textarea') as HTMLTextAreaElement;
+    
+    if (aiTextarea) {
+      // Set the value
+      aiTextarea.value = message;
+      
+      // Trigger an input event to make sure React state updates
+      const event = new Event('input', { bubbles: true });
+      aiTextarea.dispatchEvent(event);
+      
+      // Focus the textarea
+      aiTextarea.focus();
+      
+      // If the right panel is not visible, make it visible
+      if (!layoutConfig.rightPanelVisible) {
+        toggleRightPanel();
+      }
+      
+      // If the right panel tab is not 'ai', switch to it
+      if (rightPanelTab !== 'ai') {
+        setRightPanelTab('ai');
+      }
+    } else {
+      // If we can't find the textarea, just notify and keep it in clipboard
+      toast({
+        title: "Message copied",
+        description: "Message copied to clipboard. The AI Chat is not currently visible.",
+        duration: 3000,
+      });
+    }
+  };
+
+  // Load user messages on mount - add near other useEffect hooks that load data
+  useEffect(() => {
+    if (isMounted) {
+      fetch('/api/history?format=messages')
+        .then(response => response.json())
+        .then(data => {
+          setUserMessages(data.messages || []);
+        })
+        .catch(err => console.error('Error loading message history:', err));
+    }
+  }, [isMounted]);
+
   return (
     <div className="relative flex h-screen">
       <main className="flex flex-col h-screen overflow-hidden w-full">
@@ -748,6 +806,84 @@ const Home = () => {
             </Button>
             
             <ThemeToggle />
+            
+            {/* History Button with Dropdown for User Messages */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  title="View User Message History"
+                >
+                  <History className="h-5 w-5" /> 
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel className="flex justify-between items-center">
+                  <span>User Message History</span>
+                  <Button
+                    variant="ghost" 
+                    size="sm"
+                    className="h-5 w-5 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fetch('/api/history?format=messages')
+                        .then(response => response.json())
+                        .then(data => {
+                          setUserMessages(data.messages || []);
+                        })
+                        .catch(err => console.error('Error loading message history:', err));
+                    }}
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <ScrollArea className="h-[300px]">
+                  {userMessages.length === 0 ? (
+                    <DropdownMenuItem disabled className="text-center py-4">
+                      <div className="flex flex-col items-center justify-center w-full gap-2">
+                        <MessageSquare className="h-6 w-6 text-muted-foreground/50" />
+                        <span className="text-muted-foreground">No message history found</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ) : (
+                    userMessages.map((msg, index) => (
+                      <DropdownMenuItem
+                        key={`msg-${index}`}
+                        className="flex items-start gap-2 py-2"
+                        onClick={() => {
+                          insertMessageIntoAIChat(msg.message);
+                        }}
+                      >
+                        <MessageSquare className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                        <div className="flex flex-col flex-1">
+                          <span className="text-xs text-muted-foreground">{msg.timestamp}</span>
+                          <span className="text-sm break-words line-clamp-2">{msg.message}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 p-0 ml-auto flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(msg.message);
+                            toast({
+                              title: "Copied to clipboard",
+                              duration: 2000,
+                            });
+                          }}
+                          title="Copy to clipboard"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </ScrollArea>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {/* End of History Button Dropdown */}
           </div>
         </header>
         
