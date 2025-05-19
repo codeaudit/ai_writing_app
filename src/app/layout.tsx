@@ -105,6 +105,7 @@ export default function RootLayout({
                   <div className="relative">
                     <ConfigInitializer />
                     {children}
+                    <GlobalStatusNotifier />
                     <Toaster />
                   </div>
                 </div>

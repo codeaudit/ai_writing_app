@@ -244,11 +244,16 @@ export const useDocumentStore = create<DocumentStore>()(
           // Load compositions after documents and folders are loaded
           await get().loadCompositions();
         } catch (error) {
-          console.error('Error loading data:', error);
+          console.error('Error loading data from server:', error);
           set({ 
             isLoading: false,
-            error: 'Failed to load data from server. Using local data instead.'
+            error: {
+              message: 'Failed to load fresh data from server. Displaying locally cached data, which might be outdated.',
+              type: 'LOAD_DATA_SERVER_FAILURE',
+              originalError: error instanceof Error ? error.message : String(error)
+            }
           });
+          // Do not call loadCompositions() here as the primary data fetch failed.
         }
       },
       
@@ -312,7 +317,12 @@ export const useDocumentStore = create<DocumentStore>()(
           await saveDocumentToServer(newDocument);
         } catch (error) {
           console.error('Error saving document to server:', error);
-          set({ error: 'Failed to save document to server. Changes may not persist.' });
+          // Rollback the optimistic update
+          set((state) => ({
+            documents: state.documents.filter((doc) => doc.id !== newDocument.id),
+            selectedDocumentId: state.selectedDocumentId === newDocument.id ? null : state.selectedDocumentId,
+            error: 'Failed to save document to server. Local changes have been reverted.',
+          }));
         }
         
         return newDocument.id;
@@ -321,74 +331,85 @@ export const useDocumentStore = create<DocumentStore>()(
       updateDocument: async (id, data, createVersion = false, versionMessage = "") => {
         set({ error: null });
         const state = get();
-        const documentToUpdate = state.documents.find(doc => doc.id === id);
-        if (!documentToUpdate) return;
-        
-        let versions = [...(documentToUpdate.versions || [])];
-        
-        if (createVersion) {
-          const timestamp = new Date();
-          const newVersion: DocumentVersion = {
-            id: `ver-${timestamp.getTime()}`,
-            content: documentToUpdate.content,
-            createdAt: timestamp,
-            message: versionMessage || `Version created on ${timestamp.toLocaleString()}`,
-          };
-          versions = [newVersion, ...versions];
-        }
-        
-        // Check if the content has frontmatter with contextDocuments
-        let contextDocuments = documentToUpdate.contextDocuments;
-        if (data.content) {
-          const frontmatterMatch = data.content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-          if (frontmatterMatch) {
-            const frontmatter = frontmatterMatch[1];
-            const contextDocumentsMatch = frontmatter.match(/contextDocuments:\s*(.*)/);
-            if (contextDocumentsMatch) {
-              try {
-                contextDocuments = JSON.parse(contextDocumentsMatch[1].trim());
-              } catch (e) {
-                console.error('Error parsing contextDocuments from frontmatter:', e);
+        const originalDocument = state.documents.find(doc => doc.id === id);
+        if (!originalDocument) return;
+
+        // Deep copy the original document for potential rollback
+        const originalDocumentCopy = JSON.parse(JSON.stringify(originalDocument));
+
+        try {
+          let versions = [...(originalDocument.versions || [])];
+          
+          if (createVersion) {
+            const timestamp = new Date();
+            const newVersion: DocumentVersion = {
+              id: `ver-${timestamp.getTime()}`,
+              content: originalDocument.content, // Version should capture content before this update
+              createdAt: timestamp,
+              message: versionMessage || `Version created on ${timestamp.toLocaleString()}`,
+            };
+            versions = [newVersion, ...versions];
+          }
+          
+          // Check if the content has frontmatter with contextDocuments
+          let contextDocuments = originalDocument.contextDocuments;
+          if (data.content) {
+            const frontmatterMatch = data.content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+            if (frontmatterMatch) {
+              const frontmatter = frontmatterMatch[1];
+              const contextDocumentsMatch = frontmatter.match(/contextDocuments:\s*(.*)/);
+              if (contextDocumentsMatch) {
+                try {
+                  contextDocuments = JSON.parse(contextDocumentsMatch[1].trim());
+                } catch (e) {
+                  // Log error but don't prevent update, contextDocuments might be manually edited
+                  console.error('Error parsing contextDocuments from frontmatter:', e);
+                }
               }
             }
           }
-        }
-        
-        // Check if the name is being updated with an extension
-        let extension = documentToUpdate.extension;
-        let newName = data.name;
-        
-        if (newName) {
-          const hasExtension = newName.endsWith('.md') || newName.endsWith('.mdx');
-          if (hasExtension) {
-            extension = `.${newName.split('.').pop()}`;
-            newName = newName.slice(0, newName.lastIndexOf('.'));
+          
+          // Check if the name is being updated with an extension
+          let extension = originalDocument.extension;
+          let newName = data.name;
+          
+          if (newName) {
+            const hasExtension = newName.endsWith('.md') || newName.endsWith('.mdx');
+            if (hasExtension) {
+              extension = `.${newName.split('.').pop()}`;
+              newName = newName.slice(0, newName.lastIndexOf('.'));
+            }
           }
-        }
-        
-        const updatedDoc = { 
-          ...documentToUpdate, 
-          ...data,
-          name: newName || documentToUpdate.name,
-          updatedAt: new Date(),
-          versions: versions,
-          ...(contextDocuments && { contextDocuments }),
-          extension,
-        };
-        
-        // Update local state immediately
-        set((state) => ({
-          documents: state.documents.map((doc) => 
-            doc.id === id ? updatedDoc : doc
-          ),
-        }));
-        
-        // Then save to server
-        try {
+          
+          const updatedDoc = { 
+            ...originalDocument, 
+            ...data,
+            name: newName || originalDocument.name,
+            updatedAt: new Date(),
+            versions: versions,
+            ...(contextDocuments && { contextDocuments }),
+            extension,
+          };
+          
+          // Update local state immediately (optimistic update)
+          set((currentState) => ({
+            documents: currentState.documents.map((doc) => 
+              doc.id === id ? updatedDoc : doc
+            ),
+          }));
+          
+          // Then save to server
           await saveDocumentToServer(updatedDoc);
+
         } catch (error) {
-          console.error('Error updating document on server:', error);
-          set({ error: 'Failed to update document on server. Changes may not persist.' });
+          console.error('Error updating document:', error);
+          // Rollback the optimistic update
+          set((currentState) => ({
+            documents: currentState.documents.map((doc) =>
+              doc.id === id ? originalDocumentCopy : doc
+            ),
+            error: 'Failed to update document on server. Local changes have been reverted.',
+          }));
         }
       },
       
@@ -412,17 +433,28 @@ export const useDocumentStore = create<DocumentStore>()(
 
       deleteDocument: async (id) => {
         set({ error: null });
+        const state = get();
+        const documentToDelete = state.documents.find(doc => doc.id === id);
+
+        if (!documentToDelete) {
+          // Document not found, maybe already deleted or an invalid ID was passed
+          console.warn(`Document with id ${id} not found for deletion.`);
+          return;
+        }
         
-        // Update local state immediately
-        set((state) => ({
-          documents: state.documents.filter((doc) => doc.id !== id),
-          selectedDocumentId: state.selectedDocumentId === id 
-            ? (state.documents.length > 1 
-                ? state.documents.find(d => d.id !== id)?.id ?? null 
-                : null) 
-            : state.selectedDocumentId,
-          // Also remove from comparison documents if present
-          comparisonDocumentIds: state.comparisonDocumentIds.filter(docId => docId !== id)
+        // Store a copy for potential rollback
+        const originalDocumentCopy = JSON.parse(JSON.stringify(documentToDelete));
+        let originalIndex = state.documents.findIndex(doc => doc.id === id); // Store original index
+
+        // Optimistic update: Remove the document from local state
+        set((currentState) => ({
+          documents: currentState.documents.filter((doc) => doc.id !== id),
+          selectedDocumentId: currentState.selectedDocumentId === id 
+            ? (currentState.documents.filter(doc => doc.id !== id).length > 0
+                ? currentState.documents.filter(doc => doc.id !== id)[0].id
+                : null)
+            : currentState.selectedDocumentId,
+          comparisonDocumentIds: currentState.comparisonDocumentIds.filter(docId => docId !== id)
         }));
         
         // Then delete from server
@@ -430,7 +462,24 @@ export const useDocumentStore = create<DocumentStore>()(
           await deleteDocumentFromServer(id);
         } catch (error) {
           console.error('Error deleting document from server:', error);
-          set({ error: 'Failed to delete document from server.' });
+          // Rollback the optimistic deletion
+          set((currentState) => {
+            const newDocuments = [...currentState.documents];
+            // Re-insert at original position if possible, otherwise append
+            if (originalIndex !== -1 && originalIndex <= newDocuments.length) {
+              newDocuments.splice(originalIndex, 0, originalDocumentCopy);
+            } else {
+              newDocuments.push(originalDocumentCopy);
+            }
+            return {
+              documents: newDocuments,
+              // Optionally, restore selectedDocumentId if it was the one deleted.
+              // For simplicity, we're not changing selectedDocumentId back here,
+              // as the user might have selected something else or UI might handle it.
+              // comparisonDocumentIds would also need careful handling if we were to restore it perfectly.
+              error: 'Failed to delete document from server. Local changes have been reverted.',
+            };
+          });
         }
       },
       
@@ -488,36 +537,52 @@ export const useDocumentStore = create<DocumentStore>()(
           await saveFolderToServer(newFolder);
         } catch (error) {
           console.error('Error saving folder to server:', error);
-          set({ error: 'Failed to save folder to server. Changes may not persist.' });
+          // Rollback the optimistic update
+          set((state) => ({
+            folders: state.folders.filter((folder) => folder.id !== newFolder.id),
+            error: 'Failed to save folder to server. Local changes have been reverted.',
+          }));
         }
       },
       
       updateFolder: async (id, name, parentId) => {
         set({ error: null });
         const state = get();
-        const folderToUpdate = state.folders.find(folder => folder.id === id);
+        const originalFolder = state.folders.find(folder => folder.id === id);
         
-        if (!folderToUpdate) return;
-        
-        const updatedFolder = { 
-          ...folderToUpdate, 
+        if (!originalFolder) {
+          console.warn(`Folder with id ${id} not found for update.`);
+          return;
+        }
+
+        // Deep copy the original folder for potential rollback
+        const originalFolderCopy = JSON.parse(JSON.stringify(originalFolder));
+
+        const updatedFolderData = { 
+          ...originalFolder, 
           name, 
           ...(parentId !== undefined ? { parentId } : {}) 
         };
         
-        // Update local state immediately
-        set((state) => ({
-          folders: state.folders.map((folder) =>
-            folder.id === id ? updatedFolder : folder
+        // Update local state immediately (optimistic update)
+        set((currentState) => ({
+          folders: currentState.folders.map((folder) =>
+            folder.id === id ? updatedFolderData : folder
           ),
         }));
         
         // Then save to server
         try {
-          await saveFolderToServer(updatedFolder);
+          await saveFolderToServer(updatedFolderData);
         } catch (error) {
           console.error('Error updating folder on server:', error);
-          set({ error: 'Failed to update folder on server. Changes may not persist.' });
+          // Rollback the optimistic update
+          set((currentState) => ({
+            folders: currentState.folders.map((folder) =>
+              folder.id === id ? originalFolderCopy : folder
+            ),
+            error: 'Failed to update folder on server. Local changes have been reverted.',
+          }));
         }
       },
       
@@ -549,11 +614,11 @@ export const useDocumentStore = create<DocumentStore>()(
             } else {
               // Some other error occurred
               console.error('Error deleting folder:', error);
-              set({ error: error.message || 'Failed to delete folder.' });
+              set({ error: error.message || 'Failed to delete folder from server. An unexpected error occurred.' });
             }
           } else {
             console.error('Unknown error deleting folder:', error);
-            set({ error: 'Failed to delete folder.' });
+            set({ error: 'Failed to delete folder from server. An unexpected error occurred.' });
           }
         }
       },
@@ -566,19 +631,25 @@ export const useDocumentStore = create<DocumentStore>()(
           // Call server with recursive=true
           await deleteFolderFromServer(id, true);
           
-          // If successful, update local state
+          // If server deletion is successful, update local folder state
           set(state => ({
             folders: state.folders.filter(folder => folder.id !== id),
             selectedFolderId: state.selectedFolderId === id ? null : state.selectedFolderId
           }));
           
-          // Refresh the document list since documents in subfolders have been deleted
-          const documents = await fetchDocuments();
-          set({ documents: fixDates(documents) });
+          // Then, try to refresh the document list
+          try {
+            const documents = await fetchDocuments();
+            set({ documents: fixDates(documents) });
+          } catch (fetchError) {
+            console.error('Folder deleted, but failed to refresh documents:', fetchError);
+            set({ error: 'Folder deleted, but failed to refresh documents.' });
+          }
           
-        } catch (error) {
-          console.error('Error deleting folder recursively:', error);
-          set({ error: error instanceof Error ? error.message : 'Failed to delete folder and its contents.' });
+        } catch (deleteError) {
+          // This catch is for deleteFolderFromServer(id, true) failing
+          console.error('Error deleting folder recursively from server:', deleteError);
+          set({ error: deleteError instanceof Error ? deleteError.message : 'Failed to delete folder and its contents from server.' });
         }
       },
       
@@ -759,98 +830,118 @@ export const useDocumentStore = create<DocumentStore>()(
         }));
         
         // Then save to server
+        // Store a copy of the original document for potential rollback
+        const originalDocument = JSON.parse(JSON.stringify(document));
+
         try {
-          await saveDocumentToServer({ 
+          const documentWithNewAnnotation = { 
             ...document, 
             annotations: Array.isArray(document.annotations) ? [...document.annotations, newAnnotation] : [newAnnotation] 
-          });
+          };
+          await saveDocumentToServer(documentWithNewAnnotation);
         } catch (error) {
           console.error('Error saving annotation to server:', error);
-          set({ error: 'Failed to save annotation to server. Changes may not persist.' });
+          // Rollback the optimistic update by restoring the original document
+          set(state => ({
+            documents: state.documents.map(doc => 
+              doc.id === documentId ? originalDocument : doc
+            ),
+            error: 'Failed to add annotation. Document save failed. Local changes reverted.',
+          }));
         }
       },
       
       updateAnnotation: async (id, data) => {
         set({ error: null });
         const state = get();
-        // Find the document containing this annotation
-        let targetDocument: Document | undefined;
+        let originalDocument: Document | undefined;
         let annotationDocumentId: string = '';
-        
-        for (const doc of state.documents) {
-          // Ensure annotations is initialized as an array
+
+        // Find the document and store its original state
+        const documentsWithOriginal = state.documents.map(doc => {
           const docAnnotations = Array.isArray(doc.annotations) ? doc.annotations : [];
-          const foundAnnotation = docAnnotations.find(anno => anno.id === id);
-          if (foundAnnotation) {
-            targetDocument = doc;
+          if (docAnnotations.some(anno => anno.id === id)) {
             annotationDocumentId = doc.id;
-            break;
+            originalDocument = JSON.parse(JSON.stringify(doc)); // Deep copy for rollback
           }
+          return doc;
+        });
+
+        if (!originalDocument || !annotationDocumentId) {
+          console.warn(`Annotation with id ${id} or its document not found for update.`);
+          return;
         }
         
-        if (!targetDocument) return;
-        
-        // Ensure annotations is initialized as an array
-        const targetAnnotations = Array.isArray(targetDocument.annotations) ? targetDocument.annotations : [];
-        
-        const updatedAnnotations = targetAnnotations.map((anno) =>
+        // Optimistic update
+        const updatedAnnotations = (originalDocument.annotations || []).map((anno) =>
           anno.id === id ? { ...anno, ...data, updatedAt: new Date() } : anno
         );
         
-        // Update local state immediately
-        set((state) => ({
-          documents: state.documents.map((doc) =>
-            doc.id === annotationDocumentId ? { ...doc, annotations: updatedAnnotations } : doc
+        const optimisticallyUpdatedDocument = { ...originalDocument, annotations: updatedAnnotations };
+
+        set((currentState) => ({
+          documents: currentState.documents.map((doc) =>
+            doc.id === annotationDocumentId ? optimisticallyUpdatedDocument : doc
           ),
         }));
         
         // Then save to server
         try {
-          await saveDocumentToServer({ ...targetDocument, annotations: updatedAnnotations });
+          await saveDocumentToServer(optimisticallyUpdatedDocument);
         } catch (error) {
           console.error('Error updating annotation on server:', error);
-          set({ error: 'Failed to update annotation on server. Changes may not persist.' });
+          // Rollback the optimistic update
+          set((currentState) => ({
+            documents: currentState.documents.map((doc) =>
+              doc.id === annotationDocumentId ? originalDocument : doc // Revert to the original document copy
+            ),
+            error: 'Failed to update annotation. Document save failed. Local changes reverted.',
+          }));
         }
       },
       
       deleteAnnotation: async (id) => {
         set({ error: null });
         const state = get();
-        // Find the document containing this annotation
-        let targetDocument: Document | undefined;
+        let originalDocument: Document | undefined;
         let annotationDocumentId: string = '';
-        
-        for (const doc of state.documents) {
-          // Ensure annotations is initialized as an array
+
+        // Find the document and store its original state
+         state.documents.forEach(doc => {
           const docAnnotations = Array.isArray(doc.annotations) ? doc.annotations : [];
-          const foundAnnotation = docAnnotations.find(anno => anno.id === id);
-          if (foundAnnotation) {
-            targetDocument = doc;
+          if (docAnnotations.some(anno => anno.id === id)) {
             annotationDocumentId = doc.id;
-            break;
+            originalDocument = JSON.parse(JSON.stringify(doc)); // Deep copy for rollback
           }
+        });
+
+        if (!originalDocument || !annotationDocumentId) {
+          console.warn(`Annotation with id ${id} or its document not found for deletion.`);
+          return;
         }
         
-        if (!targetDocument) return;
+        // Optimistic update
+        const updatedAnnotations = (originalDocument.annotations || []).filter((anno) => anno.id !== id);
+        const optimisticallyUpdatedDocument = { ...originalDocument, annotations: updatedAnnotations };
         
-        // Ensure annotations is initialized as an array
-        const targetAnnotations = Array.isArray(targetDocument.annotations) ? targetDocument.annotations : [];
-        
-        const updatedAnnotations = targetAnnotations.filter((anno) => anno.id !== id);
-        
-        // Update local state immediately
-        set((state) => ({
-          documents: state.documents.map((doc) =>
-            doc.id === annotationDocumentId ? { ...doc, annotations: updatedAnnotations } : doc
+        set((currentState) => ({
+          documents: currentState.documents.map((doc) =>
+            doc.id === annotationDocumentId ? optimisticallyUpdatedDocument : doc
           ),
         }));
         
         // Then save to server
         try {
-          await saveDocumentToServer({ ...targetDocument, annotations: updatedAnnotations });
+          await saveDocumentToServer(optimisticallyUpdatedDocument);
         } catch (error) {
           console.error('Error deleting annotation from server:', error);
-          set({ error: 'Failed to delete annotation from server. Changes may not persist.' });
+          // Rollback the optimistic update
+          set((currentState) => ({
+            documents: currentState.documents.map((doc) =>
+              doc.id === annotationDocumentId ? originalDocument : doc // Revert to the original document copy
+            ),
+            error: 'Failed to delete annotation. Document save failed. Local changes reverted.',
+          }));
         }
       },
       
@@ -901,37 +992,40 @@ export const useDocumentStore = create<DocumentStore>()(
         
         try {
           console.log("Adding composition:", name);
-          
-          // Create compositions folder if it doesn't exist
-          const compositionsFolder = get().folders.find(folder => folder.name === 'compositions' && folder.parentId === null);
-          let compositionsFolderId = compositionsFolder?.id;
-          
-          console.log("Existing compositions folder:", compositionsFolder);
-          
+          const originalCompositions = JSON.parse(JSON.stringify(get().compositions));
+          let compositionsFolderId = get().folders.find(folder => folder.name === 'compositions' && folder.parentId === null)?.id;
+
+          // 1. Ensure 'compositions' folder exists or create it
           if (!compositionsFolderId) {
-            // Create the compositions folder
             const folderTimestamp = new Date();
-            const newFolder: Folder = {
-              id: generateUniqueId('folder'),
+            const newCompositionsFolder: Folder = {
+              id: generateUniqueId('folder-compositions'), // More specific ID
               name: 'compositions',
               createdAt: folderTimestamp,
               parentId: null,
             };
             
-            console.log("Creating new compositions folder:", newFolder);
-            
-            // Add to local state
-            set(state => ({
-              folders: [...state.folders, newFolder]
-            }));
-            
-            // Save to server
-            await saveFolderToServer(newFolder);
-            
-            compositionsFolderId = newFolder.id;
+            // Optimistically add folder to local state
+            const originalFolders = JSON.parse(JSON.stringify(get().folders));
+            set(state => ({ folders: [...state.folders, newCompositionsFolder] }));
+
+            try {
+              await saveFolderToServer(newCompositionsFolder);
+              compositionsFolderId = newCompositionsFolder.id;
+            } catch (folderError) {
+              console.error('Error creating compositions folder:', folderError);
+              set({ 
+                folders: originalFolders, // Rollback folder creation
+                error: 'Failed to create compositions folder on server. Composition not added.' 
+              });
+              throw folderError; // Stop execution
+            }
           }
-          
-          // Create a markdown document for the composition
+
+          // 2. Optimistically add composition to the compositions array
+          set(state => ({ compositions: [...state.compositions, newComposition] }));
+
+          // 3. Create and save the backing Markdown document
           const compositionContent = `---
 title: ${name}
 date: ${timestamp.toISOString()}
@@ -941,60 +1035,72 @@ contextDocuments: ${JSON.stringify(contextDocuments)}
 
 ${content}`;
           
-          console.log("Adding document to compositions folder:", compositionsFolderId);
-          
-          // Add the document to the compositions folder
-          const documentId = await get().addDocument(name, compositionContent, compositionsFolderId);
-          
-          console.log("Document added with ID:", documentId);
-          
-          // Add to compositions array
-          set(state => ({
-            compositions: [...state.compositions, newComposition]
-          }));
-          
-          // Reload compositions to ensure everything is in sync
-          setTimeout(() => {
-            get().loadCompositions();
-          }, 500);
-          
-          return newComposition.id;
-        } catch (error) {
-          console.error('Error adding composition:', error);
-          set({ error: 'Failed to add composition' });
+          try {
+            // addDocument has its own rollback for the documents array
+            const documentId = await get().addDocument(name, compositionContent, compositionsFolderId);
+            console.log("Composition backing document added with ID:", documentId);
+            // If addDocument succeeds, the newComposition.id is returned
+            return newComposition.id;
+          } catch (docError) {
+            console.error('Error adding composition backing document:', docError);
+            // Rollback optimistic update to compositions array
+            set({ 
+              compositions: originalCompositions,
+              error: `Failed to add composition: backing document could not be saved. ${docError instanceof Error ? docError.message : String(docError)}`
+            });
+            throw docError; // Re-throw to indicate failure
+          }
+        } catch (error) { // This outer catch handles errors from folder creation primarily
+          console.error('Error in addComposition:', error);
+          // Ensure compositions array is rolled back if an error occurred before document saving attempt.
+          // If docError was thrown, compositions are already rolled back.
+          if (!(error instanceof Error && error.message.includes("backing document"))) {
+             set(state => ({ compositions: originalCompositions }));
+          }
+          // Set a general error if not already set by specific failures
+          if (!get().error) {
+            set({ error: 'Failed to add composition due to an unexpected error.' });
+          }
           throw error;
         }
       },
       
       updateComposition: async (id, data) => {
         set({ error: null });
+        const originalCompositions = JSON.parse(JSON.stringify(get().compositions));
+        const compositionToUpdate = get().compositions.find(comp => comp.id === id);
+
+        if (!compositionToUpdate) {
+          set({ error: 'Composition not found for update.' });
+          throw new Error('Composition not found');
+        }
+        
+        const originalCompositionCopy = JSON.parse(JSON.stringify(compositionToUpdate));
+
+        // Optimistic update for compositions array
+        const updatedComposition = {
+          ...compositionToUpdate,
+          ...data,
+          updatedAt: new Date()
+        };
+        set(state => ({
+          compositions: state.compositions.map(comp => 
+            comp.id === id ? updatedComposition : comp
+          )
+        }));
         
         try {
-          // Find the composition
-          const composition = get().compositions.find(comp => comp.id === id);
-          if (!composition) {
-            throw new Error('Composition not found');
-          }
-          
-          // Update the composition
-          const updatedComposition = {
-            ...composition,
-            ...data,
-            updatedAt: new Date()
-          };
-          
-          // Update in state
-          set(state => ({
-            compositions: state.compositions.map(comp => 
-              comp.id === id ? updatedComposition : comp
-            )
-          }));
-          
           // Find the corresponding document
-          const document = get().documents.find(doc => doc.name === composition.name && doc.folderId === get().folders.find(f => f.name === 'compositions')?.id);
+          // Assuming composition name might change, so need to find by original name or ID if possible
+          // For now, let's assume name or an ID stored in doc frontmatter is used for lookup
+          // This part might need adjustment based on how documents are linked to compositions
+          const compositionsFolderId = get().folders.find(f => f.name === 'compositions' && f.parentId === null)?.id;
+          const document = get().documents.find(doc => 
+            doc.name === originalCompositionCopy.name && doc.folderId === compositionsFolderId
+            // Potentially, a better link would be `doc.frontmatter.compositionId === id`
+          );
           
           if (document) {
-            // Update the document content with the new composition data
             const compositionContent = `---
 title: ${updatedComposition.name}
 date: ${updatedComposition.updatedAt.toISOString()}
@@ -1004,58 +1110,67 @@ contextDocuments: ${JSON.stringify(updatedComposition.contextDocuments)}
 
 ${updatedComposition.content}`;
             
+            // updateDocument handles its own rollback for the documents array
             await get().updateDocument(document.id, { 
               content: compositionContent,
-              name: updatedComposition.name
+              name: updatedComposition.name // Update name if it changed
             });
+          } else {
+            // If document not found, this is an inconsistency.
+            // Rollback optimistic compositions update and throw error.
+            console.error('Backing document for composition not found during update.');
+            set({ compositions: originalCompositions, error: 'Failed to update composition: backing document not found.' });
+            throw new Error('Backing document not found');
           }
-          
-          return;
         } catch (error) {
           console.error('Error updating composition:', error);
-          set({ error: 'Failed to update composition' });
+          // Rollback optimistic update to compositions array
+          set({ 
+            compositions: originalCompositions,
+            error: `Failed to update composition: backing document update failed. ${error instanceof Error ? error.message : String(error)}`
+          });
           throw error;
         }
       },
       
       deleteComposition: async (id) => {
         set({ error: null });
+        const originalCompositions = JSON.parse(JSON.stringify(get().compositions));
+        const compositionToDelete = get().compositions.find(comp => comp.id === id);
+
+        if (!compositionToDelete) {
+          set({ error: 'Composition not found for deletion.' });
+          throw new Error('Composition not found');
+        }
+
+        // Optimistic removal from compositions array
+        set(state => ({
+          compositions: state.compositions.filter(comp => comp.id !== id)
+        }));
         
         try {
-          // Find the composition
-          const composition = get().compositions.find(comp => comp.id === id);
-          if (!composition) {
-            throw new Error('Composition not found');
-          }
-          
-          // Delete the composition
-          const updatedCompositions = get().compositions.filter(comp => comp.id !== id);
-          
-          // Update in state
-          set(state => ({
-            compositions: updatedCompositions
-          }));
-          
-          // Find the corresponding document
-          const document = get().documents.find(doc => doc.name === composition.name && doc.folderId === get().folders.find(f => f.name === 'compositions')?.id);
+          const compositionsFolderId = get().folders.find(f => f.name === 'compositions' && f.parentId === null)?.id;
+          const document = get().documents.find(doc => 
+            doc.name === compositionToDelete.name && doc.folderId === compositionsFolderId
+            // As with update, a more robust link (e.g., frontmatter ID) would be better
+          );
           
           if (document) {
-            // Delete the document
-            const updatedDocuments = get().documents.filter(doc => doc.id !== document.id);
-            
-            // Update in state
-            set(state => ({
-              documents: updatedDocuments
-            }));
-            
-            // Delete from server
-            await deleteDocumentFromServer(document.id);
+            // deleteDocument handles its own rollback for the documents array
+            await get().deleteDocument(document.id); 
+          } else {
+            // If document not found, it's an inconsistency, but the composition itself is gone.
+            // Log this, but the primary goal (delete composition) is "achieved" optimistically.
+            // Server state might be inconsistent if this happens.
+            console.warn(`Backing document for composition ID ${id} not found during deletion. The composition entry was removed locally.`);
           }
-          
-          return;
         } catch (error) {
           console.error('Error deleting composition:', error);
-          set({ error: 'Failed to delete composition' });
+          // Rollback optimistic removal from compositions array
+          set({ 
+            compositions: originalCompositions,
+            error: `Failed to delete composition: backing document deletion failed. ${error instanceof Error ? error.message : String(error)}`
+          });
           throw error;
         }
       },
@@ -1229,7 +1344,9 @@ ${updatedComposition.content}`;
         return (state) => {
           if (state) {
             state.documents = fixDates(state.documents);
-            console.log('Document store hydrated');
+            state.folders = fixDates(state.folders);
+            state.compositions = fixDates(state.compositions);
+            console.log('Document store hydrated and dates fixed for documents, folders, and compositions');
           }
         };
       }
