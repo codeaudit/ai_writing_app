@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { GlobalStatusNotifier } from "@/components/global-status-notifier";
 import ConfigInitializer from "@/components/config-initializer";
 import { TrpcProvider } from '@/components/trpc-provider';
 import { AuthProvider } from '@/components/auth/auth-provider';
