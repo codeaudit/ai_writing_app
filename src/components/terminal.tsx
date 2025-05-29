@@ -354,7 +354,7 @@ const commandRegistry = {
       
       const id = args[0];
       const newName = args.slice(1).join(' ');
-      const { documents, folders, renameDocument, updateFolder } = terminal.store;
+      const { documents, folders, renameDocument, renameFolder } = terminal.store;
       
       const doc = documents.find((d: Document) => d.id === id);
       const folder = folders.find((f: Folder) => f.id === id);
@@ -368,7 +368,7 @@ const commandRegistry = {
         }
       } else if (folder) {
         try {
-          await updateFolder(id, newName);
+          await renameFolder(id, newName);
           terminal.println(`Folder renamed to: ${newName}`);
         } catch (error) {
           terminal.println(`Error renaming folder: ${error}`);

@@ -420,7 +420,7 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
     }
   };
 
-  // Update move to trash function
+  // Optimized move to trash function to prevent excessive refreshes
   const moveToTrash = async (item: FileItem) => {
     if (!trashFolderId) {
       toast({
@@ -475,11 +475,8 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
         }
       }
       
-      // Force refresh the directory listing
-      setItems([]);
-      setTimeout(() => {
-        loadDirectoryContents();
-      }, 200);
+      // The store update will trigger the useEffect dependency on documents/folders
+      // so we don't need to manually force a refresh here
     } catch (error) {
       toast({
         variant: "destructive",
@@ -489,7 +486,7 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
     }
   };
 
-  // Add function to empty trash
+  // Optimized empty trash function to prevent excessive refreshes
   const emptyTrash = async () => {
     if (!trashFolderId) return;
     
@@ -518,11 +515,8 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
         description: "All items in trash have been permanently deleted."
       });
       
-      // Refresh the directory view
-      setItems([]);
-      setTimeout(() => {
-        loadDirectoryContents();
-      }, 200);
+      // The store update will trigger the useEffect dependency on documents/folders
+      // so we don't need to manually force a refresh here
     } catch (error) {
       toast({
         variant: "destructive",
@@ -727,14 +721,8 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
           description: "The directory has been copied successfully."
         });
         
-        // Force refresh of the component state
-        setItems([]); // Clear the items first
-        
-        // Add a delay to ensure store changes are complete
-        setTimeout(() => {
-          loadDirectoryContents(); // Then reload
-        }, 200);
-        
+        // The store update will trigger the useEffect dependency on folders
+        // so we don't need to manually force a refresh here
       } catch (error) {
         toast({
           variant: "destructive",
@@ -851,7 +839,7 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
     );
   }
 
-  // Fix submitRename to ensure UI updates correctly
+  // Optimized submitRename to prevent excessive refreshes
   const submitRename = async () => {
     if (!itemToRename || !newName.trim() || newName === itemToRename.name) {
       // Cancel if no item or no change
@@ -880,13 +868,8 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
       setItemToRename(null);
       setNewName("");
       
-      // Force refresh of the component state by clearing and re-loading items
-      setItems([]); // Clear the items first
-      
-      // Add a delay to ensure store changes are complete
-      setTimeout(() => {
-        loadDirectoryContents(); // Then reload
-      }, 200);
+      // The store update will trigger the useEffect dependency on documents/folders
+      // so we don't need to manually force a refresh here
     } catch (error) {
       toast({
         variant: "destructive",
@@ -896,7 +879,7 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
     }
   };
 
-  // Fix submitMove to ensure UI updates correctly and handle folder data properly
+  // Optimized submitMove to prevent excessive refreshes
   const submitMove = async () => {
     if (!itemToMove || !targetFolder) {
       setIsMoving(false);
@@ -924,13 +907,8 @@ export function DirectoryView({ path, onFileSelect, onCompareDocuments, classNam
       setItemToMove(null);
       setTargetFolder("");
       
-      // Force refresh of the component state by clearing and re-loading items
-      setItems([]); // Clear the items first
-      
-      // Add a delay to ensure store changes are complete
-      setTimeout(() => {
-        loadDirectoryContents(); // Then reload
-      }, 200);
+      // The store update will trigger the useEffect dependency on documents/folders
+      // so we don't need to manually force a refresh here
     } catch (error) {
       toast({
         variant: "destructive",

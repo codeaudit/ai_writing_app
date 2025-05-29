@@ -741,6 +741,9 @@ export const renameDocument = (docId: string, newName: string) => {
       return null;
     }
     
+    // Store the original document name for potential rollback
+    const originalName = document.name;
+    
     // Get the old path and relative path before updating
     const oldPath = getDocumentPath(document, folders);
     const oldRelativePath = getRelativeDocumentPath(document, folders);
@@ -753,32 +756,47 @@ export const renameDocument = (docId: string, newName: string) => {
     const newPath = getDocumentPath(document, folders);
     const newRelativePath = getRelativeDocumentPath(document, folders);
     
-    // Rename the file using fs.renameSync for atomicity
-    if (fs.existsSync(oldPath)) {
+    // Safety check - if paths are the same (e.g., only case changed on case-insensitive filesystem), 
+    // use a temporary path for the operation
+    const isSamePath = oldPath.toLowerCase() === newPath.toLowerCase();
+    const tempPath = isSamePath ? `${newPath}.temp` : newPath;
+    
+    try {
       // Ensure the target directory exists
       ensureDir(path.dirname(newPath));
       
-      // Perform the rename/move
-      fs.renameSync(oldPath, newPath);
+      // Create a file at the new location with the document's content
+      const markdownContent = documentToMarkdown(document);
+      fs.writeFileSync(tempPath, markdownContent, 'utf8');
+      
+      // Delete the old file if it exists
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+      
+      // If we used a temp path (for case-only changes), rename to the final path
+      if (isSamePath && fs.existsSync(tempPath)) {
+        fs.renameSync(tempPath, newPath);
+      }
       
       // Update links pointing to the old path
       updateLinksExactMatch(oldRelativePath, newRelativePath);
-    } else {
-      // If file didn't exist, still update links based on metadata change
-      updateLinksExactMatch(oldRelativePath, newRelativePath);
+      
+      // Update the index
+      const updatedDocuments = documents.map(doc => 
+        doc.id === docId ? document : doc
+      );
+      writeJsonFile(DOCUMENTS_INDEX, updatedDocuments);
+      
+      return document;
+    } catch (error) {
+      // Rollback - restore the original document name
+      document.name = originalName;
+      console.error('Error renaming document:', error);
+      throw error;
     }
-    
-    // Update the index *only after* successful operation
-    const updatedDocuments = documents.map(doc => 
-      doc.id === docId ? document : doc
-    );
-    // Regenerate index from updated documents in memory
-    writeJsonFile(DOCUMENTS_INDEX, updatedDocuments);
-    
-    return document;
   } catch (error) {
-    console.error('Error renaming document:', error);
-    // Re-throw the error so the caller knows it failed
+    console.error('Error in renameDocument:', error);
     throw error;
   }
 };
@@ -794,6 +812,9 @@ export const renameFolder = (folderId: string, newName: string) => {
       return null;
     }
     
+    // Store the original folder name for potential rollback
+    const originalName = folder.name;
+    
     // Get the old path and relative path
     const oldPath = getFolderPath(folder, folders);
     const oldRelativeFolderPath = getRelativeFolderPath(folder, folders);
@@ -805,30 +826,70 @@ export const renameFolder = (folderId: string, newName: string) => {
     const newPath = getFolderPath(folder, folders);
     const newRelativeFolderPath = getRelativeFolderPath(folder, folders);
     
-    // Move the directory
-    if (fs.existsSync(oldPath)) {
+    // Safety check - if paths are the same (e.g., only case changed on case-insensitive filesystem), 
+    // use a temporary path for the operation
+    const isSamePath = oldPath.toLowerCase() === newPath.toLowerCase();
+    const tempPath = isSamePath ? `${newPath}_temp` : newPath;
+    
+    try {
       // Ensure the parent directory exists
       ensureDir(path.dirname(newPath));
       
-      // Rename the directory
-      fs.renameSync(oldPath, newPath);
-
+      // Create a new directory at the new location
+      if (!fs.existsSync(tempPath)) {
+        fs.mkdirSync(tempPath, { recursive: true });
+      }
+      
+      // If old folder exists, copy its contents to the new location and then delete it
+      if (fs.existsSync(oldPath)) {
+        // Get all files and subdirectories in the folder
+        const entries = fs.readdirSync(oldPath, { withFileTypes: true });
+        
+        // Copy each entry to the new location
+        for (const entry of entries) {
+          const srcPath = path.join(oldPath, entry.name);
+          const destPath = path.join(tempPath, entry.name);
+          
+          if (entry.isDirectory()) {
+            // For directories, use recursive copy
+            fs.cpSync(srcPath, destPath, { recursive: true });
+          } else {
+            // For files, use simple copy
+            fs.copyFileSync(srcPath, destPath);
+          }
+        }
+        
+        // Remove the old directory and all its contents
+        fs.rmSync(oldPath, { recursive: true, force: true });
+      }
+      
+      // If we used a temp path (for case-only changes), rename to the final path
+      if (isSamePath && fs.existsSync(tempPath)) {
+        // First ensure the final path doesn't exist (shouldn't happen but just in case)
+        if (fs.existsSync(newPath)) {
+          fs.rmSync(newPath, { recursive: true, force: true });
+        }
+        fs.renameSync(tempPath, newPath);
+      }
+      
       // Update links that used the old folder path prefix
       updateLinksFolderPrefix(oldRelativeFolderPath, newRelativeFolderPath);
-    } else {
-        // If folder didn't exist, still update links based on metadata change
-        updateLinksFolderPrefix(oldRelativeFolderPath, newRelativeFolderPath);
+      
+      // Update the index
+      const updatedFolders = folders.map(f => 
+        f.id === folderId ? folder : f
+      );
+      writeJsonFile(FOLDERS_INDEX, updatedFolders);
+      
+      return folder;
+    } catch (error) {
+      // Rollback - restore the original folder name
+      folder.name = originalName;
+      console.error('Error renaming folder:', error);
+      throw error;
     }
-    
-    // Update the index
-    const updatedFolders = folders.map(f => 
-      f.id === folderId ? folder : f
-    );
-    writeJsonFile(FOLDERS_INDEX, updatedFolders);
-    
-    return folder;
   } catch (error) {
-    console.error('Error renaming folder:', error);
+    console.error('Error in renameFolder:', error);
     throw error;
   }
 };

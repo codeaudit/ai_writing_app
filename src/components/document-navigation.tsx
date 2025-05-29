@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useContext, useEffect, createContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { 
   File, 
   FolderIcon, 
@@ -26,7 +27,8 @@ import {
   Move,
   Shield,
   Copy,
-  History
+  History,
+  Trash2
 } from "lucide-react";
 
 import {
@@ -42,7 +44,7 @@ import {
 import {
   useDocumentStore,
   Document,
-  Folder
+  Folder as FolderType
 } from "@/lib/store";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -113,7 +115,7 @@ function getFolderIcon(folder: { id: string; name: string; parentId: string | nu
   const folderWithDate = {
     ...folder,
     createdAt: new Date() // Add a placeholder date since it's only used for type checking
-  } as Folder;
+  } as FolderType;
   
   const specialDirType = getSpecialDirectoryType(folderWithDate);
   
@@ -166,7 +168,8 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
     moveFolder,
     toggleComparisonFolder,
     copyFolder,
-    specialDirectoryIds
+    specialDirectoryIds,
+    renameFolder
   } = useDocumentStore();
 
   const childFolders = folders.filter(f => f.parentId === folder.id);
@@ -224,7 +227,7 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
   const folderWithDate = {
     ...folder,
     createdAt: new Date() // Add a placeholder date for type compatibility
-  } as Folder;
+  } as FolderType;
 
   // Check if this is a special directory
   const isSpecial = isSpecialDirectory(folderWithDate);
@@ -232,7 +235,7 @@ function FolderItem({ folder, level, comparisonMode, filteredDocuments, searchQu
 
   const handleRename = () => {
     if (newName.trim() && newName !== folder.name) {
-      updateFolder(folder.id, newName.trim());
+      renameFolder(folder.id, newName.trim());
     }
     setIsRenaming(false);
   };
@@ -651,7 +654,7 @@ function DocumentItem({ document, level, filteredDocuments, onFileSelect, trashF
       const folderWithDate = {
         ...folder,
         createdAt: folder.createdAt instanceof Date ? folder.createdAt : new Date()
-      } as Folder;
+      } as FolderType;
       
       // Check if it's protected
       return isDirectoryProtected(folderWithDate);
@@ -931,7 +934,8 @@ export function DocumentNavigation({ onCompareDocuments, onFileSelect, className
     copyFolder,
     moveDocument,
     moveFolder,
-    specialDirectoryIds
+    specialDirectoryIds,
+    renameFolder
   } = useDocumentStore();
   
   const [searchQuery, setSearchQuery] = useState("");
