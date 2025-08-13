@@ -31,7 +31,7 @@
   },
   {
     "id": "folder-1743680060696",
-    "name": "test",
+    "name": "testz",
     "createdAt": "2025-04-03T11:34:20.696Z",
     "parentId": "folder-1742346055866-k6ddp67"
   },
@@ -78,6 +78,18 @@
     "parentId": null
   },
   {
+    "id": "folder-1752146226564-ipade1f",
+    "name": "comparing_ideas_5",
+    "createdAt": "2025-07-10T11:17:06.564Z",
+    "parentId": null
+  },
+  {
+    "id": "folder-1752146226564-rx3b7ef",
+    "name": "comparing_ideas_6",
+    "createdAt": "2025-07-10T11:17:06.564Z",
+    "parentId": null
+  },
+  {
     "id": "folder-1742346055866-xwcn75p",
     "name": "composition_templates",
     "createdAt": "2025-03-19T01:00:55.866Z",
@@ -102,6 +114,18 @@
     "parentId": "folder-1743688027121"
   },
   {
+    "id": "folder-1752146226565-6q93zs3",
+    "name": "gemini",
+    "createdAt": "2025-07-10T11:17:06.565Z",
+    "parentId": "folder-1743688083869"
+  },
+  {
+    "id": "folder-1752146226566-umr8d9d",
+    "name": "gemini-2",
+    "createdAt": "2025-07-10T11:17:06.566Z",
+    "parentId": "folder-1743688083869"
+  },
+  {
     "id": "folder-1743724763595-kd60zxe",
     "name": "gemini-2.5",
     "createdAt": "2025-04-03T23:59:23.595Z",
@@ -111,6 +135,18 @@
     "id": "folder-1743730569986-caftvp5",
     "name": "gemini-2.5 (Copy)",
     "createdAt": "2025-04-04T01:36:09.986Z",
+    "parentId": "folder-1743688083869"
+  },
+  {
+    "id": "folder-1752146226566-tbuneby",
+    "name": "gemini-2.5-2",
+    "createdAt": "2025-07-10T11:17:06.566Z",
+    "parentId": "folder-1743688083869"
+  },
+  {
+    "id": "folder-1752146226566-txvzyca",
+    "name": "gemini-2.5-3",
+    "createdAt": "2025-07-10T11:17:06.566Z",
     "parentId": "folder-1743688083869"
   },
   {
@@ -126,6 +162,18 @@
     "parentId": "folder-1743688083869"
   },
   {
+    "id": "folder-1752146226566-ds6cr6x",
+    "name": "xxx",
+    "createdAt": "2025-07-10T11:17:06.567Z",
+    "parentId": "folder-1743688083869"
+  },
+  {
+    "id": "folder-1752146226567-flcm3zb",
+    "name": "yyy",
+    "createdAt": "2025-07-10T11:17:06.567Z",
+    "parentId": "folder-1743688083869"
+  },
+  {
     "id": "folder-1743781823253",
     "name": "trash",
     "createdAt": "2025-04-04T15:50:23.253Z",
@@ -135,6 +183,18 @@
     "id": "folder-1743733092916-y3zpoid",
     "name": "examples",
     "createdAt": "2025-04-04T02:18:12.916Z",
+    "parentId": null
+  },
+  {
+    "id": "folder-1752146226567-u43af1s",
+    "name": "gemini-2.5",
+    "createdAt": "2025-07-10T11:17:06.567Z",
+    "parentId": null
+  },
+  {
+    "id": "folder-1752146226567-xlnafxo",
+    "name": "o1-pro",
+    "createdAt": "2025-07-10T11:17:06.567Z",
     "parentId": null
   },
   {

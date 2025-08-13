@@ -72,6 +72,7 @@
     "jszip": "^3.10.1",
     "katex": "^0.16.21",
     "langchain": "^0.3.19",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.479.0",
     "marked": "^15.0.7",
     "mdx-bundler": "^10.1.1",

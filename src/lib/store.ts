@@ -33,6 +33,7 @@ import {
   initializeSpecialDirectories,
   SpecialDirectoryIds
 } from './special-directories';
+import { debounce } from 'lodash';
 
 export interface DocumentVersion {
   id: string;
@@ -139,6 +140,7 @@ interface DocumentStore {
   // Data loading
   loadData: () => Promise<void>;
   setError: (error: string | null) => void;
+  debouncedLoadData: () => void;
   
   // Composition operations
   addComposition: (name: string, content: string, contextDocuments: Array<{id: string; name: string}>) => Promise<string>;
@@ -657,14 +659,17 @@ export const useDocumentStore = create<DocumentStore>()(
         set({ error: null });
         
         try {
-          const { document, updatedLinks } = await renameDocumentOnServer(documentId, newName);
+          const { updatedLinks } = await renameDocumentOnServer(documentId, newName);
           
-          // Update local state
+          // Optimistic local update
           set((state) => ({
             documents: state.documents.map((doc) => 
-              doc.id === documentId ? document : doc
+              doc.id === documentId ? { ...doc, name: newName } : doc
             ),
           }));
+          
+          // Trigger debounced full refresh
+          get().debouncedLoadData();
           
           // Show success message if links were updated
           if (updatedLinks > 0) {
@@ -680,14 +685,17 @@ export const useDocumentStore = create<DocumentStore>()(
         set({ error: null });
         
         try {
-          const folder = await renameFolderOnServer(folderId, newName);
+          await renameFolderOnServer(folderId, newName);
           
-          // Update local state
+          // Optimistic local update
           set((state) => ({
             folders: state.folders.map((f) => 
-              f.id === folderId ? folder : f
+              f.id === folderId ? { ...f, name: newName } : f
             ),
           }));
+          
+          // Trigger debounced full refresh
+          get().debouncedLoadData();
         } catch (error) {
           console.error('Error renaming folder:', error);
           set({ error: error instanceof Error ? error.message : 'Failed to rename folder' });
@@ -1215,7 +1223,10 @@ ${updatedComposition.content}`;
           set({ error: error instanceof Error ? error.message : 'Failed to copy folder' });
           throw error;
         }
-      }
+      },
+      debouncedLoadData: debounce(async () => {
+        await get().loadData();
+      }, 500)
     }),
     {
       name: 'document-store',
