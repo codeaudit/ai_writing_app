@@ -10,6 +10,7 @@ import { siteConfig } from '@/config/site';
 import { initializeMCPServers } from '@/lib/mcp-server-manager';
 import fs from 'fs';
 import path from 'path';
+import { ErrorListener } from '@/components/error-listener';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -104,6 +105,7 @@ export default function RootLayout({
                   {/* Main content */}
                   <div className="relative">
                     <ConfigInitializer />
+                    <ErrorListener />
                     {children}
                     <Toaster />
                   </div>
