@@ -18,11 +18,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1755078927204-lnx9url",
+    "id": "doc-1764965874066-lrkxg1h",
     "name": "Test_Session_Doc",
     "content": "# Test Document for Session\n",
-    "createdAt": "2025-08-13T09:55:27.204Z",
-    "updatedAt": "2025-08-13T09:55:27.204Z",
+    "createdAt": "2025-12-05T20:17:54.066Z",
+    "updatedAt": "2025-12-05T20:17:54.066Z",
     "versions": [],
     "folderId": null,
     "annotations": [],
@@ -853,22 +853,22 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1755078927211-wkd7u30",
+    "id": "doc-1764965874080-rwpzkts",
     "name": "mcp-servers",
     "content": "# MCP Servers Configuration\n\nThis file contains configuration for installed MCP servers.\n\n```yaml\nservers:\n  - qualifiedName: exa\n    config:\n      exaApiKey: b4f1c7aa-6263-47c3-bb82-897414271ffc\n      apiKey: b4f1c7aa-6263-47c3-bb82-897414271ffc\n      description: |-\n        Fast, intelligent web search and crawling.\n\n        Exa combines embeddings and traditional search to deliver the best results for LLMs.\n      homepage: https://smithery.ai/server/exa\n      owner: ''\n      repo: ''\n      enabled: true\n      useCount: 25854\n      createdAt: '2024-12-13T15:46:50.750Z'\n    enabled: true\n    name: Exa Search\n    deploymentUrl: https://server.smithery.ai/exa\n    connections:\n      - type: stdio\n        configSchema:\n          type: object\n          required:\n            - exaApiKey\n          properties:\n            exaApiKey:\n              type: string\n              description: The API key for the Exa AI Search server.\n        exampleConfig:\n          exaApiKey: your-api-key-here\n        published: true\n        stdioFunction: 'config => ({ command: ''npx'', args: [''-y'', ''exa-mcp-server''], env: { EXA_API_KEY: config.exaApiKey } })'\n      - type: ws\n        deploymentUrl: https://server.smithery.ai/exa\n        configSchema:\n          type: object\n          required:\n            - exaApiKey\n          properties:\n            exaApiKey:\n              type: string\n              description: The API key for accessing the Exa Search API.\n\n```\n",
-    "createdAt": "2025-08-13T09:55:27.211Z",
-    "updatedAt": "2025-08-13T09:55:27.211Z",
+    "createdAt": "2025-12-05T20:17:54.080Z",
+    "updatedAt": "2025-12-05T20:17:54.080Z",
     "versions": [],
     "folderId": "folder-1742582748295-cvk7ccu",
     "annotations": [],
     "contextDocuments": []
   },
   {
-    "id": "doc-1755078927211-rfd0sxf",
+    "id": "doc-1764965874080-qyohnc6",
     "name": "sessions",
     "content": "# Document Sessions\n\n## Session: TestSession\n\nID: session-testsession-1743698720392\nDescription: Designing stuff.\nColor: #627BFF\nCreated: 2025-04-03T16:45:20.392Z\nLast accessed: 2025-04-03T16:45:20.392Z\n\nDocuments:\n\n## Session: History Session 4/3/2025 1:05:43 PM\n\nID: session-history-session-4-3-2025-1-05-43-pm-1743699943081\nDescription: Session created from navigation history on 4/3/2025, 1:05:43 PM\nColor: #627BFF\nCreated: 2025-04-03T17:05:43.081Z\nLast accessed: 2025-04-03T17:05:43.081Z\n\nDocuments:\n- doc-1743699882431-kth7jbe\n- doc-1743689267813\n- doc-1743688763359-gbh7y3g\n- doc-1742662140463\n- doc-1743699882428-ci5bx3g\n- doc-1743020878197\n\n## Session: History Session 4/4/2025 11:52:43 AM\n\nID: session-history-session-4-4-2025-11-52-43-am-1743781963740\nDescription: Session created from navigation history on 4/4/2025, 11:52:43 AM\nColor: #627BFF\nCreated: 2025-04-04T15:52:43.740Z\nLast accessed: 2025-04-04T15:52:52.229Z\n\nDocuments:\n- doc-1743781877033-lh1ddoq\n- doc-1743781244101\n- doc-1742343001044\n\n",
-    "createdAt": "2025-08-13T09:55:27.211Z",
-    "updatedAt": "2025-08-13T09:55:27.211Z",
+    "createdAt": "2025-12-05T20:17:54.080Z",
+    "updatedAt": "2025-12-05T20:17:54.080Z",
     "versions": [],
     "folderId": "folder-1742582748295-cvk7ccu",
     "annotations": [],
@@ -965,11 +965,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1755078927212-oinziyr",
+    "id": "doc-1764965874081-932lqhg",
     "name": "expand",
     "content": "---\nid: doc-1742343001043\nname: expand\ncreatedAt: '2025-03-19T01:03:01.030Z'\nupdatedAt: 2025-03-27T00:53:18.591Z\nversions:\n  - id: ver-1742343001043-initial\n    createdAt: '2025-03-19T01:03:01.030Z'\n    message: Initial version\nannotations: []---\n\nExpand on the following text to make it more detailed, comprehensive, and informative:\n\n'''\n{{selectedText}}\n'''\n\nPlease provide:\n1. An expanded version with more details, examples, and explanations\n2. Additional context and background information\n3. Supporting evidence or data where relevant\n4. Elaboration on key points and concepts\n5. Logical transitions between ideas\n6. A conclusion that summarizes the expanded content ",
-    "createdAt": "2025-08-13T09:55:27.212Z",
-    "updatedAt": "2025-08-13T09:55:27.212Z",
+    "createdAt": "2025-12-05T20:17:54.081Z",
+    "updatedAt": "2025-12-05T20:17:54.081Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -1012,11 +1012,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1755078927213-tk15obl",
+    "id": "doc-1764965874082-xwf4qff",
     "name": "llm-demo",
     "content": "\n# LLM Extension Demo\n\nThis template demonstrates the capabilities of the LLM extension in Nunjucks templates.\n\n## Basic Example\n\n### Prompt: Generate a short paragraph about climate change\n\n{% llm \"Generate a short paragraph about climate change\" %}\n\n## Using Parameters\n\n### Prompt: Generate a creative story with high temperature\n\n{% llm \"Generate a short creative story about a robot discovering emotions\", \n   temperature: 0.9, \n   maxTokens: 500\n%}\n\n## Using Context Variables\n\n### Prompt: Answer a question about {{ topic | default('artificial intelligence') }}\n\n{% llm \"Write a short explanation about \" + topic | default('artificial intelligence') %}\n\n## Using AI Roles\n\n### Prompt: Write as a poet\n\n{% llm \"Write a poem about the ocean\", \n   aiRole: \"creative\"\n%}\n\n## Content Transformation\n\n### Original Content:\n```\n{{ content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.') }}\n```\n\n### LLM-Enhanced Content:\n{% llm \"Improve the following content to make it more engaging and descriptive: \" + content | default('The quick brown fox jumps over the lazy dog. This is a sample sentence used for text processing demonstrations.'),\n   temperature: 0.7,\n   maxTokens: 300\n%}\n\n## Custom Context Documents (when provided)\n\n{% if contextDocuments and contextDocuments.length > 0 %}\n### Summary of Context Documents:\n\n{% llm \"Summarize the following documents in a few paragraphs:\", \n   contextDocuments: contextDocuments,\n   temperature: 0.5\n%}\n{% else %}\n*No context documents provided. To see this feature in action, provide context documents when processing this template.*\n{% endif %}\n\n## Chat Mode Example\n\n{% llm \"Provide a conclusion based on this conversation\", \n   chat: true,\n   messages: [\n     { role: \"user\", content: \"What are the benefits of exercise?\" },\n     { role: \"assistant\", content: \"Exercise has many benefits including improved cardiovascular health, better mood through endorphin release, increased strength and flexibility, better sleep quality, and reduced risk of chronic diseases.\" },\n     { role: \"user\", content: \"What about the mental health benefits specifically?\" }\n   ]\n%}\n\n---\n\n*This template was rendered at {{ date | dateFormat('PP') }} {{ date | timeFormat }}* ",
-    "createdAt": "2025-08-13T09:55:27.213Z",
-    "updatedAt": "2025-08-13T09:55:27.213Z",
+    "createdAt": "2025-12-05T20:17:54.082Z",
+    "updatedAt": "2025-12-05T20:17:54.082Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -1059,11 +1059,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1755078927216-7efgpd3",
+    "id": "doc-1764965874083-ob7kjjc",
     "name": "product",
     "content": "\n{% set schema = {\n  \"fields\": {\n    \"productName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the product\"\n    },\n    \"category\": {\n      \"type\": \"enum\",\n      \"options\": [\"Electronics\", \"Clothing\", \"Food\", \"Books\", \"Home\", \"Other\"],\n      \"description\": \"Product category\"\n    },\n    \"price\": {\n      \"type\": \"number\",\n      \"positive\": true,\n      \"description\": \"Product price\"\n    },\n    \"inStock\": {\n      \"type\": \"boolean\",\n      \"default\": true,\n      \"description\": \"Whether the product is in stock\"\n    },\n    \"releaseDate\": {\n      \"type\": \"date\",\n      \"description\": \"Product release date\"\n    },\n    \"features\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Key product features\"\n    },\n    \"colors\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Available colors\"\n    }\n  }\n} %}\n\n# {{ title }}\n\n## Product Information\n\n**Name**: {{ productName }}\n**Category**: {{ category }}\n**Price**: ${{ price }}\n**In Stock**: {% if inStock %}Yes{% else %}No{% endif %}\n**Release Date**: {{ releaseDate | dateFormat('MMMM d, yyyy') }}\n\n## Features\n\n{% if features.length > 0 %}\n{% for feature in features %}\n- {{ feature }}\n{% endfor %}\n{% else %}\nNo features listed.\n{% endif %}\n\n## Available Colors\n\n{% if colors.length > 0 %}\n{% for color in colors %}\n- {{ color }}\n{% endfor %}\n{% else %}\nNo color options available.\n{% endif %}\n\n## Description\n\nWrite your product description here...\n\n## Notes ",
-    "createdAt": "2025-08-13T09:55:27.216Z",
-    "updatedAt": "2025-08-13T09:55:27.216Z",
+    "createdAt": "2025-12-05T20:17:54.083Z",
+    "updatedAt": "2025-12-05T20:17:54.083Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],
@@ -1153,7 +1153,7 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1755078927220-2u8htwt",
+    "id": "doc-1764965874084-68wbttu",
     "name": "Test Template",
     "content": "\nThis is a test template\n",
     "createdAt": "2023-07-05T12:00:00.000Z",
@@ -1164,11 +1164,11 @@
     "contextDocuments": []
   },
   {
-    "id": "doc-1755078927221-y7bu17g",
+    "id": "doc-1764965874084-y5q8thp",
     "name": "test_simple",
     "content": "\n# Simple LLM Test\n\nThis is a basic test of the LLM extension:\n\n{% llm \"Generate a short paragraph about climate change\" %} ",
-    "createdAt": "2025-08-13T09:55:27.221Z",
-    "updatedAt": "2025-08-13T09:55:27.221Z",
+    "createdAt": "2025-12-05T20:17:54.084Z",
+    "updatedAt": "2025-12-05T20:17:54.084Z",
     "versions": [],
     "folderId": "folder-1742346055866-pvb3iin",
     "annotations": [],

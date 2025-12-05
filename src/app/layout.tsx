@@ -37,23 +37,23 @@ let isInitialized = false;
 async function initializeApplication() {
   // Only run once
   if (isInitialized) return;
-  
+
   try {
     // Ensure vault directories exist
     const VAULT_DIR = path.join(process.cwd(), 'vault');
     const SYSTEM_DIR = path.join(VAULT_DIR, 'system');
-    
+
     // Create directories if they don't exist
     if (!fs.existsSync(VAULT_DIR)) {
       console.log("Creating vault directory:", VAULT_DIR);
       fs.mkdirSync(VAULT_DIR, { recursive: true });
     }
-    
+
     if (!fs.existsSync(SYSTEM_DIR)) {
       console.log("Creating system directory:", SYSTEM_DIR);
       fs.mkdirSync(SYSTEM_DIR, { recursive: true });
     }
-    
+
     // Initialize MCP servers
     try {
       await initializeMCPServers();
@@ -61,7 +61,7 @@ async function initializeApplication() {
     } catch (error) {
       console.error('Error initializing MCP servers at startup:', error);
     }
-    
+
     // Initialize sessions store
     try {
       await fetch(new URL('/api/initialize', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').toString());
@@ -69,7 +69,7 @@ async function initializeApplication() {
     } catch (error) {
       console.error('Error initializing sessions at startup:', error);
     }
-    
+
     // Set flag to prevent re-initialization
     isInitialized = true;
   } catch (error) {
@@ -99,9 +99,9 @@ export default function RootLayout({
               <div className="min-h-screen bg-grid">
                 <div className="relative">
                   {/* Background gradient effects */}
-                  <div className="absolute inset-0 bg-gradient-radial from-primary/5 to-transparent blur-2xl" />
-                  <div className="absolute inset-0 bg-gradient-radial from-secondary/5 to-transparent blur-2xl" />
-                  
+                  <div className="absolute inset-0 bg-gradient-radial from-primary/10 to-transparent blur-3xl opacity-50 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-radial from-secondary/10 to-transparent blur-3xl opacity-50 pointer-events-none" style={{ backgroundPosition: '50% 50%' }} />
+
                   {/* Main content */}
                   <div className="relative">
                     <ConfigInitializer />

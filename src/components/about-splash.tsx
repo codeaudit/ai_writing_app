@@ -1,23 +1,97 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { motion, useAnimation } from "framer-motion";
+import React, { useState, useEffect, useCallback } from "react";
+import { motion, useAnimation, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Sparkles, Zap, History, FolderKanban, GitCompare, Share2 } from "lucide-react";
 import { HyperText } from "@/components/magicui/hyper-text";
+import dynamic from "next/dynamic";
 
+const Splash3DScene = dynamic(() => import("@/components/splash-3d-scene").then(mod => mod.Splash3DScene), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 -z-10 bg-white/80" />
+});
 
 interface AboutSplashProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+// Floating particle component for CSS-based particles
+function FloatingParticle({ delay, x, y }: { delay: number; x: number; y: number }) {
+  return (
+    <motion.div
+      className="absolute w-1 h-1 rounded-full bg-gradient-to-br from-violet-400 to-indigo-600 opacity-60"
+      style={{ left: `${x}%`, top: `${y}%` }}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{
+        opacity: [0, 0.8, 0.4, 0.8, 0],
+        scale: [0, 1, 0.8, 1.2, 0],
+        y: [0, -30, -20, -40, -60],
+        x: [0, 10, -10, 5, 0],
+      }}
+      transition={{
+        duration: 6,
+        delay,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
+    />
+  );
+}
+
+// Magnetic button with smooth cursor tracking
+function MagneticButton({ children, onClick, className }: { children: React.ReactNode; onClick: () => void; className?: string }) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const springConfig = { stiffness: 300, damping: 20 };
+  const xSpring = useSpring(x, springConfig);
+  const ySpring = useSpring(y, springConfig);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    x.set((e.clientX - centerX) * 0.15);
+    y.set((e.clientY - centerY) * 0.15);
+  }, [x, y]);
+
+  const handleMouseLeave = useCallback(() => {
+    x.set(0);
+    y.set(0);
+  }, [x, y]);
+
+  return (
+    <motion.button
+      style={{ x: xSpring, y: ySpring }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onClick={onClick}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={className}
+    >
+      {children}
+    </motion.button>
+  );
+}
+
 export function AboutSplash({ isOpen, onClose }: AboutSplashProps) {
   const controls = useAnimation();
   const [isMounted, setIsMounted] = useState(false);
+  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; delay: number }>>([]);
 
   useEffect(() => {
     setIsMounted(true);
+    // Generate random particles
+    const newParticles = Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      delay: Math.random() * 4,
+    }));
+    setParticles(newParticles);
   }, []);
 
   useEffect(() => {
@@ -30,86 +104,155 @@ export function AboutSplash({ isOpen, onClose }: AboutSplashProps) {
 
   if (!isMounted) return null;
 
-  if (!isOpen) return null;
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+    },
+    exit: { opacity: 0, transition: { duration: 0.3 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { type: "spring", damping: 20, stiffness: 300 }
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="relative w-full max-w-4xl rounded-lg bg-background p-8 shadow-lg">
-        <Button 
-          variant="outline" 
-          size="icon" 
-          className="absolute right-4 top-4 z-20 bg-background shadow-sm" 
-          onClick={onClose}
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-md overflow-hidden"
         >
-          <X className="h-5 w-5" />
-        </Button>
+          {/* 3D Background Scene */}
+          <Splash3DScene />
 
-        {/* MagicUI Interactive Grid */}
-        <div className="relative overflow-hidden rounded-lg border bg-background p-2">
-          <div className="absolute inset-0 bg-grid-small-black/[0.2] [mask-image:linear-gradient(to_bottom_right,white,transparent,white)]" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="pointer-events-none absolute h-56 w-56 bg-gradient-radial from-purple-500/30 to-transparent blur-lg" />
-            <div className="pointer-events-none absolute h-40 w-40 bg-gradient-radial from-blue-500/40 to-transparent blur-lg" />
+          {/* Floating CSS Particles */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {particles.map((p) => (
+              <FloatingParticle key={p.id} delay={p.delay} x={p.x} y={p.y} />
+            ))}
           </div>
 
-          <div className="relative z-10 flex min-h-[400px] flex-col items-center justify-center p-8">
-            {/* Hyper Text Animation */}
-            <div className="mb-8 text-center">
-              <HyperText duration={100}>The AI Whisperer's Toolbox</HyperText>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative w-full max-w-5xl overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 bg-white/40 dark:bg-slate-900/40 shadow-[0_20px_70px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_70px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+          >
+            {/* Animated gradient border */}
+            <div className="absolute inset-0 rounded-3xl p-[1px] gradient-border opacity-50 pointer-events-none" />
 
-                
-              <motion.p 
-                className="mt-4 text-lg text-muted-foreground"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 2.6, duration: 0.5 }}
-              >
-                Create, organize, and explore patterns for better writing and thinking
-              </motion.p>
-            </div>
-
-            {/* Interactive Grid */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  className="flex flex-col items-center rounded-lg border bg-card p-6 text-center shadow-sm transition-all hover:shadow-md hover:scale-105"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 2.7 + index * 0.1 }}
-                >
-                  <div className="mb-4 rounded-full bg-primary/10 p-3">
-                    {feature.icon}
-                  </div>
-                  <h3 className="mb-2 text-lg font-medium">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {feature.description}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-
-            <motion.div 
-              className="mt-8 flex flex-col items-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 3.5, duration: 0.5 }}
+            {/* Close Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-4 top-4 z-20 text-slate-500 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white rounded-full transition-all hover:scale-110"
+              onClick={onClose}
             >
-              <p className="mb-4 text-center text-sm text-muted-foreground">
-                Inspired by Christopher Alexander's "A Pattern Language"
-              </p>
-              <Button
-                variant="default"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                onClick={onClose}
+              <X className="h-5 w-5" />
+            </Button>
+
+            <motion.div
+              className="relative z-10 flex flex-col items-center justify-center p-12"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {/* Header Section */}
+              <motion.div className="mb-12 text-center" variants={itemVariants}>
+                <motion.div
+                  className="mb-6 inline-flex items-center justify-center rounded-full border border-slate-200/50 dark:border-white/10 bg-white/60 dark:bg-slate-800/60 px-4 py-1.5 backdrop-blur-md shadow-sm"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <Sparkles className="mr-2 h-4 w-4 text-amber-500 icon-glow" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Welcome to the Future of Writing</span>
+                </motion.div>
+
+                <h1 className="mb-4 text-5xl font-bold tracking-tight md:text-6xl drop-shadow-sm">
+                  <span className="shimmer-text">
+                    AI Whisperer's Toolbox
+                  </span>
+                </h1>
+
+                <motion.p
+                  className="mx-auto max-w-2xl text-lg text-slate-600 dark:text-slate-300 font-medium"
+                  variants={itemVariants}
+                >
+                  Create, organize, and explore patterns for better writing and thinking.
+                  Inspired by Christopher Alexander's "A Pattern Language".
+                </motion.p>
+              </motion.div>
+
+              {/* Feature Grid */}
+              <motion.div
+                className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+                variants={containerVariants}
               >
-                Get Started
-              </Button>
+                {features.map((feature, index) => (
+                  <motion.div
+                    key={index}
+                    className="group relative overflow-hidden rounded-2xl border border-white/50 dark:border-white/10 bg-white/50 dark:bg-slate-800/50 p-6 transition-all duration-300 hover:border-violet-300 dark:hover:border-violet-500/50 hover:bg-white/70 dark:hover:bg-slate-800/70 hover:shadow-xl hover:-translate-y-1 backdrop-blur-sm"
+                    variants={itemVariants}
+                    whileHover={{
+                      boxShadow: "0 20px 40px -12px rgba(139, 92, 246, 0.25)"
+                    }}
+                  >
+                    <motion.div
+                      className={`mb-4 inline-flex rounded-xl bg-gradient-to-br ${feature.gradient} p-3 text-white shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl`}
+                      whileHover={{ rotate: [0, -10, 10, -5, 0] }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <span className="group-hover:icon-glow transition-all duration-300">
+                        {feature.icon}
+                      </span>
+                    </motion.div>
+                    <h3 className="mb-2 text-lg font-semibold text-slate-800 dark:text-white">{feature.title}</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
+                      {feature.description}
+                    </p>
+
+                    {/* Hover glow effect */}
+                    <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-r from-violet-500/5 via-purple-500/5 to-indigo-500/5" />
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Footer Action */}
+              <motion.div
+                className="mt-12"
+                variants={itemVariants}
+              >
+                <MagneticButton
+                  onClick={onClose}
+                  className="relative overflow-hidden rounded-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 px-10 py-4 text-lg font-semibold text-white shadow-xl transition-all hover:shadow-[0_20px_40px_-12px_rgba(139,92,246,0.5)]"
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" />
+                    Get Started
+                  </span>
+                  {/* Shimmer overlay */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                  />
+                </MagneticButton>
+              </motion.div>
             </motion.div>
-          </div>
-        </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -117,140 +260,38 @@ export function AboutSplash({ isOpen, onClose }: AboutSplashProps) {
 const features = [
   {
     title: "Pattern Creation",
-    description: "Create and edit patterns with a powerful markdown editor",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-6 w-6 text-primary"
-      >
-        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-        <polyline points="14 2 14 8 20 8" />
-        <path d="M12 18v-6" />
-        <path d="M9 15h6" />
-      </svg>
-    ),
+    description: "Create and edit patterns with a powerful markdown editor designed for clarity.",
+    icon: <Zap className="h-6 w-6" />,
+    gradient: "from-amber-400 to-orange-500",
   },
   {
     title: "AI Assistance",
-    description: "Get intelligent suggestions and help from AI as you write",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-6 w-6 text-primary"
-      >
-        <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
-      </svg>
-    ),
+    description: "Get intelligent suggestions and help from AI as you write and refine ideas.",
+    icon: <Sparkles className="h-6 w-6" />,
+    gradient: "from-violet-500 to-purple-600",
   },
   {
     title: "Version History",
-    description: "Track changes and restore previous versions of your patterns",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-6 w-6 text-primary"
-      >
-        <path d="M3 3v5h5" />
-        <path d="M3 3 9 9" />
-        <path d="M21 21v-5h-5" />
-        <path d="M21 21-7-7" />
-        <path d="M3 21v-5h5" />
-        <path d="M3 21l6-6" />
-        <path d="M21 3v5h-5" />
-        <path d="M21 3-7 7" />
-      </svg>
-    ),
+    description: "Track changes and restore previous versions of your patterns effortlessly.",
+    icon: <History className="h-6 w-6" />,
+    gradient: "from-blue-500 to-cyan-500",
   },
   {
     title: "Organization",
-    description: "Organize patterns in folders and categories for easy access",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-6 w-6 text-primary"
-      >
-        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
-      </svg>
-    ),
+    description: "Organize patterns in folders and categories for easy access and structure.",
+    icon: <FolderKanban className="h-6 w-6" />,
+    gradient: "from-emerald-400 to-teal-600",
   },
   {
     title: "Comparison",
-    description: "Compare different patterns side by side to find connections",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-6 w-6 text-primary"
-      >
-        <line x1="18" x2="18" y1="2" y2="22" />
-        <line x1="6" x2="6" y1="2" y2="22" />
-        <line x1="2" x2="22" y1="12" y2="12" />
-        <line x1="2" x2="7" y1="7" y2="7" />
-        <line x1="2" x2="7" y1="17" y2="17" />
-        <line x1="17" x2="22" y1="17" y2="17" />
-        <line x1="17" x2="22" y1="7" y2="7" />
-      </svg>
-    ),
+    description: "Compare different patterns side by side to find connections and insights.",
+    icon: <GitCompare className="h-6 w-6" />,
+    gradient: "from-pink-500 to-rose-600",
   },
   {
     title: "Export & Share",
-    description: "Export your patterns as markdown files to share with others",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-6 w-6 text-primary"
-      >
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="7 10 12 15 17 10" />
-        <line x1="12" x2="12" y1="15" y2="3" />
-      </svg>
-    ),
+    description: "Export your patterns as markdown files to share with others seamlessly.",
+    icon: <Share2 className="h-6 w-6" />,
+    gradient: "from-red-500 to-orange-500",
   },
 ]; 
